@@ -1,0 +1,23 @@
+FROM node:14-alpine
+
+WORKDIR /app
+
+# Use minimal package.json with known working versions
+COPY package-minimal.json package.json
+
+# Clean install with exact versions
+RUN npm install
+
+# Copy only essential source files
+COPY src/index.js src/index.js
+COPY src/SimpleApp.js src/SimpleApp.js
+COPY public/ public/
+
+# Set environment variables
+ENV GENERATE_SOURCEMAP=false
+ENV SKIP_PREFLIGHT_CHECK=true
+ENV REACT_APP_API_URL=http://localhost:3002
+
+EXPOSE 3000
+
+CMD ["npm", "start"]

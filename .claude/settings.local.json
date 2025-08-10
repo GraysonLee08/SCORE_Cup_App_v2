@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose:*)",
+      "Bash(npm install)",
+      "Bash(curl:*)",
+      "Bash(docker volume prune:*)",
+      "Bash(docker volume:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_console_messages",
+      "Bash(docker logs:*)",
+      "mcp__playwright__browser_install",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_snapshot",
+      "WebFetch(domain:www.chicagoscores.org)",
+      "mcp__playwright__browser_resize",
+      "Bash(npm start)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm cache:*)",
+      "Bash(npm install:*)",
+      "Bash(docker run:*)",
+      "Bash(node:*)",
+      "Bash(dir:*)",
+      "Bash(timeout 30 docker logs -f test-frontend)",
+      "Bash(docker system prune:*)",
+      "Bash(timeout 30 docker-compose logs -f tournament_frontend)",
+      "Bash(docker exec:*)",
+      "Bash(npm run build:*)",
+      "Bash(docker build:*)"
+    ],
+    "deny": []
+  }
+}

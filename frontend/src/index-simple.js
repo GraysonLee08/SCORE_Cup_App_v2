@@ -1,0 +1,7 @@
+// Simplified index.js for testing
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import SimpleApp from './SimpleApp';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<SimpleApp />);
