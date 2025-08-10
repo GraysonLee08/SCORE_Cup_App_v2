@@ -339,7 +339,7 @@ const ScheduleTab = ({
       {/* 2-Column Layout */}
       <div className="content-wrapper">
         {/* Column 1 - Add New Game */}
-        <div className="col-half">
+        <div className="col-one-third">
           <div className="content-card">
             <h3 style={{ display: "flex", alignItems: "center", marginBottom: "1rem" }}>
               <Plus className="w-5 h-5" style={{ marginRight: "0.5rem" }} />
@@ -438,7 +438,7 @@ const ScheduleTab = ({
         </div>
 
         {/* Column 2 - Tournament Schedule */}
-        <div className="col-half">
+        <div className="col-two-thirds">
           <div className="content-card">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid #e0e0e0" }}>
               <h3 style={{ display: "flex", alignItems: "center" }}>
@@ -480,36 +480,72 @@ const ScheduleTab = ({
                         {fieldNames.map(field => (
                           <td key={field} className="center">
                             {row[field] ? (
-                              <div className="game-cell">
-                                <div className="game-teams">
-                                  {row[field].homeTeam} vs {row[field].awayTeam}
+                              <div style={{ 
+                                backgroundColor: "#dbeafe", 
+                                color: "#1e40af", 
+                                padding: "0.5rem", 
+                                borderRadius: "4px", 
+                                fontSize: "0.875rem",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "0.5rem"
+                              }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1 }}>
+                                  <span style={{ fontWeight: "500" }}>
+                                    {row[field].homeTeam} vs {row[field].awayTeam}
+                                  </span>
+                                  <span style={{ 
+                                    fontSize: "0.75rem", 
+                                    textTransform: "capitalize",
+                                    backgroundColor: "rgba(30, 64, 175, 0.1)",
+                                    padding: "0.125rem 0.375rem",
+                                    borderRadius: "3px"
+                                  }}>
+                                    {row[field].status}
+                                  </span>
                                 </div>
-                                <div className="game-info">
-                                  <span className="game-status">{row[field].status}</span>
-                                  <div className="game-actions">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const game = games.find(g => g.id === row[field].id);
-                                        handleEditGame(game);
-                                      }}
-                                      className="game-action-btn edit-btn"
-                                      title="Edit game"
-                                    >
-                                      <Edit2 className="w-3 h-3" />
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const gameDesc = `${row[field].homeTeam} vs ${row[field].awayTeam} at ${row.time}`;
-                                        handleDeleteGame(row[field].id, gameDesc);
-                                      }}
-                                      className="game-action-btn delete-btn"
-                                      title="Delete game"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  </div>
+                                <div style={{ display: "flex", gap: "0.25rem", flexShrink: 0 }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const game = games.find(g => g.id === row[field].id);
+                                      handleEditGame(game);
+                                    }}
+                                    style={{
+                                      padding: "0.125rem",
+                                      borderRadius: "2px",
+                                      border: "none",
+                                      cursor: "pointer",
+                                      color: "white",
+                                      fontSize: "0.625rem",
+                                      backgroundColor: "var(--accent-color)",
+                                      transition: "background-color 0.15s ease-in-out"
+                                    }}
+                                    title="Edit game"
+                                  >
+                                    <Edit2 className="w-2 h-2" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const gameDesc = `${row[field].homeTeam} vs ${row[field].awayTeam} at ${row.time}`;
+                                      handleDeleteGame(row[field].id, gameDesc);
+                                    }}
+                                    style={{
+                                      padding: "0.125rem",
+                                      borderRadius: "2px",
+                                      border: "none",
+                                      cursor: "pointer",
+                                      color: "white",
+                                      fontSize: "0.625rem",
+                                      backgroundColor: "#ef4444",
+                                      transition: "background-color 0.15s ease-in-out"
+                                    }}
+                                    title="Delete game"
+                                  >
+                                    <Trash2 className="w-2 h-2" />
+                                  </button>
                                 </div>
                               </div>
                             ) : (

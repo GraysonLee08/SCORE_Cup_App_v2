@@ -179,239 +179,256 @@ const DisplayScreen = () => {
                   </div>
                 </div>
                 
-                <div className="card-content">
+                <div>
                   {matchesTab === "recent" && (recentGames.length > 0 ? recentGames.slice(0, 4).map((game, index) => (
-                    <div key={game.id} className="match-result">
-                      <div className="match-teams">
-                        <div className={`team-badge ${getTeamCssClass(game.home_team_name)}`}>
+                    <div key={game.id} style={{ 
+                      display: "flex", 
+                      justifyContent: "space-between", 
+                      alignItems: "center", 
+                      padding: "1rem", 
+                      borderBottom: index < recentGames.slice(0, 4).length - 1 ? "1px solid #e0e0e0" : "none"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                        <div style={{ 
+                          width: "40px", 
+                          height: "40px", 
+                          backgroundColor: "var(--primary-color)", 
+                          color: "white", 
+                          borderRadius: "50%", 
+                          display: "flex", 
+                          alignItems: "center", 
+                          justifyContent: "center", 
+                          fontSize: "0.75rem", 
+                          fontWeight: "bold" 
+                        }}>
                           {game.home_team_name ? game.home_team_name.split(' ').map(w => w[0]).join('').substring(0,2) : 'H'}
                         </div>
-                        <div className="match-info">
-                          <div className="team-names">{game.home_team_name} vs {game.away_team_name}</div>
-                          <div className="pool-name">{game.pool_name}</div>
+                        <div>
+                          <div style={{ fontWeight: "500" }}>{game.home_team_name} vs {game.away_team_name}</div>
+                          <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>{game.pool_name}</div>
                         </div>
                       </div>
-                      <div className="match-score">
-                        <div className="score">{game.home_score} - {game.away_score}</div>
-                        <div className="status-completed">✓</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                        <div style={{ fontWeight: "bold", fontSize: "1.125rem" }}>{game.home_score} - {game.away_score}</div>
+                        <div style={{ color: "#10b981" }}>✓</div>
                       </div>
                     </div>
                   )) : (
-                    <div className="empty-state">
-                      <Trophy className="empty-icon" />
+                    <div style={{ textAlign: "center", padding: "2rem" }}>
+                      <Trophy className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
                       <p>No recent matches</p>
                     </div>
                   ))}
                   
                   {matchesTab === "upcoming" && (schedule.length > 0 ? schedule.map((game, index) => (
-                    <div key={game.id} className="match-result">
-                      <div className="match-teams">
-                        <div className={`team-badge ${getTeamCssClass(game.home_team_name)}`}>
+                    <div key={game.id} style={{ 
+                      display: "flex", 
+                      justifyContent: "space-between", 
+                      alignItems: "center", 
+                      padding: "1rem", 
+                      borderBottom: index < schedule.length - 1 ? "1px solid #e0e0e0" : "none"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                        <div style={{ 
+                          width: "40px", 
+                          height: "40px", 
+                          backgroundColor: "var(--accent-color)", 
+                          color: "#333", 
+                          borderRadius: "50%", 
+                          display: "flex", 
+                          alignItems: "center", 
+                          justifyContent: "center", 
+                          fontSize: "0.75rem", 
+                          fontWeight: "bold" 
+                        }}>
                           {game.home_team_name ? game.home_team_name.split(' ').map(w => w[0]).join('').substring(0,2) : 'H'}
                         </div>
-                        <div className="match-info">
-                          <div className="team-names">{game.home_team_name} vs {game.away_team_name}</div>
-                          <div className="pool-name">{game.pool_name}</div>
+                        <div>
+                          <div style={{ fontWeight: "500" }}>{game.home_team_name} vs {game.away_team_name}</div>
+                          <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>{game.pool_name}</div>
                         </div>
                       </div>
-                      <div className="match-score">
-                        <div className="score">{game.scheduled_start_time || 'TBD'}</div>
-                        <div className="status-scheduled">⏰</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                        <div style={{ fontWeight: "bold" }}>{game.scheduled_start_time || 'TBD'}</div>
+                        <div style={{ color: "var(--accent-color)" }}>⏰</div>
                       </div>
                     </div>
                   )) : (
-                    <div className="empty-state">
-                      <Calendar className="empty-icon" />
+                    <div style={{ textAlign: "center", padding: "2rem" }}>
+                      <Calendar className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
                       <p>No upcoming matches</p>
                     </div>
                   ))}
                   
                   {matchesTab === "live" && (
-                    <div className="empty-state">
-                      <Trophy className="empty-icon" />
+                    <div style={{ textAlign: "center", padding: "2rem" }}>
+                      <Trophy className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
                       <p>No live matches</p>
                     </div>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Announcements Card */}
-              <div className="tournament-card card-secondary">
-                <div className="card-header">
-                  <h3 className="card-title">📢 Latest Updates</h3>
-                </div>
-                <div className="card-content">
-                  {announcements.length > 0 ? announcements.slice(0, 3).map((announcement) => (
-                    <div key={announcement.id} className="announcement-item">
-                      <div className="announcement-content">
-                        <h4 className="announcement-title">{announcement.title}</h4>
-                        <p className="announcement-text">{announcement.message.substring(0, 100)}...</p>
-                        <div className="announcement-meta">
-                          <span className="badge-new">New</span>
-                          <span className="announcement-date">
-                            {new Date(announcement.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
+            {/* Announcements Card */}
+            <div className="col-one-third">
+              <div className="content-card">
+                <h3 style={{ marginBottom: "1rem" }}>📢 Latest Updates</h3>
+                <div>
+                  {announcements.length > 0 ? announcements.slice(0, 3).map((announcement, index) => (
+                    <div key={announcement.id} style={{ 
+                      padding: "1rem", 
+                      borderBottom: index < announcements.slice(0, 3).length - 1 ? "1px solid #e0e0e0" : "none"
+                    }}>
+                      <h4 style={{ fontSize: "0.9375rem", fontWeight: "600", marginBottom: "0.5rem" }}>
+                        {announcement.title}
+                      </h4>
+                      <p style={{ fontSize: "0.875rem", color: "var(--text-color)", marginBottom: "0.5rem" }}>
+                        {announcement.message.substring(0, 100)}...
+                      </p>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ 
+                          fontSize: "0.75rem", 
+                          backgroundColor: "var(--primary-color)", 
+                          color: "white", 
+                          padding: "0.25rem 0.5rem", 
+                          borderRadius: "4px" 
+                        }}>
+                          New
+                        </span>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-light)" }}>
+                          {new Date(announcement.created_at).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                   )) : (
-                    <div className="empty-state">
-                      <Calendar className="empty-icon" />
+                    <div style={{ textAlign: "center", padding: "2rem" }}>
+                      <Calendar className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
                       <p>No announcements</p>
                     </div>
                   )}
                 </div>
               </div>
             </div>
-          </section>
+          </div>
+        </div>
 
-          {/* Performance Section */}
-          <section className="tournament-section">
-            <div className="section-header">
-              <h2 className="section-title">🏆 Standings & Stats</h2>
-              <p className="section-subtitle">Current tournament rankings and statistics</p>
-            </div>
-            
-            <div className="connected-cards-grid-wide">
-              {/* Tournament Standings Card */}
-              <div className="tournament-card card-wide">
-                <div className="card-header">
-                  <h3 className="card-title">📊 Tournament Standings</h3>
-                  <span className="badge-live">Live</span>
+        {/* Performance Section */}
+        <div style={{ marginBottom: "3rem" }}>
+          <h2 style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            🏆 Standings & Stats
+          </h2>
+          <p style={{ color: "var(--text-light)", marginBottom: "2rem" }}>Current tournament rankings and statistics</p>
+          
+          <div className="content-wrapper">
+            {/* Tournament Standings Card */}
+            <div className="col-three-quarters">
+              <div className="content-card">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                  <h3>📊 Tournament Standings</h3>
+                  <span style={{ 
+                    fontSize: "0.875rem", 
+                    backgroundColor: "#d4edda", 
+                    color: "#155724", 
+                    padding: "0.25rem 0.75rem", 
+                    borderRadius: "15px" 
+                  }}>
+                    Live
+                  </span>
                 </div>
-                <div className="card-content">
+                <div>
                   {overallStandings.length > 0 ? (
-                    <div className="standings-table-container">
-                      <table className="standings-table">
-                        <thead>
-                          <tr>
-                            <th>Pos</th>
-                            <th>Team</th>
-                            <th>Pool</th>
-                            <th>P</th>
-                            <th>W</th>
-                            <th>D</th>
-                            <th>L</th>
-                            <th>GF</th>
-                            <th>GA</th>
-                            <th>GD</th>
-                            <th>Pts</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {overallStandings.slice(0, 10).map((team, index) => (
-                            <tr key={team.id}>
-                              <td className="font-semibold">{index + 1}</td>
-                              <td>
-                                <div className={`team-badge inline-block mr-2 ${getTeamCssClass(team.name)}`}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Pos</th>
+                          <th>Team</th>
+                          <th>Pool</th>
+                          <th>P</th>
+                          <th>W</th>
+                          <th>D</th>
+                          <th>L</th>
+                          <th>GF</th>
+                          <th>GA</th>
+                          <th>GD</th>
+                          <th>Pts</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {overallStandings.slice(0, 10).map((team, index) => (
+                          <tr key={team.id}>
+                            <td style={{ fontWeight: "600" }}>{index + 1}</td>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                <div style={{ 
+                                  width: "24px", 
+                                  height: "24px", 
+                                  backgroundColor: "var(--primary-color)", 
+                                  color: "white", 
+                                  borderRadius: "50%", 
+                                  display: "flex", 
+                                  alignItems: "center", 
+                                  justifyContent: "center", 
+                                  fontSize: "0.625rem", 
+                                  fontWeight: "bold" 
+                                }}>
                                   {team.name ? team.name.split(' ').map(w => w[0]).join('').substring(0,2) : 'T'}
                                 </div>
                                 {team.name}
-                              </td>
-                              <td>{team.pool_name}</td>
-                              <td>{team.games_played}</td>
-                              <td>{team.wins}</td>
-                              <td>{team.draws}</td>
-                              <td>{team.losses}</td>
-                              <td>{team.goals_for}</td>
-                              <td>{team.goals_against}</td>
-                              <td className={team.goals_for - team.goals_against >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                {team.goals_for - team.goals_against > 0 ? '+' : ''}{team.goals_for - team.goals_against}
-                              </td>
-                              <td className="font-bold">{team.points}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                              </div>
+                            </td>
+                            <td>{team.pool_name}</td>
+                            <td>{team.games_played}</td>
+                            <td>{team.wins}</td>
+                            <td>{team.draws}</td>
+                            <td>{team.losses}</td>
+                            <td>{team.goals_for}</td>
+                            <td>{team.goals_against}</td>
+                            <td style={{ color: team.goals_for - team.goals_against >= 0 ? '#10b981' : '#ef4444' }}>
+                              {team.goals_for - team.goals_against > 0 ? '+' : ''}{team.goals_for - team.goals_against}
+                            </td>
+                            <td style={{ fontWeight: "bold" }}>{team.points}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   ) : (
-                    <div className="empty-state">
-                      <Trophy className="empty-icon" />
+                    <div style={{ textAlign: "center", padding: "2rem" }}>
+                      <Trophy className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
                       <p>No standings available</p>
-                      <p className="text-sm">Set up teams and start playing games</p>
+                      <p style={{ fontSize: "0.875rem" }}>Set up teams and start playing games</p>
                     </div>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Tournament Stats Card */}
-              <div className="tournament-card">
-                <div className="card-header">
-                  <h3 className="card-title">📈 Quick Stats</h3>
-                </div>
-                <div className="card-content">
-                  <div className="space-y-4">
-                    <div className="stats-item">
-                      <div className="stats-number">{standings.length}</div>
-                      <div className="stats-label">Teams</div>
+            {/* Tournament Stats Card */}
+            <div className="col-quarter">
+              <div className="content-card">
+                <h3 style={{ marginBottom: "1.5rem" }}>📈 Quick Stats</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "2rem", fontWeight: "bold", color: "var(--primary-color)" }}>{standings.length}</div>
+                    <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>Teams</div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "2rem", fontWeight: "bold", color: "var(--primary-color)" }}>{recentGames.length}</div>
+                    <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>Games Played</div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "2rem", fontWeight: "bold", color: "var(--primary-color)" }}>
+                      {standings.filter(team => team.games_played > 0).length}
                     </div>
-                    <div className="stats-item">
-                      <div className="stats-number">{recentGames.length}</div>
-                      <div className="stats-label">Games Played</div>
-                    </div>
-                    <div className="stats-item">
-                      <div className="stats-number">{standings.filter(team => team.games_played > 0).length}</div>
-                      <div className="stats-label">Active Teams</div>
-                    </div>
+                    <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>Active Teams</div>
                   </div>
                 </div>
               </div>
             </div>
-          </section>
-
-          {/* Upcoming Schedule Section */}
-          <section className="tournament-section">
-            <div className="section-header">
-              <h2 className="section-title">📅 Upcoming Schedule</h2>
-              <p className="section-subtitle">Next games coming up</p>
-            </div>
-            
-            <div className="tournament-card">
-              <div className="card-header">
-                <h3 className="card-title">Next Matches</h3>
-              </div>
-              <div className="card-content">
-                {schedule.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {schedule.map((game, index) => (
-                      <div key={game.id} className="upcoming-game-card">
-                        <div className="game-header">
-                          <span className="game-time">{game.scheduled_start_time || 'TBD'}</span>
-                          <span className="game-field">{game.field}</span>
-                        </div>
-                        <div className="game-matchup">
-                          <div className="team-info">
-                            <div className={`team-badge ${getTeamCssClass(game.home_team_name)}`}>
-                              {game.home_team_name ? game.home_team_name.split(' ').map(w => w[0]).join('').substring(0,2) : 'H'}
-                            </div>
-                            <span className="team-name">{game.home_team_name}</span>
-                          </div>
-                          <div className="vs">vs</div>
-                          <div className="team-info">
-                            <div className={`team-badge ${getTeamCssClass(game.away_team_name)}`}>
-                              {game.away_team_name ? game.away_team_name.split(' ').map(w => w[0]).join('').substring(0,2) : 'A'}
-                            </div>
-                            <span className="team-name">{game.away_team_name}</span>
-                          </div>
-                        </div>
-                        <div className="game-pool">{game.pool_name}</div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <Calendar className="empty-icon" />
-                    <p>No upcoming games scheduled</p>
-                    <p className="text-sm">Games will appear here once scheduling is complete</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 
