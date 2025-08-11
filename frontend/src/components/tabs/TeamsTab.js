@@ -2,7 +2,7 @@
 // Teams management tab component
 
 import React, { useState, useEffect } from "react";
-import { Users, Plus, Trash2, Edit2, Save, X } from "lucide-react";
+import { Users, Plus, Trash2, Edit2, Save, X, ChevronUp, ChevronDown } from "lucide-react";
 import { createTeam, deleteTeam, updateTeam, showMessage, createPool } from "../../utils/api";
 
 const TeamsTab = ({ 
@@ -18,16 +18,76 @@ const TeamsTab = ({
   setSuccess, 
   onDataChange 
 }) => {
-  const [newTeam, setNewTeam] = useState({
-    name: "",
-    captain: "",
-    contact_email: "",
-  });
-  const [editingTeam, setEditingTeam] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [assigningPool, setAssigningPool] = useState(null); // Track which team is being assigned
-  const [poolAssignments, setPoolAssignments] = useState({}); // Track pending pool assignments
+  // localStorage keys
+  const STORAGE_KEYS = {
+    newTeam: 'teamsTab_newTeam',
+    editingTeam: 'teamsTab_editingTeam',
+    editForm: 'teamsTab_editForm',
+    assigningPool: 'teamsTab_assigningPool',
+    poolAssignments: 'teamsTab_poolAssignments',
+    sortConfig: 'teamsTab_sortConfig'
+  };
+
+  // Helper function to load from localStorage
+  const loadFromStorage = (key, defaultValue) => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch (error) {
+      console.warn(`Failed to load ${key} from localStorage:`, error);
+      return defaultValue;
+    }
+  };
+
+  // Initialize state with localStorage values
+  const [newTeam, setNewTeam] = useState(() => 
+    loadFromStorage(STORAGE_KEYS.newTeam, {
+      name: "",
+      captain: "",
+      contact_email: "",
+    })
+  );
+  const [editingTeam, setEditingTeam] = useState(() => 
+    loadFromStorage(STORAGE_KEYS.editingTeam, null)
+  );
+  const [editForm, setEditForm] = useState(() => 
+    loadFromStorage(STORAGE_KEYS.editForm, {})
+  );
+  const [assigningPool, setAssigningPool] = useState(() => 
+    loadFromStorage(STORAGE_KEYS.assigningPool, null)
+  );
+  const [poolAssignments, setPoolAssignments] = useState(() => 
+    loadFromStorage(STORAGE_KEYS.poolAssignments, {})
+  );
+  const [sortConfig, setSortConfig] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.sortConfig, { key: null, direction: 'asc' })
+  );
   const [savingAllPools, setSavingAllPools] = useState(false);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.newTeam, JSON.stringify(newTeam));
+  }, [newTeam]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.editingTeam, JSON.stringify(editingTeam));
+  }, [editingTeam]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.editForm, JSON.stringify(editForm));
+  }, [editForm]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.assigningPool, JSON.stringify(assigningPool));
+  }, [assigningPool]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.poolAssignments, JSON.stringify(poolAssignments));
+  }, [poolAssignments]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.sortConfig, JSON.stringify(sortConfig));
+  }, [sortConfig]);
 
   // Use only database pools - this is now database-driven only
   const availablePools = pools.map(pool => ({
@@ -50,6 +110,64 @@ const TeamsTab = ({
     });
     setPoolAssignments(currentAssignments);
   }, [teams]);
+
+  // Sort teams based on current sort configuration
+  const sortedTeams = React.useMemo(() => {
+    if (!sortConfig.key) {
+      return teams;
+    }
+
+    return [...teams].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // Handle special cases
+      if (sortConfig.key === 'pool') {
+        const poolA = availablePools.find(p => p.id === a.pool_id);
+        const poolB = availablePools.find(p => p.id === b.pool_id);
+        aValue = poolA ? poolA.name : '';
+        bValue = poolB ? poolB.name : '';
+      } else if (sortConfig.key === 'record') {
+        const aPoints = a.points || 0;
+        const bPoints = b.points || 0;
+        aValue = aPoints;
+        bValue = bPoints;
+      } else if (sortConfig.key === 'captain' || sortConfig.key === 'contact_email') {
+        aValue = aValue || '';
+        bValue = bValue || '';
+      }
+
+      // Convert to strings for consistent comparison
+      aValue = String(aValue).toLowerCase();
+      bValue = String(bValue).toLowerCase();
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [teams, sortConfig, availablePools]);
+
+  // Handle column sort
+  const handleSort = (key) => {
+    setSortConfig(prevConfig => ({
+      key,
+      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Get sort icon for a column
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.key !== columnKey) {
+      return null;
+    }
+    return sortConfig.direction === 'asc' ? 
+      <ChevronUp className="w-4 h-4 inline ml-1" /> : 
+      <ChevronDown className="w-4 h-4 inline ml-1" />;
+  };
 
 
   const addTeam = async () => {
@@ -269,8 +387,26 @@ const TeamsTab = ({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
         <h2>Team Management</h2>
         <div style={{ textAlign: "right" }}>
-          <span style={{ color: "var(--text-light)" }}>{teams.length} teams registered</span>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
+          <div style={{ marginBottom: "0.5rem" }}>
+            <span style={{ color: "var(--text-light)" }}>{teams.length} teams registered</span>
+            {sortConfig.key && (
+              <button
+                onClick={() => setSortConfig({ key: null, direction: 'asc' })}
+                className="btn"
+                style={{ 
+                  fontSize: "0.75rem", 
+                  padding: "0.25rem 0.5rem", 
+                  marginLeft: "0.5rem",
+                  backgroundColor: "#f59e0b",
+                  color: "#fff"
+                }}
+                title="Clear sorting"
+              >
+                Clear Sort
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <div style={{ fontSize: "0.75rem", color: "var(--text-light)" }}>
               Available pools: {availablePools.length}
             </div>
@@ -365,16 +501,46 @@ const TeamsTab = ({
           <table className="w-full standings-table">
             <thead>
               <tr className="bg-gray-100">
-                <th>Team Name</th>
-                <th>Captain</th>
-                <th>Contact</th>
-                <th>Pool Assignment</th>
-                <th>Record</th>
+                <th 
+                  className="cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('name')}
+                  title="Click to sort by team name"
+                >
+                  Team Name {getSortIcon('name')}
+                </th>
+                <th 
+                  className="cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('captain')}
+                  title="Click to sort by captain"
+                >
+                  Captain {getSortIcon('captain')}
+                </th>
+                <th 
+                  className="cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('contact_email')}
+                  title="Click to sort by contact email"
+                >
+                  Contact {getSortIcon('contact_email')}
+                </th>
+                <th 
+                  className="cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('pool')}
+                  title="Click to sort by pool assignment"
+                >
+                  Pool Assignment {getSortIcon('pool')}
+                </th>
+                <th 
+                  className="cursor-pointer hover:bg-gray-200 transition-colors"
+                  onClick={() => handleSort('record')}
+                  title="Click to sort by points/record"
+                >
+                  Record {getSortIcon('record')}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {teams.map((team) => (
+              {sortedTeams.map((team) => (
                 <tr key={team.id} className="hover:bg-gray-50">
                   {/* Team Name */}
                   <td className="font-medium">
@@ -503,16 +669,22 @@ const TeamsTab = ({
         </div>
       )}
 
-      {/* Help Section for Pool Assignments */}
-      {teams.length > 0 && availablePools.length > 0 && (
+      {/* Help Section for Table Features */}
+      {teams.length > 0 && (
         <div className="mt-6 tournament-card bg-scores-accent p-4">
-          <h4 className="font-medium text-blue-800 mb-2">💡 Pool Assignment Guide:</h4>
+          <h4 className="font-medium text-blue-800 mb-2">💡 Team Management Guide:</h4>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Select pool assignments from the dropdowns in the "Pool Assignment" column</li>
-            <li>• Changes are marked with an orange asterisk (*) until saved</li>
-            <li>• Click "Save All Pool Assignments" button to persist all changes to the database</li>
-            <li>• Pool assignments determine which teams play each other in pool games</li>
-            <li>• Teams without pool assignments won't be included in automatic scheduling</li>
+            <li>• Click on any column header to sort teams (Team Name, Captain, Contact, Pool, Record)</li>
+            <li>• Click the same header again to reverse sort direction (↑ ascending, ↓ descending)</li>
+            <li>• Use "Clear Sort" button to return to original order</li>
+            {availablePools.length > 0 && (
+              <>
+                <li>• Select pool assignments from the dropdowns in the "Pool Assignment" column</li>
+                <li>• Changes are marked with an orange asterisk (*) until saved</li>
+                <li>• Click "Save All Pool Assignments" button to persist all changes to the database</li>
+                <li>• Teams without pool assignments won't be included in automatic scheduling</li>
+              </>
+            )}
           </ul>
         </div>
       )}

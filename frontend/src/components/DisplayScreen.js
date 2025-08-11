@@ -55,8 +55,6 @@ const DisplayScreen = () => {
           ]);
           setPools(poolsRes.data || []);
           setTeams(teamsRes.data || []);
-          console.log("✅ Pools loaded:", poolsRes.data?.length || 0);
-          console.log("✅ Teams loaded:", teamsRes.data?.length || 0);
         } catch (poolError) {
           console.warn("Failed to fetch pools/teams data:", poolError);
           setPools([]);
@@ -236,7 +234,6 @@ const DisplayScreen = () => {
   };
 
   const poolStandings = calculatePoolStandings();
-  console.log("🏊‍♂️ Pool Standings calculated:", Object.keys(poolStandings).length, "pools");
 
   // Sort all teams by overall tournament performance (like MLB standings)
   const overallStandings = standings?.length > 0 ? [...standings].sort((a, b) => {
@@ -476,16 +473,7 @@ const DisplayScreen = () => {
               ))}
             </div>
           </div>
-        ) : (
-          <div style={{ marginBottom: "2rem", padding: "1rem", background: "#f8f9fa", borderRadius: "8px", fontSize: "0.875rem", color: "#6b7280" }}>
-            <strong>Pool Standings Debug:</strong><br />
-            - Pools available: {pools.length}<br />
-            - Teams available: {teams.length}<br />
-            - Pool standings calculated: {Object.keys(poolStandings).length}<br />
-            {pools.length > 0 && <span>- Pool names: {pools.map(p => p.name).join(", ")}<br /></span>}
-            {teams.length > 0 && <span>- Teams in pools: {teams.filter(t => t.pool_id).length}/{teams.length}</span>}
-          </div>
-        )}
+        ) : null}
 
         {/* Live Action Section */}
         <div style={{ marginBottom: "3rem" }}>

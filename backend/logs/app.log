@@ -206,3 +206,23 @@
 {"timestamp":"2025-08-10T21:46:04.183Z","level":"WARN","message":"404 - Endpoint not found","context":{"method":"GET","url":"/api/tournaments/1/teams","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"},"pid":18}
 {"timestamp":"2025-08-10T21:46:34.148Z","level":"WARN","message":"404 - Endpoint not found","context":{"method":"GET","url":"/api/tournaments/1/teams","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"},"pid":18}
 {"timestamp":"2025-08-10T21:46:52.171Z","level":"WARN","message":"404 - Endpoint not found","context":{"method":"GET","url":"/api/tournaments/1/teams","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"},"pid":18}
+{"timestamp":"2025-08-11T00:21:46.306Z","level":"INFO","message":"SIGTERM received, shutting down gracefully","context":{},"pid":18}
+{"timestamp":"2025-08-11T00:21:46.310Z","level":"INFO","message":"WebSocket server closed","context":{},"pid":18}
+{"timestamp":"2025-08-11T00:21:46.326Z","level":"INFO","message":"Server shut down completed","context":{},"pid":18}
+{"timestamp":"2025-08-11T00:21:57.973Z","level":"INFO","message":"Backup service initialized","context":{},"pid":18}
+{"timestamp":"2025-08-11T00:21:57.988Z","level":"INFO","message":"Statistics API routes loaded","context":{},"pid":18}
+{"timestamp":"2025-08-11T00:21:57.997Z","level":"INFO","message":"Backup API routes loaded","context":{},"pid":18}
+{"timestamp":"2025-08-11T00:21:58.022Z","level":"INFO","message":"WebSocket server initialized","context":{},"pid":18}
+{"timestamp":"2025-08-11T00:21:58.024Z","level":"INFO","message":"WebSocket server initialized successfully","context":{},"pid":18}
+{"timestamp":"2025-08-11T00:21:58.041Z","level":"INFO","message":"Tournament API server started","context":{"port":3002,"environment":"development","timestamp":"2025-08-11T00:21:58.041Z","enhancedFeatures":true},"pid":18}
+{"timestamp":"2025-08-11T00:21:58.094Z","level":"INFO","message":"Database connected successfully","context":{},"pid":18}
+{"timestamp":"2025-08-11T02:13:19.022Z","level":"INFO","message":"SIGTERM received, shutting down gracefully","context":{},"pid":18}
+{"timestamp":"2025-08-11T02:13:19.028Z","level":"INFO","message":"WebSocket server closed","context":{},"pid":18}
+{"timestamp":"2025-08-11T02:13:19.045Z","level":"INFO","message":"Server shut down completed","context":{},"pid":18}
+{"timestamp":"2025-08-11T02:13:54.458Z","level":"INFO","message":"Backup service initialized","context":{},"pid":19}
+{"timestamp":"2025-08-11T02:13:54.474Z","level":"INFO","message":"Statistics API routes loaded","context":{},"pid":19}
+{"timestamp":"2025-08-11T02:13:54.482Z","level":"INFO","message":"Backup API routes loaded","context":{},"pid":19}
+{"timestamp":"2025-08-11T02:13:54.508Z","level":"INFO","message":"WebSocket server initialized","context":{},"pid":19}
+{"timestamp":"2025-08-11T02:13:54.510Z","level":"INFO","message":"WebSocket server initialized successfully","context":{},"pid":19}
+{"timestamp":"2025-08-11T02:13:54.527Z","level":"INFO","message":"Tournament API server started","context":{"port":3002,"environment":"development","timestamp":"2025-08-11T02:13:54.527Z","enhancedFeatures":true},"pid":19}
+{"timestamp":"2025-08-11T02:13:54.585Z","level":"INFO","message":"Database connected successfully","context":{},"pid":19}
