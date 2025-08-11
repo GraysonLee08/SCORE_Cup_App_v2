@@ -296,7 +296,7 @@ const ScheduleTab = ({
   const scheduleData = createScheduleTable();
 
   const scheduleContent = (
-    <div>
+    <>
       <div style={{ textAlign: "center", marginBottom: "2rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
         <h2>Manual Schedule Builder</h2>
         <div style={{ position: "relative", display: "inline-block" }}>
@@ -562,7 +562,7 @@ const ScheduleTab = ({
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 
   const editModal = editingGame && (

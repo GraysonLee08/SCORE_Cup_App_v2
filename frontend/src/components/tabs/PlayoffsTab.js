@@ -294,9 +294,10 @@ const PlayoffsTab = ({
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/tournaments/${tournament.id}/playoffs/auto-schedule`, {
+      const response = await fetch(process.env.REACT_APP_API_URL + `/api/tournaments/${tournament.id}/playoffs/auto-schedule`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
       });
 
       const data = await response.json();
@@ -412,110 +413,156 @@ const PlayoffsTab = ({
 
       {activeView === "qualification" && (
         <div className="space-y-6">
+          {/* Generate Bracket Button at Top */}
+          {seeds.length === 8 && (
+            <div className="text-center">
+              <button
+                onClick={handleGenerateBracket}
+                disabled={loading || seeds.length !== 8}
+                className="btn"
+                style={{ 
+                  padding: "0.875rem 2rem", 
+                  fontSize: "1.125rem", 
+                  fontWeight: "600",
+                  backgroundColor: "var(--primary-color)",
+                  color: "white",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.6 : 1,
+                  transition: "all 0.2s ease"
+                }}
+              >
+                {loading ? "Generating..." : "🏆 Generate Playoff Bracket"}
+              </button>
+            </div>
+          )}
+          
           {/* Tournament Format Info */}
-          <div className="tournament-card">
-            <h3 className="font-medium text-blue-800 mb-4">Tournament Format</h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium text-gray-800 mb-2">Pool Stage</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 6 pools (A–F) with 3 teams each</li>
-                  <li>• 3 games per team (2 pool + 1 crossover)</li>
-                  <li>• Points: Win = 3, Draw = 1, Loss = 0</li>
+          <div className="content-card">
+            <h3 style={{ marginBottom: "1rem", color: "var(--primary-color)" }}>Tournament Format</h3>
+            <div className="content-wrapper">
+              <div className="col-half">
+                <h4 style={{ fontWeight: "500", marginBottom: "0.5rem" }}>Pool Stage</h4>
+                <ul style={{ fontSize: "0.875rem", color: "var(--text-light)", listStyle: "none", padding: 0, margin: 0 }}>
+                  <li style={{ marginBottom: "0.25rem" }}>• 6 pools (A–F) with 3 teams each</li>
+                  <li style={{ marginBottom: "0.25rem" }}>• 3 games per team (2 pool + 1 crossover)</li>
+                  <li style={{ marginBottom: "0.25rem" }}>• Points: Win = 3, Draw = 1, Loss = 0</li>
                 </ul>
               </div>
-              <div>
-                <h4 className="font-medium text-gray-800 mb-2">Playoff Qualification</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 6 pool winners advance automatically</li>
-                  <li>• 2 best second-place teams (wildcards)</li>
-                  <li>• Total: 8 teams in playoff bracket</li>
+              <div className="col-half">
+                <h4 style={{ fontWeight: "500", marginBottom: "0.5rem" }}>Playoff Qualification</h4>
+                <ul style={{ fontSize: "0.875rem", color: "var(--text-light)", listStyle: "none", padding: 0, margin: 0 }}>
+                  <li style={{ marginBottom: "0.25rem" }}>• 6 pool winners advance automatically</li>
+                  <li style={{ marginBottom: "0.25rem" }}>• 2 best second-place teams (wildcards)</li>
+                  <li style={{ marginBottom: "0.25rem" }}>• Total: 8 teams in playoff bracket</li>
                 </ul>
               </div>
             </div>
           </div>
 
           {/* Pool Standings */}
-          <div className="space-y-6">
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             {Object.values(poolStandings).map(({ pool, teams: poolTeams, winner, secondPlace }) => (
-              <div key={pool.id} className="tournament-card">
-                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold flex items-center">
-                      <Users className="w-5 h-5 mr-2 text-blue-500" />
+              <div key={pool.id} className="content-card">
+                <div style={{ padding: "1.5rem", borderBottom: "1px solid #e0e0e0", backgroundColor: "#f8f9fa" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <h3 style={{ fontSize: "1.125rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <Users className="w-5 h-5" style={{ color: "var(--primary-color)" }} />
                       {pool.name}
                     </h3>
-                    <div className="text-sm text-gray-500">
+                    <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>
                       {poolTeams.filter(t => t.gamesPlayed > 0).length}/{poolTeams.length} teams active
                     </div>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="standings-table">
-                    <thead className="bg-gray-50">
+                <div style={{ overflowX: "auto" }}>
+                  <table>
+                    <thead>
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pos</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">GP</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">W</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">L</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">T</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">GF</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">GA</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">GD</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pts</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th>Pos</th>
+                        <th>Team</th>
+                        <th style={{ textAlign: "center" }}>GP</th>
+                        <th style={{ textAlign: "center" }}>W</th>
+                        <th style={{ textAlign: "center" }}>L</th>
+                        <th style={{ textAlign: "center" }}>T</th>
+                        <th style={{ textAlign: "center" }}>GF</th>
+                        <th style={{ textAlign: "center" }}>GA</th>
+                        <th style={{ textAlign: "center" }}>GD</th>
+                        <th style={{ textAlign: "center" }}>Pts</th>
+                        <th style={{ textAlign: "center" }}>Status</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody>
                       {poolTeams.map((team, index) => (
-                        <tr key={team.id} className={index < 2 ? "leader" : ""}>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <span className="text-sm font-medium text-gray-900">{index + 1}</span>
+                        <tr key={team.id} style={{ backgroundColor: index < 2 ? "rgba(0, 120, 215, 0.05)" : "transparent" }}>
+                          <td>
+                            <span style={{ fontWeight: "500" }}>{index + 1}</span>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{team.name}</div>
+                          <td>
+                            <div style={{ fontWeight: "500" }}>{team.name}</div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                          <td style={{ textAlign: "center" }}>
                             {team.gamesPlayed}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                          <td style={{ textAlign: "center" }}>
                             {team.wins}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                          <td style={{ textAlign: "center" }}>
                             {team.losses}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                          <td style={{ textAlign: "center" }}>
                             {team.ties}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                          <td style={{ textAlign: "center" }}>
                             {team.goalsFor}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                          <td style={{ textAlign: "center" }}>
                             {team.goalsAgainst}
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-center text-sm">
-                            <span className={`font-medium ${
-                              team.goalDifferential > 0 ? "text-green-600" : 
-                              team.goalDifferential < 0 ? "text-red-600" : "text-gray-900"
-                            }`}>
+                          <td style={{ textAlign: "center" }}>
+                            <span style={{
+                              fontWeight: "500",
+                              color: team.goalDifferential > 0 ? "#10b981" : 
+                                     team.goalDifferential < 0 ? "#ef4444" : "var(--text-color)"
+                            }}>
                               {team.goalDifferential > 0 ? "+" : ""}{team.goalDifferential}
                             </span>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-center">
-                            <span className="text-lg font-bold text-blue-600">{team.points}</span>
+                          <td style={{ textAlign: "center" }}>
+                            <span style={{ fontSize: "1.125rem", fontWeight: "bold", color: "var(--primary-color)" }}>{team.points}</span>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-center">
+                          <td style={{ textAlign: "center" }}>
                             {index === 0 && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <Trophy className="w-3 h-3 mr-1" />
+                              <span style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "0.25rem",
+                                padding: "0.25rem 0.5rem",
+                                borderRadius: "9999px",
+                                fontSize: "0.75rem",
+                                fontWeight: "500",
+                                backgroundColor: "#dcfce7",
+                                color: "#166534"
+                              }}>
+                                <Trophy className="w-3 h-3" />
                                 Pool Winner
                               </span>
                             )}
                             {index === 1 && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                <Award className="w-3 h-3 mr-1" />
+                              <span style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "0.25rem",
+                                padding: "0.25rem 0.5rem",
+                                borderRadius: "9999px",
+                                fontSize: "0.75rem",
+                                fontWeight: "500",
+                                backgroundColor: "#fef3c7",
+                                color: "#92400e"
+                              }}>
+                                <Award className="w-3 h-3" />
                                 2nd Place
                               </span>
                             )}
@@ -529,139 +576,19 @@ const PlayoffsTab = ({
             ))}
           </div>
 
-          {/* Wildcard Selection */}
-          {wildcards.length > 0 && (
-            <div className="tournament-card">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <Zap className="w-5 h-5 mr-2 text-orange-500" />
-                Wildcard Selection (Best Second-Place Teams)
-              </h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                {wildcards.map((team, index) => (
-                  <div key={team.id} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{team.name}</h4>
-                        <p className="text-sm text-gray-600">From {team.pool_name || `Pool ${pools.find(p => p.id === team.pool_id)?.name}`}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">{team.points} pts</div>
-                        <div className="text-sm text-gray-500">GD: {team.goalDifferential}</div>
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                        <Zap className="w-3 h-3 mr-1" />
-                        Wildcard #{index + 1}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+          {/* Simple Qualification Status */}
+          {Object.values(poolStandings).filter(s => s.winner && s.winner.gamesPlayed > 0).length + wildcards.length < 8 && (
+            <div className="content-card" style={{ textAlign: "center", padding: "2rem" }}>
+              <AlertCircle className="w-12 h-12" style={{ color: "#f59e0b", margin: "0 auto 1rem", display: "block" }} />
+              <h3 style={{ color: "#f59e0b", marginBottom: "0.5rem" }}>Not Ready for Playoffs</h3>
+              <p style={{ color: "var(--text-light)" }}>
+                Complete more pool games to qualify the full 8 teams needed for playoffs.
+              </p>
+              <div style={{ marginTop: "1rem", fontSize: "0.875rem", color: "var(--text-light)" }}>
+                Currently qualified: {Object.values(poolStandings).filter(s => s.winner && s.winner.gamesPlayed > 0).length + wildcards.length} / 8 teams
               </div>
             </div>
           )}
-
-          {/* Overall Seeding */}
-          {seeds.length === 8 && (
-            <div className="tournament-card">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <Target className="w-5 h-5 mr-2 text-purple-500" />
-                Playoff Seeding (1-8)
-              </h3>
-              <div className="grid md:grid-cols-4 gap-4">
-                {seeds.map((team, index) => (
-                  <div key={team.id} className={`border-2 rounded-lg p-4 ${
-                    team.seed <= 4 ? 'border-green-200 bg-green-50' : 'border-blue-200 bg-blue-50'
-                  }`}>
-                    <div className="text-center">
-                      <div className={`text-2xl font-bold mb-2 ${
-                        team.seed <= 4 ? 'text-green-600' : 'text-blue-600'
-                      }`}>
-                        #{team.seed}
-                      </div>
-                      <h4 className="font-semibold text-gray-900 mb-1">{team.name}</h4>
-                      <div className="text-sm text-gray-600 mb-2">
-                        {team.points} pts • GD: {team.goalDifferential}
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        team.isPoolWinner 
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-orange-100 text-orange-800'
-                      }`}>
-                        {team.isPoolWinner ? (
-                          <>
-                            <Trophy className="w-3 h-3 mr-1" />
-                            Pool Winner
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="w-3 h-3 mr-1" />
-                            Wildcard
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 text-center">
-                <button
-                  onClick={handleGenerateBracket}
-                  disabled={loading || seeds.length !== 8}
-                  className="btn-primary"
-                >
-                  {loading ? "Generating..." : "Generate Playoff Bracket"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Qualification Status */}
-          <div className="tournament-card">
-            <h3 className="text-lg font-semibold mb-4">Qualification Status</h3>
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600 mb-2">
-                  {Object.values(poolStandings).filter(s => s.winner && s.winner.gamesPlayed > 0).length}
-                </div>
-                <div className="text-gray-600">Pool Winners Qualified</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600 mb-2">{wildcards.length}</div>
-                <div className="text-gray-600">Wildcards Qualified</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600 mb-2">
-                  {Object.values(poolStandings).filter(s => s.winner && s.winner.gamesPlayed > 0).length + wildcards.length}
-                </div>
-                <div className="text-gray-600">Total Qualified</div>
-              </div>
-            </div>
-            
-            {/* Debug info - temporary */}
-            <div className="mt-4 p-3 bg-gray-100 rounded text-sm">
-              <p><strong>Debug Info:</strong></p>
-              <p>Seeds calculated: {seeds.length}</p>
-              <p>Pool winners: {Object.values(poolStandings).filter(s => s.winner && s.winner.gamesPlayed > 0).length}</p>
-              <p>Wildcards: {wildcards.length}</p>
-              <p>Should show seeding section: {seeds.length === 8 ? 'YES' : 'NO'}</p>
-            </div>
-            
-            {Object.values(poolStandings).filter(s => s.winner && s.winner.gamesPlayed > 0).length + wildcards.length < 8 && (
-              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-start">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-medium text-yellow-800">Not Ready for Playoffs</h4>
-                    <p className="text-sm text-yellow-700 mt-1">
-                      Complete more pool games to qualify the full 8 teams needed for playoffs.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -677,40 +604,50 @@ const PlayoffsTab = ({
           ) : (
             <div className="space-y-8">
               {/* Auto-Schedule Button */}
-              <div className="text-center py-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="text-lg font-medium text-blue-800 mb-2">⚡ Quick Actions</h4>
-                <div className="flex justify-center space-x-4">
+              <div className="content-card" style={{ textAlign: "center", padding: "2rem" }}>
+                <h4 style={{ fontSize: "1.125rem", fontWeight: "600", color: "var(--primary-color)", marginBottom: "1rem" }}>⚡ Quick Actions</h4>
+                <div style={{ display: "flex", justifyContent: "center", gap: "1rem" }}>
                   <button
                     onClick={handleAutoSchedule}
                     disabled={loading || !playoffGames || playoffGames.length === 0}
-                    className="btn-secondary flex items-center"
+                    className="btn"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.75rem 1.5rem",
+                      fontSize: "1rem",
+                      fontWeight: "500",
+                      opacity: (loading || !playoffGames || playoffGames.length === 0) ? 0.6 : 1,
+                      cursor: (loading || !playoffGames || playoffGames.length === 0) ? "not-allowed" : "pointer"
+                    }}
                   >
-                    <Clock className="w-4 h-4 mr-2" />
+                    <Clock className="w-4 h-4" />
                     {loading ? "Scheduling..." : "Auto-Schedule All Games"}
                   </button>
                 </div>
-                <p className="text-sm text-blue-600 mt-2">
+                <p style={{ fontSize: "0.875rem", color: "var(--text-light)", marginTop: "1rem" }}>
                   Automatically assigns fields and times following tournament progression rules
                 </p>
               </div>
 
               {/* Game Management Section */}
-              <div className="grid lg:grid-cols-2 gap-6">
+              <div className="content-wrapper">
                 {/* Available Games List */}
-                <div>
-                  <h4 className="text-lg font-semibold mb-4 flex items-center">
-                    <Clock className="w-5 h-5 mr-2 text-orange-500" />
+                <div className="col-half">
+                  <h4 style={{ fontSize: "1.125rem", fontWeight: "600", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <Clock className="w-5 h-5" style={{ color: "#f59e0b" }} />
                     Playoff Games
                   </h4>
                   
                   {playoffGames.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
-                      <CheckCircle className="w-12 h-12 mx-auto mb-2 text-green-400" />
+                    <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-light)", border: "2px dashed #e0e0e0", borderRadius: "8px" }}>
+                      <CheckCircle className="w-12 h-12" style={{ color: "#10b981", margin: "0 auto 0.5rem", display: "block" }} />
                       <p>No playoff games available</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      <div className="text-xs text-gray-500 mb-2 px-1">
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "24rem", overflowY: "auto" }}>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-light)", marginBottom: "0.5rem", padding: "0 0.25rem" }}>
                         👆 Click on any game to enter/edit results
                       </div>
                       {playoffGames
@@ -719,16 +656,21 @@ const PlayoffsTab = ({
                         <div
                           key={game.id}
                           onClick={() => handleGameSelect(game)}
-                          className={`game-card ${
-                            selectedGame?.id === game.id ? "selected" : ""
-                          }`}
+                          style={{
+                            padding: "1rem",
+                            border: selectedGame?.id === game.id ? "2px solid var(--primary-color)" : "1px solid #e0e0e0",
+                            borderRadius: "8px",
+                            backgroundColor: selectedGame?.id === game.id ? "rgba(0, 120, 215, 0.05)" : "#fff",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease-in-out"
+                          }}
                         >
-                          <div className="flex justify-between items-center">
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <div>
-                              <div className="font-medium text-gray-900">
+                              <div style={{ fontWeight: "500", color: "var(--text-color)" }}>
                                 {game.home_team_name} vs {game.away_team_name}
                               </div>
-                              <div className="text-sm text-gray-500 mt-1">
+                              <div style={{ fontSize: "0.875rem", color: "var(--text-light)", marginTop: "0.25rem" }}>
                                 {game.round === 'quarterfinal' && `Quarterfinal ${game.position}`}
                                 {game.round === 'semifinal' && `Semifinal ${game.position}`}
                                 {game.round === 'final' && 'Championship Final'}
@@ -737,14 +679,16 @@ const PlayoffsTab = ({
                                 {game.status === 'completed' && ` • Final: ${game.home_score}-${game.away_score}`}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className={`text-xs font-medium ${
-                                game.status === 'completed' ? 'text-green-600' : 'text-blue-600'
-                              }`}>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{
+                                fontSize: "0.75rem",
+                                fontWeight: "500",
+                                color: game.status === 'completed' ? "#10b981" : "var(--primary-color)"
+                              }}>
                                 {game.status === 'completed' ? 'Completed' : 'Click to enter'}
                               </div>
                               {selectedGame?.id === game.id && (
-                                <div className="text-xs text-blue-700 font-bold mt-1">
+                                <div style={{ fontSize: "0.75rem", color: "var(--primary-color)", fontWeight: "bold", marginTop: "0.25rem" }}>
                                   ✓ Selected
                                 </div>
                               )}
@@ -756,122 +700,265 @@ const PlayoffsTab = ({
                   )}
                 </div>
 
-                {/* Score Entry Form */}
-                <div>
-                  <h4 className="text-lg font-semibold mb-4 flex items-center">
-                    <Target className="w-5 h-5 mr-2 text-blue-500" />
+                {/* Champions League Style Score Entry Form */}
+                <div className="col-half">
+                  <h4 style={{ fontSize: "1.125rem", fontWeight: "600", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <Target className="w-5 h-5" style={{ color: "var(--primary-color)" }} />
                     {selectedGame && selectedGame.status === 'completed' ? 'Edit Game Result' : 'Enter Game Result'}
                   </h4>
                   
                   {selectedGame && selectedGame.home_team_id && selectedGame.away_team_id ? (
-                    <div className="tournament-card">
-                      <div className="text-center mb-6">
-                        <h5 className="text-xl font-bold text-gray-800 mb-2">
-                          {selectedGame.home_team_name} vs {selectedGame.away_team_name}
-                        </h5>
-                        <p className="text-gray-600">
+                    <div style={{ 
+                      background: "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1e40af 100%)",
+                      color: "white",
+                      borderRadius: "12px",
+                      padding: "1.5rem",
+                      position: "relative",
+                      overflow: "hidden",
+                      border: "none"
+                    }}>
+                      {/* Background pattern */}
+                      <div style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundImage: "url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><pattern id=%22grain%22 width=%2210%22 height=%2210%22 patternUnits=%22userSpaceOnUse%22><circle cx=%225%22 cy=%225%22 r=%221%22 fill=%22%23ffffff%22 opacity=%220.03%22/></pattern></defs><rect width=%22100%22 height=%22100%22 fill=%22url(%23grain)%22/></svg>')",
+                        opacity: 0.3
+                      }} />
+                      
+                      {/* Match Info Header */}
+                      <div style={{ textAlign: "center", marginBottom: "2rem", position: "relative", zIndex: 2 }}>
+                        <div style={{ fontSize: "0.875rem", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem", opacity: 0.9 }}>
                           {selectedGame.round === 'quarterfinal' && `Quarterfinal ${selectedGame.position}`}
                           {selectedGame.round === 'semifinal' && `Semifinal ${selectedGame.position}`}
                           {selectedGame.round === 'final' && 'Championship Final'}
-                        </p>
+                        </div>
+                        <div style={{ fontSize: "0.75rem", opacity: 0.8 }}>
+                          {selectedGame.status === 'completed' ? 'EDITING RESULT' : 'ENTER RESULT'}
+                        </div>
                       </div>
 
                       {/* Field and Time Selection */}
-                      <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "2rem", position: "relative", zIndex: 2 }}>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem", color: "rgba(255,255,255,0.9)" }}>
                             Field
                           </label>
                           <select
                             value={gameResult.field}
                             onChange={(e) => setGameResult({ ...gameResult, field: e.target.value })}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            style={{
+                              width: "100%",
+                              padding: "0.75rem",
+                              border: "1px solid rgba(255,255,255,0.3)",
+                              borderRadius: "4px",
+                              fontSize: "0.875rem",
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              color: "white",
+                              backdropFilter: "blur(10px)"
+                            }}
                           >
-                            <option value="">Select Field</option>
+                            <option value="" style={{ color: "#333" }}>Select Field</option>
                             {fieldNames.map(field => (
-                              <option key={field} value={field}>{field}</option>
+                              <option key={field} value={field} style={{ color: "#333" }}>{field}</option>
                             ))}
                           </select>
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem", color: "rgba(255,255,255,0.9)" }}>
                             Kick-off Time
                           </label>
                           <select
                             value={gameResult.scheduled_start_time}
                             onChange={(e) => setGameResult({ ...gameResult, scheduled_start_time: e.target.value })}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            style={{
+                              width: "100%",
+                              padding: "0.75rem",
+                              border: "1px solid rgba(255,255,255,0.3)",
+                              borderRadius: "4px",
+                              fontSize: "0.875rem",
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              color: "white",
+                              backdropFilter: "blur(10px)"
+                            }}
                           >
-                            <option value="">Select Time</option>
+                            <option value="" style={{ color: "#333" }}>Select Time</option>
                             {availableKickOffTimes.map(time => (
-                              <option key={time} value={time}>{time}</option>
+                              <option key={time} value={time} style={{ color: "#333" }}>{time}</option>
                             ))}
                           </select>
                         </div>
                       </div>
 
-                      {/* Score Entry */}
-                      <div className="grid grid-cols-3 gap-4 items-center mb-6">
-                        <div className="text-center">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {selectedGame.home_team_name} Score
-                          </label>
+                      {/* Main Scoreboard Layout */}
+                      <div style={{ 
+                        display: "grid", 
+                        gridTemplateColumns: "1fr auto 1fr", 
+                        gap: "2rem", 
+                        alignItems: "center", 
+                        marginBottom: "1.5rem",
+                        position: "relative",
+                        zIndex: 2
+                      }}>
+                        {/* Home Team */}
+                        <div style={{ textAlign: "center" }}>
+                          <div style={{ 
+                            fontSize: "1rem", 
+                            fontWeight: "bold", 
+                            textTransform: "uppercase", 
+                            letterSpacing: "0.05em",
+                            marginBottom: "1rem",
+                            color: "white"
+                          }}>
+                            {selectedGame.home_team_name}
+                          </div>
                           <input
                             type="number"
                             min="0"
                             value={gameResult.home_score}
                             onChange={(e) => setGameResult({ ...gameResult, home_score: e.target.value })}
-                            className="tournament-input large"
+                            style={{
+                              width: "70px",
+                              height: "70px",
+                              padding: "0",
+                              border: "3px solid rgba(255,255,255,0.3)",
+                              borderRadius: "12px",
+                              fontSize: "2rem",
+                              textAlign: "center",
+                              fontWeight: "bold",
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              color: "white",
+                              backdropFilter: "blur(10px)",
+                              transition: "all 0.2s ease"
+                            }}
                             placeholder="0"
+                            onFocus={(e) => e.target.style.borderColor = "rgba(255,255,255,0.6)"}
+                            onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.3)"}
                           />
                         </div>
                         
-                        <div className="text-center text-2xl font-bold text-gray-400">VS</div>
+                        {/* VS Separator */}
+                        <div style={{ 
+                          textAlign: "center", 
+                          fontSize: "1.25rem", 
+                          fontWeight: "bold", 
+                          color: "rgba(255,255,255,0.8)",
+                          letterSpacing: "0.1em"
+                        }}>VS</div>
                         
-                        <div className="text-center">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {selectedGame.away_team_name} Score
-                          </label>
+                        {/* Away Team */}
+                        <div style={{ textAlign: "center" }}>
+                          <div style={{ 
+                            fontSize: "1rem", 
+                            fontWeight: "bold", 
+                            textTransform: "uppercase", 
+                            letterSpacing: "0.05em",
+                            marginBottom: "1rem",
+                            color: "white"
+                          }}>
+                            {selectedGame.away_team_name}
+                          </div>
                           <input
                             type="number"
                             min="0"
                             value={gameResult.away_score}
                             onChange={(e) => setGameResult({ ...gameResult, away_score: e.target.value })}
-                            className="tournament-input large"
+                            style={{
+                              width: "70px",
+                              height: "70px",
+                              padding: "0",
+                              border: "3px solid rgba(255,255,255,0.3)",
+                              borderRadius: "12px",
+                              fontSize: "2rem",
+                              textAlign: "center",
+                              fontWeight: "bold",
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              color: "white",
+                              backdropFilter: "blur(10px)",
+                              transition: "all 0.2s ease"
+                            }}
                             placeholder="0"
+                            onFocus={(e) => e.target.style.borderColor = "rgba(255,255,255,0.6)"}
+                            onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.3)"}
                           />
                         </div>
                       </div>
 
-                      <div className="text-center text-sm text-orange-600 mb-4">
+                      {/* Warning Message */}
+                      <div style={{ textAlign: "center", fontSize: "0.875rem", color: "#fbbf24", marginBottom: "1.5rem", position: "relative", zIndex: 2 }}>
                         ⚠️ Playoff games cannot end in a tie. If tied, go directly to penalty shootout.
                       </div>
 
-                      <div className="flex space-x-3">
+                      {/* Action Buttons */}
+                      <div style={{ display: "flex", gap: "0.75rem", position: "relative", zIndex: 2 }}>
                         <button
                           onClick={handleSubmitPlayoffResult}
                           disabled={loading || !gameResult.home_score || !gameResult.away_score || gameResult.home_score === gameResult.away_score}
-                          className="btn-secondary flex-1"
+                          style={{
+                            flex: 1,
+                            padding: "0.875rem 1.5rem",
+                            border: "2px solid rgba(255,255,255,0.3)",
+                            borderRadius: "8px",
+                            fontSize: "1rem",
+                            fontWeight: "600",
+                            backgroundColor: "rgba(255,255,255,0.15)",
+                            color: "white",
+                            backdropFilter: "blur(10px)",
+                            cursor: (loading || !gameResult.home_score || !gameResult.away_score || gameResult.home_score === gameResult.away_score) ? "not-allowed" : "pointer",
+                            opacity: (loading || !gameResult.home_score || !gameResult.away_score || gameResult.home_score === gameResult.away_score) ? 0.5 : 1,
+                            transition: "all 0.2s ease"
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!loading && gameResult.home_score && gameResult.away_score && gameResult.home_score !== gameResult.away_score) {
+                              e.target.style.backgroundColor = "rgba(255,255,255,0.25)";
+                              e.target.style.borderColor = "rgba(255,255,255,0.5)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = "rgba(255,255,255,0.15)";
+                            e.target.style.borderColor = "rgba(255,255,255,0.3)";
+                          }}
                         >
                           {loading ? "Submitting..." : selectedGame.status === 'completed' ? 'Update Result' : 'Submit Result'}
                         </button>
                         <button
                           onClick={() => {
                             setSelectedGame(null);
-                            setGameResult({ home_score: "", away_score: "" });
+                            setGameResult({ home_score: "", away_score: "", field: "", scheduled_start_time: "" });
                           }}
-                          className="btn-accent"
+                          style={{
+                            padding: "0.875rem 1.5rem",
+                            border: "2px solid rgba(255,255,255,0.2)",
+                            borderRadius: "8px",
+                            fontSize: "1rem",
+                            fontWeight: "600",
+                            backgroundColor: "rgba(0,0,0,0.2)",
+                            color: "rgba(255,255,255,0.8)",
+                            backdropFilter: "blur(10px)",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = "rgba(0,0,0,0.3)";
+                            e.target.style.color = "white";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = "rgba(0,0,0,0.2)";
+                            e.target.style.color = "rgba(255,255,255,0.8)";
+                          }}
                         >
                           Cancel
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
-                      <Target className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                      <p className="text-lg font-medium mb-2">Ready to Enter Results</p>
-                      <p className="text-sm">
+                    <div style={{ textAlign: "center", padding: "3rem 1rem", color: "var(--text-light)", border: "2px dashed #e0e0e0", borderRadius: "8px" }}>
+                      <Target className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 0.5rem", display: "block" }} />
+                      <p style={{ fontSize: "1.125rem", fontWeight: "500", marginBottom: "0.5rem" }}>Ready to Enter Results</p>
+                      <p style={{ fontSize: "0.875rem" }}>
                         {playoffGames.filter(g => g.home_team_id && g.away_team_id).length > 0 
                           ? "👈 Click on any game from the list to enter/edit scores"
                           : "Complete more playoff games to unlock semifinals and finals"
@@ -881,143 +968,581 @@ const PlayoffsTab = ({
                   )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Bracket Visualization */}
-          {(bracket.quarterfinals && bracket.quarterfinals.length > 0) && (
-            <div className="tournament-card">
-                <h4 className="text-lg font-semibold mb-6 text-center">Tournament Bracket</h4>
-                
-                <div className="grid lg:grid-cols-3 gap-8">
-                  {/* Quarterfinals */}
-                  <div>
-                    <h5 className="text-md font-medium mb-4 text-center text-blue-700">Quarterfinals</h5>
-                    <div className="space-y-4">
-                      {bracket.quarterfinals?.map((game) => (
-                        <div key={game.id} className={`border rounded-lg p-4 ${
-                          game.status === 'completed' ? 'bg-green-50 border-green-200' : 
-                          game.home_team_id && game.away_team_id ? 'bg-white border-gray-200' : 
-                          'bg-gray-50 border-gray-200'
-                        }`}>
-                          <div className="text-center">
-                            <div className="text-xs text-gray-500 mb-2">QF{game.position}</div>
-                            <div className="space-y-2">
-                              <div className={`text-sm ${
-                                game.status === 'completed' && game.winner_team_id === game.home_team_id 
-                                  ? 'font-bold text-green-700' : 'text-gray-700'
-                              }`}>
-                                {game.home_team_name || 'TBD'}
-                                {game.home_score !== null && ` (${game.home_score})`}
+              {/* Modern Visual Tournament Bracket */}
+              {(bracket.quarterfinals && bracket.quarterfinals.length > 0) && (
+                <div className="content-card" style={{ 
+                  marginTop: "2rem",
+                  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+                  padding: "2rem",
+                  borderRadius: "16px"
+                }}>
+                  <h4 style={{ 
+                    fontSize: "1.5rem", 
+                    fontWeight: "700", 
+                    marginBottom: "3rem", 
+                    textAlign: "center", 
+                    color: "#1e293b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em"
+                  }}>
+                    Tournament Bracket
+                  </h4>
+                  
+                  <div style={{ 
+                    display: "grid", 
+                    gridTemplateColumns: "1fr 1fr 1fr", 
+                    gap: "3rem", 
+                    alignItems: "center",
+                    minHeight: "700px",
+                    position: "relative"
+                  }}>
+                    
+                    {/* Quarterfinals Column */}
+                    <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", height: "100%" }}>
+                      <div style={{ 
+                        textAlign: "center", 
+                        marginBottom: "2rem", 
+                        fontSize: "0.875rem",
+                        fontWeight: "600", 
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em"
+                      }}>
+                        Quarterfinals
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
+                        {bracket.quarterfinals?.slice(0, 4).map((game, index) => (
+                          <div key={game.id} style={{ position: "relative" }}>
+                            <div style={{
+                              background: "white",
+                              borderRadius: "12px",
+                              boxShadow: game.status === 'completed' 
+                                ? "0 4px 6px -1px rgba(34, 197, 94, 0.2), 0 2px 4px -1px rgba(34, 197, 94, 0.1)"
+                                : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                              padding: "0",
+                              minHeight: "90px",
+                              overflow: "hidden",
+                              transition: "all 0.3s ease",
+                              cursor: "pointer"
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = "translateY(-2px)";
+                              e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow = game.status === 'completed' 
+                                ? "0 4px 6px -1px rgba(34, 197, 94, 0.2), 0 2px 4px -1px rgba(34, 197, 94, 0.1)"
+                                : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)";
+                            }}
+                            >
+                              {/* Match Header */}
+                              <div style={{ 
+                                padding: "0.5rem 1rem",
+                                background: game.status === 'completed' 
+                                  ? "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)"
+                                  : "linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)",
+                                color: "white",
+                                fontSize: "0.75rem",
+                                fontWeight: "600",
+                                textAlign: "center"
+                              }}>
+                                MATCH {game.position}
                               </div>
-                              <div className="text-xs text-gray-400">vs</div>
-                              <div className={`text-sm ${
-                                game.status === 'completed' && game.winner_team_id === game.away_team_id 
-                                  ? 'font-bold text-green-700' : 'text-gray-700'
-                              }`}>
-                                {game.away_team_name || 'TBD'}
-                                {game.away_score !== null && ` (${game.away_score})`}
+                              
+                              {/* Teams Container */}
+                              <div style={{ padding: "0.75rem 1rem" }}>
+                                {/* Home Team */}
+                                <div style={{ 
+                                  display: "flex", 
+                                  justifyContent: "space-between", 
+                                  alignItems: "center",
+                                  padding: "0.5rem 0",
+                                  borderBottom: "1px solid #f1f5f9"
+                                }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                    <div style={{
+                                      width: "24px",
+                                      height: "24px",
+                                      borderRadius: "50%",
+                                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontSize: "0.625rem",
+                                      fontWeight: "bold"
+                                    }}>
+                                      {(index * 2) + 1}
+                                    </div>
+                                    <span style={{ 
+                                      fontSize: "0.875rem",
+                                      fontWeight: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "700" : "500",
+                                      color: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "#16a34a" : "#1e293b"
+                                    }}>
+                                      {game.home_team_name || `Seed ${(index * 2) + 1}`}
+                                    </span>
+                                  </div>
+                                  <span style={{ 
+                                    fontSize: "1rem", 
+                                    fontWeight: "700",
+                                    color: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "#16a34a" : "#1e293b",
+                                    minWidth: "24px",
+                                    textAlign: "center"
+                                  }}>
+                                    {game.home_score !== null ? game.home_score : '-'}
+                                  </span>
+                                </div>
+                                
+                                {/* Away Team */}
+                                <div style={{ 
+                                  display: "flex", 
+                                  justifyContent: "space-between", 
+                                  alignItems: "center",
+                                  padding: "0.5rem 0"
+                                }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                    <div style={{
+                                      width: "24px",
+                                      height: "24px",
+                                      borderRadius: "50%",
+                                      background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontSize: "0.625rem",
+                                      fontWeight: "bold"
+                                    }}>
+                                      {8 - (index * 2)}
+                                    </div>
+                                    <span style={{ 
+                                      fontSize: "0.875rem",
+                                      fontWeight: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "700" : "500",
+                                      color: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "#16a34a" : "#1e293b"
+                                    }}>
+                                      {game.away_team_name || `Seed ${8 - (index * 2)}`}
+                                    </span>
+                                  </div>
+                                  <span style={{ 
+                                    fontSize: "1rem", 
+                                    fontWeight: "700",
+                                    color: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "#16a34a" : "#1e293b",
+                                    minWidth: "24px",
+                                    textAlign: "center"
+                                  }}>
+                                    {game.away_score !== null ? game.away_score : '-'}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                            {game.status === 'completed' && (
-                              <div className="mt-2">
-                                <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                              </div>
-                            )}
+                            
+                            {/* Modern Connection Line */}
+                            <svg style={{
+                              position: "absolute",
+                              right: "-3rem",
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              width: "3rem",
+                              height: "2px",
+                              zIndex: 1
+                            }}>
+                              <line 
+                                x1="0" y1="1" 
+                                x2="48" y2="1" 
+                                stroke={game.status === 'completed' ? "#22c55e" : "#cbd5e1"}
+                                strokeWidth="2"
+                                strokeDasharray={game.status === 'completed' ? "0" : "5,5"}
+                              />
+                            </svg>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Semifinals */}
-                  <div>
-                    <h5 className="text-md font-medium mb-4 text-center text-blue-700">Semifinals</h5>
-                    <div className="space-y-6 mt-8">
-                      {bracket.semifinals?.map((game) => (
-                        <div key={game.id} className={`border rounded-lg p-4 ${
-                          game.status === 'completed' ? 'bg-green-50 border-green-200' : 
-                          game.home_team_id && game.away_team_id ? 'bg-white border-gray-200' : 
-                          'bg-gray-50 border-gray-200'
-                        }`}>
-                          <div className="text-center">
-                            <div className="text-xs text-gray-500 mb-2">SF{game.position}</div>
-                            <div className="space-y-2">
-                              <div className={`text-sm ${
-                                game.status === 'completed' && game.winner_team_id === game.home_team_id 
-                                  ? 'font-bold text-green-700' : 'text-gray-700'
-                              }`}>
-                                {game.home_team_name || 'QF Winner'}
-                                {game.home_score !== null && ` (${game.home_score})`}
+                    {/* Semifinals Column */}
+                    <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%", position: "relative" }}>
+                      <div style={{ 
+                        textAlign: "center", 
+                        marginBottom: "2rem", 
+                        fontSize: "0.875rem",
+                        fontWeight: "600", 
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em"
+                      }}>
+                        Semifinals
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6rem" }}>
+                        {bracket.semifinals?.slice(0, 2).map((game, index) => {
+                          // Find the corresponding QF games that feed into this SF
+                          const qf1 = bracket.quarterfinals?.[index * 2];
+                          const qf2 = bracket.quarterfinals?.[index * 2 + 1];
+                          
+                          return (
+                            <div key={game.id} style={{ position: "relative" }}>
+                              <div style={{
+                                background: "white",
+                                borderRadius: "12px",
+                                boxShadow: game.status === 'completed' 
+                                  ? "0 4px 6px -1px rgba(34, 197, 94, 0.2), 0 2px 4px -1px rgba(34, 197, 94, 0.1)"
+                                  : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                                padding: "0",
+                                minHeight: "90px",
+                                overflow: "hidden",
+                                transition: "all 0.3s ease",
+                                cursor: "pointer"
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = "translateY(-2px)";
+                                e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = "translateY(0)";
+                                e.currentTarget.style.boxShadow = game.status === 'completed' 
+                                  ? "0 4px 6px -1px rgba(34, 197, 94, 0.2), 0 2px 4px -1px rgba(34, 197, 94, 0.1)"
+                                  : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)";
+                              }}
+                              >
+                                {/* Match Header */}
+                                <div style={{ 
+                                  padding: "0.5rem 1rem",
+                                  background: game.status === 'completed' 
+                                    ? "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)"
+                                    : "linear-gradient(90deg, #6366f1 0%, #4f46e5 100%)",
+                                  color: "white",
+                                  fontSize: "0.75rem",
+                                  fontWeight: "600",
+                                  textAlign: "center"
+                                }}>
+                                  SEMIFINAL {game.position}
+                                </div>
+                                
+                                {/* Teams Container */}
+                                <div style={{ padding: "0.75rem 1rem" }}>
+                                  {/* Home Team */}
+                                  <div style={{ 
+                                    display: "flex", 
+                                    justifyContent: "space-between", 
+                                    alignItems: "center",
+                                    padding: "0.5rem 0",
+                                    borderBottom: "1px solid #f1f5f9"
+                                  }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                      <div style={{
+                                        width: "20px",
+                                        height: "20px",
+                                        borderRadius: "50%",
+                                        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: "white",
+                                        fontSize: "0.625rem",
+                                        fontWeight: "bold"
+                                      }}>
+                                        W{(index * 2) + 1}
+                                      </div>
+                                      <span style={{ 
+                                        fontSize: "0.875rem",
+                                        fontWeight: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "700" : "500",
+                                        color: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "#16a34a" : "#1e293b"
+                                      }}>
+                                        {game.home_team_name || (qf1?.status === 'completed' ? 
+                                          (qf1.winner_team_id === qf1.home_team_id ? qf1.home_team_name : qf1.away_team_name) : 
+                                          'QF Winner'
+                                        )}
+                                      </span>
+                                    </div>
+                                    <span style={{ 
+                                      fontSize: "1rem", 
+                                      fontWeight: "700",
+                                      color: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "#16a34a" : "#1e293b",
+                                      minWidth: "24px",
+                                      textAlign: "center"
+                                    }}>
+                                      {game.home_score !== null ? game.home_score : '-'}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Away Team */}
+                                  <div style={{ 
+                                    display: "flex", 
+                                    justifyContent: "space-between", 
+                                    alignItems: "center",
+                                    padding: "0.5rem 0"
+                                  }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                      <div style={{
+                                        width: "20px",
+                                        height: "20px",
+                                        borderRadius: "50%",
+                                        background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: "white",
+                                        fontSize: "0.625rem",
+                                        fontWeight: "bold"
+                                      }}>
+                                        W{(index * 2) + 2}
+                                      </div>
+                                      <span style={{ 
+                                        fontSize: "0.875rem",
+                                        fontWeight: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "700" : "500",
+                                        color: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "#16a34a" : "#1e293b"
+                                      }}>
+                                        {game.away_team_name || (qf2?.status === 'completed' ? 
+                                          (qf2.winner_team_id === qf2.home_team_id ? qf2.home_team_name : qf2.away_team_name) : 
+                                          'QF Winner'
+                                        )}
+                                      </span>
+                                    </div>
+                                    <span style={{ 
+                                      fontSize: "1rem", 
+                                      fontWeight: "700",
+                                      color: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "#16a34a" : "#1e293b",
+                                      minWidth: "24px",
+                                      textAlign: "center"
+                                    }}>
+                                      {game.away_score !== null ? game.away_score : '-'}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-400">vs</div>
-                              <div className={`text-sm ${
-                                game.status === 'completed' && game.winner_team_id === game.away_team_id 
-                                  ? 'font-bold text-green-700' : 'text-gray-700'
-                              }`}>
-                                {game.away_team_name || 'QF Winner'}
-                                {game.away_score !== null && ` (${game.away_score})`}
-                              </div>
+                              
+                              {/* Modern Connection Line to Final */}
+                              <svg style={{
+                                position: "absolute",
+                                right: "-3rem",
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                width: "3rem",
+                                height: "2px",
+                                zIndex: 1
+                              }}>
+                                <line 
+                                  x1="0" y1="1" 
+                                  x2="48" y2="1" 
+                                  stroke={game.status === 'completed' ? "#22c55e" : "#cbd5e1"}
+                                  strokeWidth="2"
+                                  strokeDasharray={game.status === 'completed' ? "0" : "5,5"}
+                                />
+                              </svg>
                             </div>
-                            {game.status === 'completed' && (
-                              <div className="mt-2">
-                                <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Final */}
-                  <div>
-                    <h5 className="text-md font-medium mb-4 text-center text-blue-700">Final</h5>
-                    <div className="mt-16">
-                      {bracket.final?.map((game) => (
-                        <div key={game.id} className={`border-2 rounded-lg p-6 ${
-                          game.status === 'completed' ? 'bg-yellow-50 border-yellow-400' : 
-                          game.home_team_id && game.away_team_id ? 'bg-white border-yellow-300' : 
-                          'bg-gray-50 border-gray-200'
-                        }`}>
-                          <div className="text-center">
-                            <div className="text-sm font-medium text-yellow-700 mb-4">CHAMPIONSHIP</div>
-                            <div className="space-y-3">
-                              <div className={`text-lg ${
-                                game.status === 'completed' && game.winner_team_id === game.home_team_id 
-                                  ? 'font-bold text-yellow-700' : 'text-gray-700'
-                              }`}>
-                                {game.home_team_name || 'SF Winner'}
-                                {game.home_score !== null && ` (${game.home_score})`}
-                                {game.status === 'completed' && game.winner_team_id === game.home_team_id && (
-                                  <Trophy className="w-5 h-5 inline ml-2 text-yellow-600" />
-                                )}
+                    {/* Final Column */}
+                    <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
+                      <div style={{ 
+                        textAlign: "center", 
+                        marginBottom: "2rem", 
+                        fontSize: "0.875rem",
+                        fontWeight: "600", 
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em"
+                      }}>
+                        Championship Final
+                      </div>
+                      
+                      {bracket.final?.map((game) => {
+                        // Find the corresponding SF games that feed into the Final
+                        const sf1 = bracket.semifinals?.[0];
+                        const sf2 = bracket.semifinals?.[1];
+                        
+                        return (
+                          <div key={game.id} style={{ position: "relative" }}>
+                            <div style={{
+                              background: game.status === 'completed' 
+                                ? "linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fbbf24 100%)"
+                                : "white",
+                              borderRadius: "16px",
+                              border: game.status === 'completed' 
+                                ? "3px solid #f59e0b" 
+                                : "2px solid #e5e7eb",
+                              padding: "0",
+                              minHeight: "110px",
+                              overflow: "hidden",
+                              boxShadow: game.status === 'completed' 
+                                ? "0 10px 15px -3px rgba(251, 191, 36, 0.3), 0 4px 6px -2px rgba(251, 191, 36, 0.2)"
+                                : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                              transition: "all 0.3s ease",
+                              cursor: "pointer"
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = "translateY(-2px)";
+                              e.currentTarget.style.boxShadow = "0 15px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow = game.status === 'completed' 
+                                ? "0 10px 15px -3px rgba(251, 191, 36, 0.3), 0 4px 6px -2px rgba(251, 191, 36, 0.2)"
+                                : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)";
+                            }}
+                            >
+                              {/* Championship Header */}
+                              <div style={{ 
+                                padding: "0.75rem 1rem",
+                                background: game.status === 'completed' 
+                                  ? "linear-gradient(90deg, #d97706 0%, #b45309 100%)"
+                                  : "linear-gradient(90deg, #f59e0b 0%, #d97706 100%)",
+                                color: "white",
+                                fontSize: "0.8rem",
+                                fontWeight: "bold",
+                                textAlign: "center",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.1em",
+                                position: "relative"
+                              }}>
+                                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                                  🏆 Championship Final 🏆
+                                </span>
                               </div>
-                              <div className="text-sm text-gray-400">vs</div>
-                              <div className={`text-lg ${
-                                game.status === 'completed' && game.winner_team_id === game.away_team_id 
-                                  ? 'font-bold text-yellow-700' : 'text-gray-700'
-                              }`}>
-                                {game.away_team_name || 'SF Winner'}
-                                {game.away_score !== null && ` (${game.away_score})`}
-                                {game.status === 'completed' && game.winner_team_id === game.away_team_id && (
-                                  <Trophy className="w-5 h-5 inline ml-2 text-yellow-600" />
-                                )}
+                              
+                              {/* Teams Container */}
+                              <div style={{ 
+                                padding: "1rem",
+                                background: game.status === 'completed' 
+                                  ? "rgba(255, 255, 255, 0.95)"
+                                  : "white",
+                                backdropFilter: "blur(10px)"
+                              }}>
+                                {/* Home Team */}
+                                <div style={{ 
+                                  display: "flex", 
+                                  justifyContent: "space-between", 
+                                  alignItems: "center",
+                                  padding: "0.75rem 0",
+                                  borderBottom: "1px solid #f1f5f9"
+                                }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                                    <div style={{
+                                      width: "24px",
+                                      height: "24px",
+                                      borderRadius: "50%",
+                                      background: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontSize: "0.625rem",
+                                      fontWeight: "bold"
+                                    }}>
+                                      W1
+                                    </div>
+                                    <span style={{ 
+                                      fontSize: "0.95rem",
+                                      fontWeight: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "700" : "500",
+                                      color: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "#92400e" : "#1e293b"
+                                    }}>
+                                      {game.home_team_name || (sf1?.status === 'completed' ? 
+                                        (sf1.winner_team_id === sf1.home_team_id ? sf1.home_team_name : sf1.away_team_name) : 
+                                        'SF Winner'
+                                      )}
+                                      {game.status === 'completed' && game.winner_team_id === game.home_team_id && (
+                                        <span style={{ marginLeft: "0.5rem", fontSize: "1.25rem" }}>👑</span>
+                                      )}
+                                    </span>
+                                  </div>
+                                  <span style={{ 
+                                    fontSize: "1.25rem", 
+                                    fontWeight: "700",
+                                    color: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "#92400e" : "#1e293b",
+                                    minWidth: "30px",
+                                    textAlign: "center"
+                                  }}>
+                                    {game.home_score !== null ? game.home_score : '-'}
+                                  </span>
+                                </div>
+                                
+                                {/* Away Team */}
+                                <div style={{ 
+                                  display: "flex", 
+                                  justifyContent: "space-between", 
+                                  alignItems: "center",
+                                  padding: "0.75rem 0"
+                                }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                                    <div style={{
+                                      width: "24px",
+                                      height: "24px",
+                                      borderRadius: "50%",
+                                      background: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      color: "white",
+                                      fontSize: "0.625rem",
+                                      fontWeight: "bold"
+                                    }}>
+                                      W2
+                                    </div>
+                                    <span style={{ 
+                                      fontSize: "0.95rem",
+                                      fontWeight: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "700" : "500",
+                                      color: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "#92400e" : "#1e293b"
+                                    }}>
+                                      {game.away_team_name || (sf2?.status === 'completed' ? 
+                                        (sf2.winner_team_id === sf2.home_team_id ? sf2.home_team_name : sf2.away_team_name) : 
+                                        'SF Winner'
+                                      )}
+                                      {game.status === 'completed' && game.winner_team_id === game.away_team_id && (
+                                        <span style={{ marginLeft: "0.5rem", fontSize: "1.25rem" }}>👑</span>
+                                      )}
+                                    </span>
+                                  </div>
+                                  <span style={{ 
+                                    fontSize: "1.25rem", 
+                                    fontWeight: "700",
+                                    color: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "#92400e" : "#1e293b",
+                                    minWidth: "30px",
+                                    textAlign: "center"
+                                  }}>
+                                    {game.away_score !== null ? game.away_score : '-'}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                            {game.status === 'completed' && (
-                              <div className="mt-4">
-                                <div className="text-sm font-bold text-yellow-700">CHAMPION</div>
-                              </div>
-                            )}
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Modern Champion Display */}
+                      {bracket.final?.[0]?.status === 'completed' && (
+                        <div style={{
+                          marginTop: "2rem",
+                          textAlign: "center",
+                          padding: "1.5rem",
+                          background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                          border: "2px solid #f59e0b",
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 12px rgba(245, 158, 11, 0.3)"
+                        }}>
+                          <div style={{ fontSize: "0.875rem", color: "#92400e", marginBottom: "0.75rem", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            🏆 Tournament Champion 🏆
+                          </div>
+                          <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#92400e", textShadow: "0 1px 3px rgba(146, 64, 14, 0.3)" }}>
+                            {bracket.final[0].winner_team_name || 
+                             (bracket.final[0].winner_team_id === bracket.final[0].home_team_id ? 
+                              bracket.final[0].home_team_name : bracket.final[0].away_team_name)}
+                          </div>
+                          <div style={{ fontSize: "0.875rem", color: "#b45309", marginTop: "0.5rem" }}>
+                            Final Score: {bracket.final[0].home_score} - {bracket.final[0].away_score}
                           </div>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          )}
+
         </div>
       )}
 

@@ -3,9 +3,10 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Trophy, Users, Calendar, Target, ChevronRight } from "lucide-react";
+import { Trophy, Users, Calendar, Target, ChevronRight, Award } from "lucide-react";
 import '../styles/tournament.css';
 import AnnouncementsDisplay from "./AnnouncementsDisplay";
+import { fetchPools, fetchTeams } from "../utils/api";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3002";
 
@@ -13,7 +14,10 @@ const DisplayScreen = () => {
   const [tournament, setTournament] = useState(null);
   const [standings, setStandings] = useState([]);
   const [recentGames, setRecentGames] = useState([]);
+  const [allGames, setAllGames] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [pools, setPools] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [matchesTab, setMatchesTab] = useState("recent");
@@ -32,6 +36,7 @@ const DisplayScreen = () => {
         const latestTournament = tournamentsRes.data[0];
         setTournament(latestTournament);
 
+        // Fetch core data first
         const [standingsRes, gamesRes, announcementsRes] = await Promise.all([
           axios.get(`${API_URL}/api/tournaments/${latestTournament.id}/standings`),
           axios.get(`${API_URL}/api/tournaments/${latestTournament.id}/games`),
@@ -40,6 +45,23 @@ const DisplayScreen = () => {
 
         setStandings(standingsRes.data);
         setAnnouncements(announcementsRes.data);
+        setAllGames(gamesRes.data);
+
+        // Try to fetch pools and teams separately with error handling
+        try {
+          const [poolsRes, teamsRes] = await Promise.all([
+            fetchPools(latestTournament.id),
+            fetchTeams(latestTournament.id)
+          ]);
+          setPools(poolsRes.data || []);
+          setTeams(teamsRes.data || []);
+          console.log("✅ Pools loaded:", poolsRes.data?.length || 0);
+          console.log("✅ Teams loaded:", teamsRes.data?.length || 0);
+        } catch (poolError) {
+          console.warn("Failed to fetch pools/teams data:", poolError);
+          setPools([]);
+          setTeams([]);
+        }
         
         const completed = gamesRes.data
           .filter((game) => game.status === "completed")
@@ -60,12 +82,164 @@ const DisplayScreen = () => {
     }
   };
 
-  const topTeams = standings
-    .sort((a, b) => b.points - a.points || (b.goals_for - b.goals_against) - (a.goals_for - a.goals_against))
-    .slice(0, 5);
+  const topTeams = standings?.length > 0
+    ? standings
+        .sort((a, b) => b.points - a.points || (b.goals_for - b.goals_against) - (a.goals_for - a.goals_against))
+        .slice(0, 5)
+    : [];
+
+  // Calculate comprehensive tournament statistics
+  const tournamentStats = {
+    totalTeams: standings?.length || 0,
+    activeTeams: standings?.filter(team => team.games_played > 0).length || 0,
+    totalGames: allGames?.length || 0,
+    completedGames: allGames?.filter(game => game.status === "completed").length || 0,
+    upcomingGames: allGames?.filter(game => game.status === "scheduled").length || 0,
+    totalGoals: allGames?.length > 0 
+      ? allGames
+          .filter(game => game.status === "completed")
+          .reduce((total, game) => total + (game.home_score || 0) + (game.away_score || 0), 0)
+      : 0,
+    avgGoalsPerGame: allGames?.length > 0 && allGames.filter(game => game.status === "completed").length > 0 
+      ? (allGames
+          .filter(game => game.status === "completed")
+          .reduce((total, game) => total + (game.home_score || 0) + (game.away_score || 0), 0) / 
+         allGames.filter(game => game.status === "completed").length).toFixed(1)
+      : 0,
+    highestScoringGame: allGames?.length > 0 
+      ? allGames
+          .filter(game => game.status === "completed")
+          .reduce((highest, game) => {
+            const gameTotal = (game.home_score || 0) + (game.away_score || 0);
+            const highestTotal = (highest.home_score || 0) + (highest.away_score || 0);
+            return gameTotal > highestTotal ? game : highest;
+          }, {})
+      : {},
+    tournamentLeader: standings?.length > 0 
+      ? [...standings].sort((a, b) => b.points - a.points || (b.goals_for - b.goals_against) - (a.goals_for - a.goals_against))[0]
+      : null,
+    topScorer: standings?.length > 0 
+      ? [...standings].sort((a, b) => (b.goals_for || 0) - (a.goals_for || 0))[0]
+      : null
+  };
+
+  // Calculate tournament progress and status
+  const tournamentProgress = {
+    progressPercentage: tournamentStats.totalGames > 0 
+      ? Math.round((tournamentStats.completedGames / tournamentStats.totalGames) * 100)
+      : 0,
+    currentStage: (() => {
+      if (!tournament) return "Setup";
+      
+      const status = tournament.status?.toLowerCase();
+      if (status === "setup" || status === "registration") return "Registration Open";
+      if (status === "active" || status === "ongoing") {
+        // Determine stage based on game progress
+        if (tournamentStats.totalGames === 0) return "Pre-Tournament";
+        if (tournamentStats.progressPercentage < 60) return "Pool Play Stage";
+        if (tournamentStats.progressPercentage < 90) return "Knockout Stage";
+        return "Final Stage";
+      }
+      if (status === "completed" || status === "finished") return "Tournament Complete";
+      return tournament.status || "Setup";
+    })(),
+    statusColor: (() => {
+      const status = tournament?.status?.toLowerCase();
+      if (status === "active" || status === "ongoing") return { bg: "#d4edda", text: "#155724", icon: "🟢" };
+      if (status === "setup" || status === "registration") return { bg: "#fff3cd", text: "#856404", icon: "🟡" };
+      if (status === "completed" || status === "finished") return { bg: "#d1ecf1", text: "#0c5460", icon: "🏁" };
+      return { bg: "#f8d7da", text: "#721c24", icon: "⚪" };
+    })(),
+    isLive: tournament?.status?.toLowerCase() === "active" || tournament?.status?.toLowerCase() === "ongoing"
+  };
+
+  // Calculate pool standings with proper tournament format criteria
+  const calculatePoolStandings = () => {
+    if (!pools || pools.length === 0 || !teams || teams.length === 0) {
+      return {};
+    }
+    
+    const standings = {};
+    
+    pools.forEach(pool => {
+      const poolTeams = teams.filter(team => team.pool_id === pool.id);
+      const poolGames = allGames.filter(game => 
+        poolTeams.some(team => team.id === game.home_team_id || team.id === game.away_team_id) &&
+        game.status === 'completed'
+      );
+
+      // Calculate stats for each team
+      const teamStats = poolTeams.map(team => {
+        let wins = 0, losses = 0, ties = 0, goalsFor = 0, goalsAgainst = 0;
+        let yellowCards = 0, redCards = 0; // Fair play points (placeholder - would need to be tracked)
+
+        poolGames.forEach(game => {
+          if (game.home_team_id === team.id) {
+            goalsFor += game.home_score || 0;
+            goalsAgainst += game.away_score || 0;
+            if (game.home_score > game.away_score) wins++;
+            else if (game.home_score < game.away_score) losses++;
+            else ties++;
+          } else if (game.away_team_id === team.id) {
+            goalsFor += game.away_score || 0;
+            goalsAgainst += game.home_score || 0;
+            if (game.away_score > game.home_score) wins++;
+            else if (game.away_score < game.home_score) losses++;
+            else ties++;
+          }
+        });
+
+        const points = wins * 3 + ties * 1;
+        const goalDifferential = goalsFor - goalsAgainst;
+        const fairPlayPoints = yellowCards * 1 + redCards * 3; // Lower is better
+        const gamesPlayed = wins + losses + ties;
+
+        return {
+          ...team,
+          wins,
+          losses,
+          ties,
+          goalsFor,
+          goalsAgainst,
+          points,
+          goalDifferential,
+          fairPlayPoints,
+          gamesPlayed
+        };
+      });
+
+      // Sort by tournament ranking criteria
+      teamStats.sort((a, b) => {
+        // 1. Points
+        if (b.points !== a.points) return b.points - a.points;
+        // 2. Goal differential
+        if (b.goalDifferential !== a.goalDifferential) return b.goalDifferential - a.goalDifferential;
+        // 3. Goals for
+        if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+        // 4. Goals against (fewer is better)
+        if (a.goalsAgainst !== b.goalsAgainst) return a.goalsAgainst - b.goalsAgainst;
+        // 5. Fair play points (fewer is better)
+        if (a.fairPlayPoints !== b.fairPlayPoints) return a.fairPlayPoints - b.fairPlayPoints;
+        // 6. Alphabetical as tiebreaker (would be coin toss in reality)
+        return a.name.localeCompare(b.name);
+      });
+
+      standings[pool.id] = {
+        pool,
+        teams: teamStats,
+        winner: teamStats[0],
+        secondPlace: teamStats[1]
+      };
+    });
+
+    return standings;
+  };
+
+  const poolStandings = calculatePoolStandings();
+  console.log("🏊‍♂️ Pool Standings calculated:", Object.keys(poolStandings).length, "pools");
 
   // Sort all teams by overall tournament performance (like MLB standings)
-  const overallStandings = standings.sort((a, b) => {
+  const overallStandings = standings?.length > 0 ? [...standings].sort((a, b) => {
     // Primary: Points (wins * 3 + ties * 1)
     if (b.points !== a.points) return b.points - a.points;
     // Secondary: Goal differential  
@@ -76,7 +250,7 @@ const DisplayScreen = () => {
     if ((b.goals_for || 0) !== (a.goals_for || 0)) return (b.goals_for || 0) - (a.goals_for || 0);
     // Quaternary: Goals against (lower is better)
     return (a.goals_against || 0) - (b.goals_against || 0);
-  });
+  }) : [];
 
   const getTeamCssClass = (teamName) => {
     const classMap = {
@@ -127,23 +301,189 @@ const DisplayScreen = () => {
               <div>
                 <h3 style={{ marginBottom: "0.5rem" }}>{tournament.name}</h3>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", fontSize: "0.875rem", color: "var(--text-light)" }}>
-                  <span>📅 Start: {new Date(tournament.start_date).toLocaleDateString()}</span>
-                  <span>📅 End: {new Date(tournament.end_date).toLocaleDateString()}</span>
-                  <span style={{ padding: "0.25rem 0.75rem", backgroundColor: "var(--accent-color)", color: "#333", borderRadius: "4px" }}>
-                    Status: {tournament.status}
+                  <span>📅 Start: {tournament.start_date ? new Date(tournament.start_date).toLocaleDateString() : 'TBD'}</span>
+                  <span>📅 End: {tournament.end_date ? new Date(tournament.end_date).toLocaleDateString() : 'TBD'}</span>
+                  <span style={{ 
+                    padding: "0.25rem 0.75rem", 
+                    backgroundColor: tournamentProgress.statusColor.bg, 
+                    color: tournamentProgress.statusColor.text, 
+                    borderRadius: "4px",
+                    fontWeight: "500"
+                  }}>
+                    Status: {tournamentProgress.currentStage}
                   </span>
                 </div>
               </div>
               <div>
-                <span style={{ fontSize: "0.875rem", backgroundColor: "#d4edda", color: "#155724", padding: "0.5rem 1rem", borderRadius: "20px" }}>
-                  🟢 Live
+                <span style={{ 
+                  fontSize: "0.875rem", 
+                  backgroundColor: tournamentProgress.statusColor.bg, 
+                  color: tournamentProgress.statusColor.text, 
+                  padding: "0.5rem 1rem", 
+                  borderRadius: "20px",
+                  fontWeight: "500"
+                }}>
+                  {tournamentProgress.statusColor.icon} {tournamentProgress.isLive ? 'Live' : tournament.status}
                 </span>
               </div>
             </div>
-            <div style={{ width: "100%", backgroundColor: "#e0e0e0", borderRadius: "10px", height: "8px", marginBottom: "0.5rem" }}>
-              <div style={{ width: "70%", background: "var(--primary-color)", height: "8px", borderRadius: "10px", transition: "width 0.3s ease" }}></div>
+            
+            {/* Dynamic Progress Bar */}
+            <div style={{ marginBottom: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <span style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>Tournament Progress</span>
+                <span style={{ fontSize: "0.875rem", fontWeight: "600", color: "var(--primary-color)" }}>
+                  {tournamentProgress.progressPercentage}%
+                </span>
+              </div>
+              <div style={{ width: "100%", backgroundColor: "#e0e0e0", borderRadius: "10px", height: "8px", marginBottom: "0.5rem" }}>
+                <div style={{ 
+                  width: `${tournamentProgress.progressPercentage}%`, 
+                  background: tournamentProgress.progressPercentage < 30 ? "#dc3545" : 
+                             tournamentProgress.progressPercentage < 70 ? "#ffc107" : "#28a745", 
+                  height: "8px", 
+                  borderRadius: "10px", 
+                  transition: "width 0.3s ease" 
+                }}></div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "var(--text-light)" }}>
+                <span>{tournamentProgress.currentStage}</span>
+                <span>{tournamentStats.completedGames}/{tournamentStats.totalGames} games completed</span>
+              </div>
             </div>
-            <p style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>Tournament Progress: Pool Play Stage</p>
+          </div>
+        )}
+
+        {/* Pool Standings Section */}
+        {(pools.length > 0 && Object.keys(poolStandings).length > 0) ? (
+          <div style={{ marginBottom: "3rem" }}>
+            <h2 style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              🏊‍♂️ Pool Standings
+            </h2>
+            <p style={{ color: "var(--text-light)", marginBottom: "2rem" }}>Current pool rankings and qualification status</p>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+              {Object.values(poolStandings).map(({ pool, teams: poolTeams, winner, secondPlace }) => (
+                <div key={pool.id} className="content-card">
+                  <div style={{ padding: "1.5rem", borderBottom: "1px solid #e0e0e0", backgroundColor: "#f8f9fa" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <h3 style={{ fontSize: "1.125rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <Users className="w-5 h-5" style={{ color: "var(--primary-color)" }} />
+                        {pool.name}
+                      </h3>
+                      <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>
+                        {poolTeams.filter(t => t.gamesPlayed > 0).length}/{poolTeams.length} teams active
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Pos</th>
+                          <th>Team</th>
+                          <th style={{ textAlign: "center" }}>GP</th>
+                          <th style={{ textAlign: "center" }}>W</th>
+                          <th style={{ textAlign: "center" }}>L</th>
+                          <th style={{ textAlign: "center" }}>T</th>
+                          <th style={{ textAlign: "center" }}>GF</th>
+                          <th style={{ textAlign: "center" }}>GA</th>
+                          <th style={{ textAlign: "center" }}>GD</th>
+                          <th style={{ textAlign: "center" }}>Pts</th>
+                          <th style={{ textAlign: "center" }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {poolTeams.map((team, index) => (
+                          <tr key={team.id} style={{ backgroundColor: index < 2 ? "rgba(0, 120, 215, 0.05)" : "transparent" }}>
+                            <td>
+                              <span style={{ fontWeight: "500" }}>{index + 1}</span>
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: "500" }}>{team.name}</div>
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {team.gamesPlayed}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {team.wins}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {team.losses}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {team.ties}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {team.goalsFor}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {team.goalsAgainst}
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              <span style={{
+                                fontWeight: "500",
+                                color: team.goalDifferential > 0 ? "#10b981" : 
+                                       team.goalDifferential < 0 ? "#ef4444" : "var(--text-color)"
+                              }}>
+                                {team.goalDifferential > 0 ? "+" : ""}{team.goalDifferential}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              <span style={{ fontSize: "1.125rem", fontWeight: "bold", color: "var(--primary-color)" }}>{team.points}</span>
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              {index === 0 && (
+                                <span style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "0.25rem",
+                                  padding: "0.25rem 0.5rem",
+                                  borderRadius: "9999px",
+                                  fontSize: "0.75rem",
+                                  fontWeight: "500",
+                                  backgroundColor: "#dcfce7",
+                                  color: "#166534"
+                                }}>
+                                  <Trophy className="w-3 h-3" />
+                                  Pool Winner
+                                </span>
+                              )}
+                              {index === 1 && (
+                                <span style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "0.25rem",
+                                  padding: "0.25rem 0.5rem",
+                                  borderRadius: "9999px",
+                                  fontSize: "0.75rem",
+                                  fontWeight: "500",
+                                  backgroundColor: "#fef3c7",
+                                  color: "#92400e"
+                                }}>
+                                  <Award className="w-3 h-3" />
+                                  2nd Place
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ marginBottom: "2rem", padding: "1rem", background: "#f8f9fa", borderRadius: "8px", fontSize: "0.875rem", color: "#6b7280" }}>
+            <strong>Pool Standings Debug:</strong><br />
+            - Pools available: {pools.length}<br />
+            - Teams available: {teams.length}<br />
+            - Pool standings calculated: {Object.keys(poolStandings).length}<br />
+            {pools.length > 0 && <span>- Pool names: {pools.map(p => p.name).join(", ")}<br /></span>}
+            {teams.length > 0 && <span>- Teams in pools: {teams.filter(t => t.pool_id).length}/{teams.length}</span>}
           </div>
         )}
 
@@ -406,22 +746,72 @@ const DisplayScreen = () => {
             {/* Tournament Stats Card */}
             <div className="col-quarter">
               <div className="content-card">
-                <h3 style={{ marginBottom: "1.5rem" }}>📈 Quick Stats</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                <h3 style={{ marginBottom: "1.5rem" }}>📈 Tournament Stats</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "2rem", fontWeight: "bold", color: "var(--primary-color)" }}>{standings.length}</div>
-                    <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>Teams</div>
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "2rem", fontWeight: "bold", color: "var(--primary-color)" }}>{recentGames.length}</div>
-                    <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>Games Played</div>
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "2rem", fontWeight: "bold", color: "var(--primary-color)" }}>
-                      {standings.filter(team => team.games_played > 0).length}
+                    <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--primary-color)" }}>
+                      {tournamentStats.completedGames}/{tournamentStats.totalGames}
                     </div>
-                    <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>Active Teams</div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-light)" }}>Games Completed</div>
                   </div>
+                  
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--primary-color)" }}>
+                      {tournamentStats.activeTeams}/{tournamentStats.totalTeams}
+                    </div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-light)" }}>Active Teams</div>
+                  </div>
+                  
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--accent-color)" }}>
+                      {tournamentStats.totalGoals}
+                    </div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-light)" }}>Total Goals</div>
+                  </div>
+                  
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--accent-color)" }}>
+                      {tournamentStats.avgGoalsPerGame}
+                    </div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-light)" }}>Goals/Game</div>
+                  </div>
+
+                  {/* Tournament Leader */}
+                  {tournamentStats.tournamentLeader && (
+                    <div style={{ 
+                      textAlign: "center", 
+                      padding: "0.75rem", 
+                      backgroundColor: "rgba(0, 120, 215, 0.1)", 
+                      borderRadius: "8px",
+                      marginTop: "0.5rem"
+                    }}>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-light)", marginBottom: "0.25rem" }}>🏆 Leader</div>
+                      <div style={{ fontSize: "0.875rem", fontWeight: "600", color: "var(--primary-color)" }}>
+                        {tournamentStats.tournamentLeader.name}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-light)" }}>
+                        {tournamentStats.tournamentLeader.points} pts
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Highest Scoring Game */}
+                  {tournamentStats.highestScoringGame?.home_team_name && (
+                    <div style={{ 
+                      textAlign: "center", 
+                      padding: "0.75rem", 
+                      backgroundColor: "rgba(255, 193, 7, 0.1)", 
+                      borderRadius: "8px"
+                    }}>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-light)", marginBottom: "0.25rem" }}>⚽ Top Game</div>
+                      <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "#f59e0b" }}>
+                        {tournamentStats.highestScoringGame.home_score}-{tournamentStats.highestScoringGame.away_score}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>
+                        {tournamentStats.highestScoringGame.home_team_name} vs {tournamentStats.highestScoringGame.away_team_name}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

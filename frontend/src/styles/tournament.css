@@ -93,7 +93,7 @@ nav ul li a.active {
    Main Content
    ================================ */
 main {
-  padding: 2rem 0;
+  padding: 1rem 0;
 }
 
 main h2 {
@@ -291,20 +291,7 @@ table td {
   color: #000;
 }
 
-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-table tbody tr:hover td {
-  color: #fff;
-}
-
-table tbody tr:hover td select,
-table tbody tr:hover td input,
-table tbody tr:hover td button {
-  color: #000;
-  background: #fff;
-}
+/* Removed table hover effects to fix text visibility issues */
 
 /* ================================
    Forms
