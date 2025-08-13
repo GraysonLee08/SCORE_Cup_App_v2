@@ -1,31 +1,67 @@
 version: '3.8'
 
 services:
-  frontend:
+  db:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile.production
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
+      context: ./database-docker
+      dockerfile: Dockerfile
     environment:
-      - REACT_APP_API_URL=/api
+      POSTGRES_DB: tournament_db
+      POSTGRES_USER: tournament_user
+      POSTGRES_PASSWORD: tournament_pass_2024
+    ports:
+      - "5454:5432"  # Changed to avoid common PostgreSQL port conflicts
+    volumes:
+      - tournament-data:/var/lib/postgresql/data
     networks:
       - tournament-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tournament_user -d tournament_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "3002:3002"
+      - "8082:3002"  # Changed to safer port range
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
       - PORT=3002
-    volumes:
-      - tournament-data:/app/data
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=tournament_db
+      - DB_USER=tournament_user
+      - DB_PASSWORD=tournament_pass_2024
+      - ADMIN_PASSWORD=ScoresCup312
+    networks:
+      - tournament-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.production
+    ports:
+      - "8080:80"  # Changed to commonly available port
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      - REACT_APP_API_URL=/api
     networks:
       - tournament-network
     restart: unless-stopped
