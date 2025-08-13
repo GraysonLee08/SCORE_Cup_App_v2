@@ -106,6 +106,74 @@ app.get("/", (req, res) => {
   });
 });
 
+// Detailed health check route for Docker
+app.get("/health", async (req, res) => {
+  try {
+    // Test database connection
+    const dbResult = await db.query('SELECT 1 as healthy');
+    const dbHealthy = dbResult.rows[0]?.healthy === 1;
+    
+    const health = {
+      status: dbHealthy ? "healthy" : "unhealthy",
+      timestamp: new Date().toISOString(),
+      services: {
+        database: dbHealthy ? "connected" : "disconnected",
+        api: "running"
+      },
+      uptime: process.uptime(),
+      memory: process.memoryUsage()
+    };
+    
+    res.status(dbHealthy ? 200 : 503).json(health);
+  } catch (error) {
+    logger.error("Health check failed:", error);
+    res.status(503).json({
+      status: "unhealthy",
+      timestamp: new Date().toISOString(),
+      services: {
+        database: "error",
+        api: "running"
+      },
+      error: error.message
+    });
+  }
+});
+
+// ========================================
+// REQUEST LOGGING MIDDLEWARE
+// ========================================
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const originalSend = res.send;
+  
+  res.send = function(data) {
+    const duration = Date.now() - start;
+    logger.info(`${req.method} ${req.path}`, {
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`,
+      userAgent: req.get('User-Agent'),
+      ip: req.ip,
+      responseSize: data ? data.length : 0
+    });
+    
+    // Log slow requests
+    if (duration > 1000) {
+      logger.warn(`Slow request detected: ${req.method} ${req.path}`, {
+        duration: `${duration}ms`,
+        path: req.path
+      });
+    }
+    
+    return originalSend.call(this, data);
+  };
+  
+  next();
+});
+
 // ========================================
 // AUTHENTICATION ROUTES
 // ========================================
@@ -2540,6 +2608,22 @@ server.listen(PORT, "0.0.0.0", () => {
   
   console.log(`📝 Logs: ./backend/logs/`);
   console.log(`🚀 Server ready for tournament management!`);
+});
+
+// Error handling middleware (must be last)
+app.use((err, req, res, next) => {
+  logger.error(`Unhandled error in ${req.method} ${req.path}`, err, {
+    method: req.method,
+    path: req.path,
+    body: req.body,
+    query: req.query,
+    ip: req.ip
+  });
+  
+  res.status(500).json({
+    success: false,
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
+  });
 });
 
 // Graceful shutdown

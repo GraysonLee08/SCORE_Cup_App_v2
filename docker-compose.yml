@@ -14,6 +14,20 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - tournament_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tournament_user -d tournament_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
   tournament_backend:
     build:
@@ -31,12 +45,27 @@ services:
     ports:
       - "3002:3002"
     depends_on:
-      - tournament_db
+      tournament_db:
+        condition: service_healthy
     networks:
       - tournament_network
     volumes:
       - ./backend:/app
       - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
   tournament_frontend:
     build:
@@ -46,7 +75,8 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - tournament_backend
+      tournament_backend:
+        condition: service_healthy
     networks:
       - tournament_network
     volumes:
@@ -56,6 +86,20 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - REACT_APP_API_URL=http://localhost:3002
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
 volumes:
   postgres_data:

@@ -1,8 +1,6 @@
-# SCORES Cup Tournament App
+# 🏆 SCORES Cup Tournament App
 
-A complete soccer tournament management application built for America SCORES Chicago, featuring both an admin control panel and a public display dashboard.
-
-![Tournament App](image%20(8).png)
+A complete soccer tournament management application built for America SCORES Chicago, featuring both an admin control panel and a public display dashboard with real-time updates, smart scheduling, and comprehensive tournament management capabilities.
 
 ## Features
 
@@ -31,14 +29,14 @@ A complete soccer tournament management application built for America SCORES Chi
 - **Authentication**: Session-based admin authentication
 - **Architecture**: REST API with real-time updates
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (version 18+)
-- Docker and Docker Compose
+- Docker and Docker Compose (recommended)
+- Node.js 18+ (for local development)
 - Git
 
-### Installation
+### 🐳 Docker Development (Recommended)
 
 1. **Clone the repository**
    ```bash
@@ -46,43 +44,54 @@ A complete soccer tournament management application built for America SCORES Chi
    cd SCORE_Cup_App
    ```
 
-2. **Set up the database**
+2. **Start all services**
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Fix database collation (one-time setup)**
+   ```bash
+   bash fix-database-collation.sh
+   ```
+
+### 🛠️ Local Development
+
+1. **Start database only**
    ```bash
    docker-compose up -d tournament_db
    ```
 
-3. **Install backend dependencies**
+2. **Install and start backend**
    ```bash
-   cd backend
-   npm install
+   cd backend && npm install && npm start
    ```
 
-4. **Install frontend dependencies**
+3. **Install and start frontend**
    ```bash
-   cd ../frontend
-   npm install
+   cd frontend && npm install && npm start
    ```
 
-5. **Start the backend server**
-   ```bash
-   cd ../backend
-   npm start
-   ```
-
-6. **Start the frontend development server**
-   ```bash
-   cd ../frontend
-   npm start
-   ```
-
-### Access the Application
+### 🌐 Access the Application
 
 - **Public Display**: http://localhost:3000
-- **Admin Panel**: http://localhost:3000/admin
+- **Admin Panel**: http://localhost:3000/admin  
 - **Backend API**: http://localhost:3002
+- **Health Check**: http://localhost:3002/health
 
-### Default Admin Access
+### 🔐 Default Admin Access
 - **Password**: `ScoresCup312`
+
+### 🏥 Health Monitoring
+The application includes comprehensive health checks:
+- **Database**: PostgreSQL connection and readiness
+- **Backend API**: Service health and memory usage
+- **Frontend**: Application availability
+- **Docker**: Container orchestration with health dependencies
+
+Check container health status:
+```bash
+docker-compose ps
+```
 
 ## Project Structure
 
@@ -173,6 +182,106 @@ The admin panel allows configuration of:
 - 8-team elimination bracket with re-seeding
 - Rematch avoidance in quarterfinals when possible
 - Championship progression tracking
+
+## 🚀 Production Deployment
+
+### Production Build
+```bash
+# Build optimized Docker images
+bash build-production.sh
+
+# Deploy to production
+docker-compose -f docker-compose.production.yml up -d
+```
+
+### Production Features
+- **Multi-stage Docker builds** for minimal image size (~20MB frontend)
+- **Nginx static file serving** with React Router support
+- **Health checks** and automatic restarts
+- **Persistent database volumes**
+- **Security optimizations** (no source maps, minimal attack surface)
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive production deployment guide.
+
+## 📚 API Documentation
+
+### Core Endpoints
+
+#### Tournaments
+- `GET /api/tournaments` - List all tournaments
+- `POST /api/tournaments` - Create new tournament
+- `PUT /api/tournaments/:id` - Update tournament
+- `DELETE /api/tournaments/:id` - Delete tournament
+
+#### Teams
+- `GET /api/tournaments/:id/teams` - Get tournament teams
+- `POST /api/tournaments/:id/teams` - Add team to tournament
+- `PUT /api/teams/:id` - Update team information
+- `DELETE /api/teams/:id` - Remove team
+
+#### Games & Schedule
+- `GET /api/tournaments/:id/games` - Get tournament games
+- `POST /api/tournaments/:id/games` - Create new game
+- `PUT /api/games/:id/result` - Submit game result
+- `POST /api/tournaments/:id/schedule` - Generate tournament schedule
+
+#### Standings & Results
+- `GET /api/tournaments/:id/standings` - Get tournament standings
+- `GET /api/tournaments/:id/playoffs` - Get playoff bracket
+- `POST /api/tournaments/:id/playoffs` - Generate playoff bracket
+
+#### Health & Monitoring
+- `GET /health` - Detailed health check with database status
+- `GET /` - Basic API status
+
+### Authentication
+Admin endpoints require session authentication with password: `ScoresCup312`
+
+## 📊 Logging & Monitoring
+
+### Log Locations
+- **Backend Logs**: `./backend/logs/`
+  - `app.log` - Application events and API requests
+  - `error.log` - Error tracking and debugging
+- **Docker Logs**: `docker-compose logs -f [service]`
+
+### Log Levels
+- **INFO**: General application events
+- **WARN**: Non-critical issues
+- **ERROR**: Application errors and failures
+- **DEBUG**: Development debugging (dev mode only)
+
+### Monitoring Commands
+```bash
+# View real-time logs
+docker-compose logs -f
+
+# Check container resource usage
+docker stats
+
+# Database performance
+docker-compose exec tournament_db psql -U tournament_user -d tournament_db -c "SELECT * FROM pg_stat_activity;"
+```
+
+## 🔧 Performance Optimizations
+
+### Bundle Size Optimization
+- Removed unused sponsor logos (~2MB saved)
+- Optimized Docker images with multi-stage builds
+- Webpack code splitting for admin/display routes
+- Font optimization with local Lubalin Graph font
+
+### Database Performance
+- Indexed frequently queried fields
+- Connection pooling for concurrent requests
+- Health checks prevent cascade failures
+- Optimized tournament calculations
+
+### Frontend Performance
+- React.memo() for expensive components
+- API response caching for standings
+- Lazy loading for admin components
+- Optimized re-render cycles
 
 ## Troubleshooting
 

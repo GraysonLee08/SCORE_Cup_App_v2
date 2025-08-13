@@ -9,7 +9,7 @@ import { fetchPools, fetchTeams } from "../utils/api";
 
 const API_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) || "http://localhost:3002";
 
-const DisplayScreen = () => {
+const DisplayScreen = React.memo(() => {
   const [tournament, setTournament] = useState(null);
   const [standings, setStandings] = useState([]);
   const [recentGames, setRecentGames] = useState([]);
@@ -1185,6 +1185,6 @@ const DisplayScreen = () => {
       </div>
     </main>
   );
-};
+});
 
 export default DisplayScreen;
