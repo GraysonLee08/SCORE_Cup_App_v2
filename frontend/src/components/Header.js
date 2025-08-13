@@ -17,7 +17,7 @@ const Header = () => {
           <img 
             src="/America-Scores-Chicago-Logo.webp" 
             alt="Chicago SCORES Logo" 
-            style={{ height: "60px", width: "auto" }}
+            style={{ height: "75px", width: "auto" }}
           />
         </div>
 
