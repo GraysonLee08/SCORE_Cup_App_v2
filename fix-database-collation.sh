@@ -1,21 +1,23 @@
 #!/bin/bash
 
-echo "Fixing database collation warning..."
+echo "Fixing database collation warnings for all databases..."
 
-# Execute the SQL command in the database container
+# Fix tournament_db
+echo "🔧 Fixing tournament_db collation..."
 docker-compose exec tournament_db psql -U tournament_user -d tournament_db -c "ALTER DATABASE tournament_db REFRESH COLLATION VERSION;"
 
-if [ $? -eq 0 ]; then
-    echo "✅ Database collation fixed successfully!"
-else
-    echo "⚠️  Trying alternative method..."
-    docker-compose exec tournament_db psql -U tournament_user -d tournament_db -c "UPDATE pg_database SET datcollversion = NULL WHERE datname = 'tournament_db';"
-    
-    if [ $? -eq 0 ]; then
-        echo "✅ Database collation fixed using alternative method!"
-    else
-        echo "❌ Failed to fix collation. This warning is non-critical and can be ignored."
-    fi
-fi
+# Fix postgres database
+echo "🔧 Fixing postgres database collation..."
+docker-compose exec tournament_db psql -U tournament_user -d postgres -c "ALTER DATABASE postgres REFRESH COLLATION VERSION;"
 
+# Fix template1 database
+echo "🔧 Fixing template1 database collation..."
+docker-compose exec tournament_db psql -U tournament_user -d template1 -c "ALTER DATABASE template1 REFRESH COLLATION VERSION;"
+
+echo ""
+echo "📊 Current database collation versions:"
+docker-compose exec tournament_db psql -U tournament_user -d postgres -c "SELECT datname, datcollversion FROM pg_database WHERE datcollversion IS NOT NULL;"
+
+echo ""
+echo "✅ All database collations updated successfully!"
 echo "Done!"

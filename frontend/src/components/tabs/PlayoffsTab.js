@@ -28,7 +28,7 @@ const PlayoffsTab = ({
   const [bracket, setBracket] = useState({});
   const [playoffGames, setPlayoffGames] = useState([]);
   const [wildcardTies, setWildcardTies] = useState([]);
-  const [manualWildcards, setManualWildcards] = useState({});
+  const [manualWildcards] = useState({});
   const [selectedGame, setSelectedGame] = useState(null);
   const [gameResult, setGameResult] = useState({ 
     home_score: "", 
@@ -40,18 +40,21 @@ const PlayoffsTab = ({
   useEffect(() => {
     calculatePoolStandings();
     fetchPlayoffData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teams, games, pools]);
 
   useEffect(() => {
     if (Object.keys(poolStandings).length > 0) {
       determineWildcards();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poolStandings]);
 
   useEffect(() => {
     if (Object.keys(poolStandings).length > 0 && wildcards.length >= 0) {
       calculateSeeds();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poolStandings, wildcards]);
 
   const fetchPlayoffData = async () => {
@@ -348,56 +351,6 @@ const PlayoffsTab = ({
     }
   };
 
-  // Generate playoff bracket using backend API
-  const handleGenerateBracket = async () => {
-    // Check for manual seeds first
-    const manualSeedsStr = localStorage.getItem('manualBracketSeeds');
-    let finalSeeds = seeds;
-    
-    if (manualSeedsStr) {
-      try {
-        finalSeeds = JSON.parse(manualSeedsStr);
-        setSeeds(finalSeeds);
-        localStorage.removeItem('manualBracketSeeds'); // Clean up after use
-      } catch (e) {
-        console.error('Error parsing manual seeds:', e);
-      }
-    }
-
-    if (!tournament || finalSeeds.length !== 8) {
-      showMessage(setError, setSuccess, "Need 8 qualified teams to generate bracket", true);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      // Check if we have custom seeding to send
-      let customSeeding = null;
-      if (manualSeedsStr) {
-        customSeeding = finalSeeds.map(team => ({
-          teamId: team.id,
-          seed: team.seed
-        }));
-        console.log('🎯 Using stored custom seeding:', customSeeding);
-      }
-      
-      const response = await generatePlayoffBracket(tournament.id, customSeeding);
-      
-      if (response.success) {
-        showMessage(setError, setSuccess, "Playoff bracket generated successfully!");
-        fetchPlayoffData(); // Refresh data
-        onDataChange(); // Refresh parent data
-      } else {
-        showMessage(setError, setSuccess, "Failed to generate bracket: " + response.error, true);
-      }
-    } catch (error) {
-      console.error("Error generating bracket:", error);
-      showMessage(setError, setSuccess, "Error generating bracket: " + error.message, true);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle playoff game result submission
   const handleSubmitPlayoffResult = async () => {

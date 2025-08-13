@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Users, Plus, Trash2, Edit2, Save, X, ChevronUp, ChevronDown } from "lucide-react";
-import { createTeam, deleteTeam, updateTeam, showMessage, createPool } from "../../utils/api";
+import { createTeam, deleteTeam, updateTeam, showMessage } from "../../utils/api";
 
 const TeamsTab = ({ 
   teams, 
@@ -67,26 +67,32 @@ const TeamsTab = ({
   // Save to localStorage whenever state changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.newTeam, JSON.stringify(newTeam));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newTeam]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.editingTeam, JSON.stringify(editingTeam));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingTeam]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.editForm, JSON.stringify(editForm));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editForm]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.assigningPool, JSON.stringify(assigningPool));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assigningPool]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.poolAssignments, JSON.stringify(poolAssignments));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poolAssignments]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.sortConfig, JSON.stringify(sortConfig));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortConfig]);
 
   // Use only database pools - this is now database-driven only
@@ -251,41 +257,6 @@ const TeamsTab = ({
     }
   };
 
-  const assignTeamToPool = async (teamId, poolValue) => {
-    setAssigningPool(teamId); // Show loading state for this team
-    
-    try {
-      console.log("🔄 Assigning team", teamId, "to pool", poolValue, {
-        tournament_id: tournament?.id,
-        poolValue_type: typeof poolValue
-      });
-      
-      console.log("🔄 Updating team with pool_id:", poolValue);
-      await updateTeam(teamId, { pool_id: poolValue });
-      
-      console.log("🔄 Refreshing data...");
-      showMessage(setError, setSuccess, "Team assigned to pool successfully!");
-      
-      if (typeof onDataChange === 'function') {
-        onDataChange();
-      }
-    } catch (error) {
-      console.error("❌ Error assigning team to pool:", error);
-      console.error("❌ Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-      showMessage(
-        setError,
-        setSuccess,
-        "Failed to assign team to pool: " + (error.response?.data?.error || error.message),
-        true
-      );
-    } finally {
-      setAssigningPool(null); // Clear loading state
-    }
-  };
 
   const updatePoolAssignment = (teamId, poolValue) => {
     setPoolAssignments(prev => ({

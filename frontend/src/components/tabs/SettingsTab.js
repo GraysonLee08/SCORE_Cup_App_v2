@@ -2,7 +2,7 @@
 // Settings management tab component
 
 import React, { useState, useEffect } from "react";
-import { updateTournament, createTournament, showMessage, fetchPools, generatePools, createPool, updatePool, deletePool } from "../../utils/api";
+import { updateTournament, createTournament, showMessage, fetchPools, generatePools, updatePool, deletePool } from "../../utils/api";
 
 const SettingsTab = ({ 
   tournament, 
@@ -25,6 +25,7 @@ const SettingsTab = ({
     if (tournament) {
       fetchPoolsData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournament]);
 
   const fetchPoolsData = async () => {

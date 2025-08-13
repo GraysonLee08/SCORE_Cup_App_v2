@@ -2,8 +2,8 @@
 // Results management tab component with game entry and standings
 
 import React, { useState, useEffect } from "react";
-import { Trophy, Target, Award, TrendingUp, Clock, Users, CheckCircle, Edit2 } from "lucide-react";
-import { submitGameResult, calculateStandings, showMessage } from "../../utils/api";
+import { Trophy, Target, Award, Clock, CheckCircle, Edit2 } from "lucide-react";
+import { submitGameResult, showMessage } from "../../utils/api";
 
 const ResultsTab = ({ 
   games, 

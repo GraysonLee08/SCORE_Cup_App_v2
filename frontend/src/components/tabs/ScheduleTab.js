@@ -1,8 +1,8 @@
 // frontend/src/components/tabs/ScheduleTab.js
 // Simple manual game entry and schedule display
 
-import React, { useState, useEffect } from "react";
-import { Calendar, Clock, MapPin, Users, Plus, AlertTriangle, Check, Edit2, Trash2, X, Save, Info } from "lucide-react";
+import React, { useState } from "react";
+import { Calendar, Clock, MapPin, Plus, AlertTriangle, Edit2, Trash2, X, Save, Info } from "lucide-react";
 
 const ScheduleTab = ({ 
   games, 
