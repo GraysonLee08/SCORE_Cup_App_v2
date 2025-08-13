@@ -31,6 +31,18 @@ const ScheduleTab = ({
     scheduled_start_time: "",
   });
 
+  // Function to convert military time to AM/PM format
+  const formatTimeToAMPM = (militaryTime) => {
+    if (!militaryTime) return '';
+    
+    const [hours, minutes] = militaryTime.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
   // Get field names from tournament settings
   const fieldNames = tournamentSettings?.field_names || ["Field 1", "Field 2", "Field 3", "Field 4"];
   const gameDuration = tournamentSettings?.game_duration || 45; // minutes
@@ -341,11 +353,6 @@ const ScheduleTab = ({
         {/* Column 1 - Add New Game */}
         <div className="col-one-third">
           <div className="content-card">
-            <h3 style={{ display: "flex", alignItems: "center", marginBottom: "1rem" }}>
-              <Plus className="w-5 h-5" style={{ marginRight: "0.5rem" }} />
-              Add New Game
-            </h3>
-            
             <div className="form-group">
               <label className="form-label">Home Team</label>
               <select
@@ -393,11 +400,11 @@ const ScheduleTab = ({
               >
                 <option value="">Select Kick-off Time</option>
                 {availableKickOffTimes.map(time => (
-                  <option key={time} value={time}>{time}</option>
+                  <option key={time} value={time}>{formatTimeToAMPM(time)}</option>
                 ))}
               </select>
               <div style={{ fontSize: "0.875rem", color: "var(--text-light)", marginTop: "0.25rem" }}>
-                Available times based on {gameDuration}min games + {breakDuration}min breaks ({startTime} - {endTime})
+                Available times based on {gameDuration}min games + {breakDuration}min breaks ({formatTimeToAMPM(startTime)} - {formatTimeToAMPM(endTime)})
               </div>
             </div>
             
@@ -476,7 +483,7 @@ const ScheduleTab = ({
                   <tbody>
                     {scheduleData.map((row, index) => (
                       <tr key={row.time}>
-                        <td className="font-medium">{row.time}</td>
+                        <td className="font-medium">{formatTimeToAMPM(row.time)}</td>
                         {fieldNames.map(field => (
                           <td key={field} className="center">
                             {row[field] ? (
@@ -635,7 +642,7 @@ const ScheduleTab = ({
               >
                 <option value="">Select Kick-off Time</option>
                 {availableKickOffTimes.map(time => (
-                  <option key={time} value={time}>{time}</option>
+                  <option key={time} value={time}>{formatTimeToAMPM(time)}</option>
                 ))}
               </select>
             </div>

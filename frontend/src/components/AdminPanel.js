@@ -3,14 +3,11 @@
 // Main container that orchestrates tab components
 
 import React, { useState, useEffect } from "react";
-import { Users, Settings, Calendar, Trophy, MessageSquare, Target, Layers, LogOut } from "lucide-react";
+import { Users, Settings, Calendar, Trophy, MessageSquare, Target, LogOut } from "lucide-react";
 import Login from "./Login";
 
 // Import utilities
 import { fetchTournaments, fetchTeams, fetchPools, fetchGames } from "../utils/api";
-
-// Import components
-import TabButton from "./common/TabButton";
 import MessageBox from "./common/MessageBox";
 import TeamsTab from "./tabs/TeamsTab";
 import PoolsTab from "./tabs/PoolsTab";
@@ -184,7 +181,10 @@ const AdminPanel = () => {
       onDataChange: fetchData,
     };
 
-    switch (activeTab) {
+    console.log("🎯 Rendering active tab:", activeTab);
+
+    try {
+      switch (activeTab) {
       case "teams":
         return (
           <TeamsTab
@@ -263,6 +263,23 @@ const AdminPanel = () => {
           />
         );
     }
+    } catch (error) {
+      console.error("❌ Error rendering tab:", activeTab, error);
+      return (
+        <div style={{ padding: "2rem", textAlign: "center" }}>
+          <h3>Error loading {activeTab} tab</h3>
+          <p style={{ color: "red", marginBottom: "1rem" }}>
+            {error.message || "An unexpected error occurred"}
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="btn"
+          >
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
   };
 
   // Show loading while checking authentication
@@ -300,9 +317,12 @@ const AdminPanel = () => {
               paddingBottom: "1rem"
             }}>
               <li>
-                <a 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); setActiveTab("teams"); }}
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    console.log("🔄 Switching to teams tab");
+                    setActiveTab("teams"); 
+                  }}
                   style={{
                     color: activeTab === "teams" ? "var(--primary-color)" : "var(--text-color)",
                     textDecoration: "none",
@@ -313,17 +333,24 @@ const AdminPanel = () => {
                     transition: "all 0.2s ease-in-out",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem"
+                    gap: "0.5rem",
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left"
                   }}
                 >
                   <Users className="w-4 h-4" />
                   Teams
-                </a>
+                </button>
               </li>
               <li>
-                <a 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); setActiveTab("schedule"); }}
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    console.log("🔄 Switching to schedule tab");
+                    setActiveTab("schedule"); 
+                  }}
                   style={{
                     color: activeTab === "schedule" ? "var(--primary-color)" : "var(--text-color)",
                     textDecoration: "none",
@@ -334,17 +361,24 @@ const AdminPanel = () => {
                     transition: "all 0.2s ease-in-out",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem"
+                    gap: "0.5rem",
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left"
                   }}
                 >
                   <Calendar className="w-4 h-4" />
                   Schedule
-                </a>
+                </button>
               </li>
               <li>
-                <a 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); setActiveTab("results"); }}
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    console.log("🔄 Switching to results tab");
+                    setActiveTab("results"); 
+                  }}
                   style={{
                     color: activeTab === "results" ? "var(--primary-color)" : "var(--text-color)",
                     textDecoration: "none",
@@ -355,17 +389,24 @@ const AdminPanel = () => {
                     transition: "all 0.2s ease-in-out",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem"
+                    gap: "0.5rem",
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left"
                   }}
                 >
                   <Trophy className="w-4 h-4" />
                   Results
-                </a>
+                </button>
               </li>
               <li>
-                <a 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); setActiveTab("playoffs"); }}
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    console.log("🔄 Switching to playoffs tab");
+                    setActiveTab("playoffs"); 
+                  }}
                   style={{
                     color: activeTab === "playoffs" ? "var(--primary-color)" : "var(--text-color)",
                     textDecoration: "none",
@@ -376,17 +417,24 @@ const AdminPanel = () => {
                     transition: "all 0.2s ease-in-out",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem"
+                    gap: "0.5rem",
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left"
                   }}
                 >
                   <Target className="w-4 h-4" />
                   Playoffs
-                </a>
+                </button>
               </li>
               <li>
-                <a 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); setActiveTab("announcements"); }}
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    console.log("🔄 Switching to announcements tab");
+                    setActiveTab("announcements"); 
+                  }}
                   style={{
                     color: activeTab === "announcements" ? "var(--primary-color)" : "var(--text-color)",
                     textDecoration: "none",
@@ -397,17 +445,24 @@ const AdminPanel = () => {
                     transition: "all 0.2s ease-in-out",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem"
+                    gap: "0.5rem",
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left"
                   }}
                 >
                   <MessageSquare className="w-4 h-4" />
                   Announcements
-                </a>
+                </button>
               </li>
               <li>
-                <a 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); setActiveTab("settings"); }}
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    console.log("🔄 Switching to settings tab");
+                    setActiveTab("settings"); 
+                  }}
                   style={{
                     color: activeTab === "settings" ? "var(--primary-color)" : "var(--text-color)",
                     textDecoration: "none",
@@ -418,17 +473,20 @@ const AdminPanel = () => {
                     transition: "all 0.2s ease-in-out",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem"
+                    gap: "0.5rem",
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left"
                   }}
                 >
                   <Settings className="w-4 h-4" />
                   Settings
-                </a>
+                </button>
               </li>
               <li>
-                <a 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); handleLogout(); }}
+                <button 
+                  onClick={() => { handleLogout(); }}
                   style={{
                     color: "#ff6b6b",
                     textDecoration: "none",
@@ -439,12 +497,16 @@ const AdminPanel = () => {
                     transition: "all 0.2s ease-in-out",
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.5rem"
+                    gap: "0.5rem",
+                    border: "none",
+                    cursor: "pointer",
+                    width: "100%",
+                    textAlign: "left"
                   }}
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
-                </a>
+                </button>
               </li>
             </ul>
           </div>

@@ -3,7 +3,7 @@
 
 import axios from "axios";
 
-export const API_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "http://localhost:3002";
+export const API_URL = (typeof process !== 'undefined' && (process.env?.REACT_APP_API_URL || process.env?.REACT_APP_API_BASE_URL)) || "http://localhost:3002";
 
 // API Functions
 export const fetchTournaments = () => 
@@ -153,13 +153,16 @@ export const fetchPlayoffs = async (tournamentId = 1) => {
   }
 };
 
-export const generatePlayoffBracket = async (tournamentId = 1) => {
+export const generatePlayoffBracket = async (tournamentId = 1, customSeeding = null) => {
   try {
+    const requestBody = customSeeding ? { customSeeding } : {};
+    
     const response = await fetch(`${API_URL}/api/tournaments/${tournamentId}/playoffs/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
+      body: JSON.stringify(requestBody)
     });
     
     if (!response.ok) {

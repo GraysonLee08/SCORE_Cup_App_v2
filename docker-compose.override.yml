@@ -1,0 +1,20 @@
+services:
+  tournament_frontend:
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WDS_SOCKET_HOST=localhost
+      - WDS_SOCKET_PORT=3000
+      - FAST_REFRESH=false
+    command: sh -c "npm install http-proxy-middleware && npm start"
+
+  tournament_backend:
+    environment:
+      - NODE_ENV=development
+
+  tournament_db:
+    environment:
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=en_US.utf8 --lc-ctype=en_US.utf8

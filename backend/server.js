@@ -1836,8 +1836,10 @@ app.get("/api/tournaments/:tournamentId/playoffs", async (req, res) => {
 app.post("/api/tournaments/:tournamentId/playoffs/generate", async (req, res) => {
   try {
     const { tournamentId } = req.params;
+    const { customSeeding } = req.body;
 
     console.log("🏆 Generating playoff bracket for tournament:", tournamentId);
+    console.log("🎯 Custom seeding provided:", customSeeding ? 'Yes' : 'No');
 
     // Get pool standings with proper tournament ranking
     const poolStandings = await db.query(
@@ -1881,24 +1883,66 @@ app.post("/api/tournaments/:tournamentId/playoffs/generate", async (req, res) =>
       return a.name.localeCompare(b.name);
     });
 
-    const wildcards = secondPlace.slice(0, 2);
-    const qualifiedTeams = [...poolWinners, ...wildcards];
+    let qualifiedTeams;
+    let wildcards; // Define wildcards variable for both paths
+
+    if (customSeeding && customSeeding.length === 8) {
+      // Use custom seeding from bracket builder
+      console.log("🎯 Using custom seeding:", customSeeding);
+      
+      // Get all teams by ID for lookup (including third place for flexibility)
+      const allAvailableTeams = teams; // All teams from the query
+      const teamsById = {};
+      allAvailableTeams.forEach(team => {
+        teamsById[team.id] = team;
+      });
+      
+      // Build qualified teams array based on custom seeding order
+      qualifiedTeams = customSeeding
+        .sort((a, b) => a.seed - b.seed) // Ensure proper seed order
+        .map(seedData => {
+          const team = teamsById[seedData.teamId];
+          if (!team) {
+            throw new Error(`Team with ID ${seedData.teamId} not found in qualified teams`);
+          }
+          return team;
+        });
+      
+      // For custom seeding, determine wildcards by checking which teams are not pool winners
+      wildcards = qualifiedTeams.filter(team => !poolWinners.some(winner => winner.id === team.id));
+      
+      console.log("🏆 Custom seeded teams:", qualifiedTeams.map((t, i) => `${i+1}. ${t.name}`));
+      console.log("🎯 Custom wildcards:", wildcards.map(w => w.name));
+    } else {
+      // Use automatic seeding based on performance
+      console.log("🤖 Using automatic seeding");
+      wildcards = secondPlace.slice(0, 2);
+      qualifiedTeams = [...poolWinners, ...wildcards];
+
+      if (qualifiedTeams.length !== 8) {
+        return res.status(400).json({ 
+          error: `Need exactly 8 qualified teams for playoffs. Found ${qualifiedTeams.length}. Complete pool play first.` 
+        });
+      }
+
+      // Sort all qualified teams to determine seeds 1-8
+      qualifiedTeams.sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if ((b.goals_for - b.goals_against) !== (a.goals_for - a.goals_against)) 
+          return (b.goals_for - b.goals_against) - (a.goals_for - a.goals_against);
+        if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for;
+        if (a.goals_against !== b.goals_against) return a.goals_against - b.goals_against;
+        return a.name.localeCompare(b.name);
+      });
+      
+      console.log("🏆 Auto seeded teams:", qualifiedTeams.map((t, i) => `${i+1}. ${t.name}`));
+    }
 
     if (qualifiedTeams.length !== 8) {
       return res.status(400).json({ 
-        error: `Need exactly 8 qualified teams for playoffs. Found ${qualifiedTeams.length}. Complete pool play first.` 
+        error: `Need exactly 8 qualified teams for playoffs. Found ${qualifiedTeams.length}.` 
       });
     }
-
-    // Sort all qualified teams to determine seeds 1-8
-    qualifiedTeams.sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
-      if ((b.goals_for - b.goals_against) !== (a.goals_for - a.goals_against)) 
-        return (b.goals_for - b.goals_against) - (a.goals_for - a.goals_against);
-      if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for;
-      if (a.goals_against !== b.goals_against) return a.goals_against - b.goals_against;
-      return a.name.localeCompare(b.name);
-    });
 
     // Clear existing playoff data
     await db.query("DELETE FROM playoff_games WHERE tournament_id = $1", [tournamentId]);

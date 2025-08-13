@@ -3,12 +3,11 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Trophy, Users, Calendar, Target, ChevronRight, Award } from "lucide-react";
+import { Trophy } from "lucide-react";
 import '../styles/tournament.css';
-import AnnouncementsDisplay from "./AnnouncementsDisplay";
 import { fetchPools, fetchTeams } from "../utils/api";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3002";
+const API_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) || "http://localhost:3002";
 
 const DisplayScreen = () => {
   const [tournament, setTournament] = useState(null);
@@ -19,9 +18,20 @@ const DisplayScreen = () => {
   const [pools, setPools] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [matchesTab, setMatchesTab] = useState("recent");
   const [schedule, setSchedule] = useState([]);
+  const [playoffGames, setPlayoffGames] = useState([]);
+
+  // Function to convert military time to AM/PM format
+  const formatTimeToAMPM = (militaryTime) => {
+    if (!militaryTime) return '';
+    
+    const [hours, minutes] = militaryTime.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
 
   useEffect(() => {
     fetchDisplayData();
@@ -47,6 +57,17 @@ const DisplayScreen = () => {
         setAnnouncements(announcementsRes.data);
         setAllGames(gamesRes.data);
 
+        // Fetch playoff games
+        let fetchedPlayoffGames = [];
+        try {
+          const playoffRes = await axios.get(`${API_URL}/api/tournaments/${latestTournament.id}/playoffs`);
+          fetchedPlayoffGames = playoffRes.data.playoff_games || [];
+          setPlayoffGames(fetchedPlayoffGames);
+        } catch (playoffError) {
+          console.warn("Failed to fetch playoff games:", playoffError);
+          setPlayoffGames([]);
+        }
+
         // Try to fetch pools and teams separately with error handling
         try {
           const [poolsRes, teamsRes] = await Promise.all([
@@ -67,11 +88,32 @@ const DisplayScreen = () => {
           .slice(0, 5);
         setRecentGames(completed);
         
-        const upcoming = gamesRes.data
-          .filter((game) => game.status === "scheduled" && game.scheduled_start_time)
-          .sort((a, b) => new Date(`2024-01-01T${a.scheduled_start_time}`) - new Date(`2024-01-01T${b.scheduled_start_time}`))
-          .slice(0, 6);
-        setSchedule(upcoming);
+        // Process upcoming games after playoff fetch is complete
+        const processUpcomingGames = (currentPlayoffGames) => {
+          const poolUpcoming = gamesRes.data
+            .filter((game) => game.status === "scheduled" && game.scheduled_start_time)
+            .map(game => ({ ...game, gameType: 'pool' }));
+          
+          const playoffUpcoming = currentPlayoffGames
+            .filter((game) => game.status === "scheduled")
+            .map(game => ({ ...game, gameType: 'playoff' }));
+          
+          const allUpcoming = [...poolUpcoming, ...playoffUpcoming]
+            .sort((a, b) => {
+              // Games without scheduled times go to the end
+              if (!a.scheduled_start_time && !b.scheduled_start_time) return 0;
+              if (!a.scheduled_start_time) return 1;
+              if (!b.scheduled_start_time) return -1;
+              // Both have times, sort by time
+              return new Date(`2024-01-01T${a.scheduled_start_time}`) - new Date(`2024-01-01T${b.scheduled_start_time}`);
+            })
+            .slice(0, 6);
+          
+          setSchedule(allUpcoming);
+        };
+        
+        // Process with fetched playoff games
+        processUpcomingGames(fetchedPlayoffGames);
       }
       setLoading(false);
     } catch (error) {
@@ -79,12 +121,6 @@ const DisplayScreen = () => {
       setLoading(false);
     }
   };
-
-  const topTeams = standings?.length > 0
-    ? standings
-        .sort((a, b) => b.points - a.points || (b.goals_for - b.goals_against) - (a.goals_for - a.goals_against))
-        .slice(0, 5)
-    : [];
 
   // Calculate comprehensive tournament statistics
   const tournamentStats = {
@@ -119,36 +155,6 @@ const DisplayScreen = () => {
     topScorer: standings?.length > 0 
       ? [...standings].sort((a, b) => (b.goals_for || 0) - (a.goals_for || 0))[0]
       : null
-  };
-
-  // Calculate tournament progress and status
-  const tournamentProgress = {
-    progressPercentage: tournamentStats.totalGames > 0 
-      ? Math.round((tournamentStats.completedGames / tournamentStats.totalGames) * 100)
-      : 0,
-    currentStage: (() => {
-      if (!tournament) return "Setup";
-      
-      const status = tournament.status?.toLowerCase();
-      if (status === "setup" || status === "registration") return "Registration Open";
-      if (status === "active" || status === "ongoing") {
-        // Determine stage based on game progress
-        if (tournamentStats.totalGames === 0) return "Pre-Tournament";
-        if (tournamentStats.progressPercentage < 60) return "Pool Play Stage";
-        if (tournamentStats.progressPercentage < 90) return "Knockout Stage";
-        return "Final Stage";
-      }
-      if (status === "completed" || status === "finished") return "Tournament Complete";
-      return tournament.status || "Setup";
-    })(),
-    statusColor: (() => {
-      const status = tournament?.status?.toLowerCase();
-      if (status === "active" || status === "ongoing") return { bg: "#d4edda", text: "#155724", icon: "🟢" };
-      if (status === "setup" || status === "registration") return { bg: "#fff3cd", text: "#856404", icon: "🟡" };
-      if (status === "completed" || status === "finished") return { bg: "#d1ecf1", text: "#0c5460", icon: "🏁" };
-      return { bg: "#f8d7da", text: "#721c24", icon: "⚪" };
-    })(),
-    isLive: tournament?.status?.toLowerCase() === "active" || tournament?.status?.toLowerCase() === "ongoing"
   };
 
   // Calculate pool standings with proper tournament format criteria
@@ -235,6 +241,24 @@ const DisplayScreen = () => {
 
   const poolStandings = calculatePoolStandings();
 
+  // Check if playoff games have been scheduled (auto-schedule has been run)
+  const playoffGamesScheduled = playoffGames.length > 0 && playoffGames.some(game => 
+    game.status === 'scheduled' && game.scheduled_start_time !== null
+  );
+
+  // Organize playoff games into bracket structure for display
+  const organizeBracketGames = () => {
+    if (!playoffGames || playoffGames.length === 0) return {};
+    
+    return {
+      quarterfinals: playoffGames.filter(g => g.round === 'quarterfinal'),
+      semifinals: playoffGames.filter(g => g.round === 'semifinal'),
+      final: playoffGames.filter(g => g.round === 'final')
+    };
+  };
+
+  const bracketData = organizeBracketGames();
+
   // Sort all teams by overall tournament performance (like MLB standings)
   const overallStandings = standings?.length > 0 ? [...standings].sort((a, b) => {
     // Primary: Points (wins * 3 + ties * 1)
@@ -248,24 +272,6 @@ const DisplayScreen = () => {
     // Quaternary: Goals against (lower is better)
     return (a.goals_against || 0) - (b.goals_against || 0);
   }) : [];
-
-  const getTeamCssClass = (teamName) => {
-    const classMap = {
-      'Purple Panthers': 'team-purple-panthers',
-      'Red Dragons': 'team-red-dragons',
-      'Blue Sharks': 'team-blue-sharks',
-      'Green Gorillas': 'team-green-gorillas',
-      'Yellow Eagles': 'team-yellow-eagles',
-      'Orange Tigers': 'team-orange-tigers',
-      'White Wolves': 'team-white-wolves',
-      'Teal Turtles': 'team-teal-turtles',
-      'Brown Rangers': 'team-brown-rangers',
-      'Pink Panthers': 'team-pink-panthers',
-      'Gray Gorillas': 'team-gray-gorillas',
-      'White Panthers': 'team-white-panthers'
-    };
-    return classMap[teamName] || 'team-gray-gorillas';
-  };
 
   if (loading) {
     return (
@@ -281,526 +287,897 @@ const DisplayScreen = () => {
   }
 
   return (
-    <main>
-      <div className="container">
-        {/* Page Header */}
-        <div style={{ textAlign: "center", marginBottom: "3rem", paddingTop: "2rem" }}>
-          <h1 style={{ color: "var(--primary-color)", marginBottom: "0.5rem", fontFamily: "Lubalin, serif" }}>
-            {tournament?.name || 'SCORES Cup Tournament'}
-          </h1>
-          <p style={{ color: "var(--text-light)" }}>Live tournament results and standings</p>
+    <main style={{ height: "100vh", overflow: "hidden", padding: "1rem" }}>
+      <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "100%", margin: "0 auto" }}>
+        {/* Compact Page Header with Donate Button */}
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "center", 
+          marginBottom: "0.5rem",
+          position: "relative"
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <h1 style={{ 
+              color: "var(--primary-color)", 
+              marginBottom: "0.25rem", 
+              fontFamily: "Lubalin, serif",
+              fontSize: "1.5rem",
+              letterSpacing: "0.02em"
+            }}>
+              {tournament?.name || 'SCORE Cup Tournament'}
+            </h1>
+            <p style={{ color: "var(--text-light)", fontSize: "0.875rem", margin: 0 }}>
+              Live tournament results and standings
+            </p>
+          </div>
+          <div style={{ position: "absolute", right: 0 }}>
+            <a 
+              href="https://givebutter.com/ZAf4Uk"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                backgroundColor: "#ff6b35",
+                color: "white",
+                padding: "0.6rem 1.25rem",
+                borderRadius: "8px",
+                textDecoration: "none",
+                fontSize: "0.95rem",
+                fontWeight: "600",
+                boxShadow: "0 2px 6px rgba(255, 107, 53, 0.3)",
+                transition: "all 0.3s ease-in-out",
+                border: "none",
+                cursor: "pointer"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#ff5722";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 4px 10px rgba(255, 107, 53, 0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#ff6b35";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 6px rgba(255, 107, 53, 0.3)";
+              }}
+            >
+              ❤️ Donate to SCORES
+            </a>
+          </div>
         </div>
 
-        {/* Tournament Status Banner */}
-        {tournament && (
-          <div className="content-card" style={{ marginBottom: "2rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", flexWrap: "wrap", gap: "1rem" }}>
-              <div>
-                <h3 style={{ marginBottom: "0.5rem" }}>{tournament.name}</h3>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", fontSize: "0.875rem", color: "var(--text-light)" }}>
-                  <span>📅 Start: {tournament.start_date ? new Date(tournament.start_date).toLocaleDateString() : 'TBD'}</span>
-                  <span>📅 End: {tournament.end_date ? new Date(tournament.end_date).toLocaleDateString() : 'TBD'}</span>
-                  <span style={{ 
-                    padding: "0.25rem 0.75rem", 
-                    backgroundColor: tournamentProgress.statusColor.bg, 
-                    color: tournamentProgress.statusColor.text, 
-                    borderRadius: "4px",
-                    fontWeight: "500"
+
+        {/* Main Dashboard Grid - Responsive Layout */}
+        <div className="display-dashboard-grid" style={{ 
+          flex: 1,
+          display: "grid",
+          gridTemplateColumns: "1fr 2fr 1fr",
+          gap: "1rem",
+          overflow: "hidden"
+        }}>
+          
+          {/* Left Column - Overall Standings Only */}
+          <div style={{ 
+            display: "flex", 
+            flexDirection: "column", 
+            minHeight: 0
+          }}>
+            {/* Overall Standings - Full Height */}
+            <div className="content-card" style={{ 
+              flex: 1, 
+              minHeight: 0, 
+              display: "flex", 
+              flexDirection: "column",
+              padding: "1rem"
+            }}>
+              <h3 style={{ 
+                margin: "0 0 0.75rem 0", 
+                fontSize: "1.1rem",
+                display: "flex", 
+                alignItems: "center", 
+                gap: "0.5rem" 
+              }}>
+                🏆 Overall Standings
+              </h3>
+              <div style={{ 
+                flex: 1, 
+                overflowY: "auto" 
+              }}>
+                {overallStandings.length > 0 ? (
+                  <table style={{ 
+                    width: "auto", 
+                    borderRadius: 0, 
+                    boxShadow: "none",
+                    marginBottom: 0,
+                    fontSize: "0.75rem"
                   }}>
-                    Status: {tournamentProgress.currentStage}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <span style={{ 
-                  fontSize: "0.875rem", 
-                  backgroundColor: tournamentProgress.statusColor.bg, 
-                  color: tournamentProgress.statusColor.text, 
-                  padding: "0.5rem 1rem", 
-                  borderRadius: "20px",
-                  fontWeight: "500"
-                }}>
-                  {tournamentProgress.statusColor.icon} {tournamentProgress.isLive ? 'Live' : tournament.status}
-                </span>
-              </div>
-            </div>
-            
-            {/* Dynamic Progress Bar */}
-            <div style={{ marginBottom: "1rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                <span style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>Tournament Progress</span>
-                <span style={{ fontSize: "0.875rem", fontWeight: "600", color: "var(--primary-color)" }}>
-                  {tournamentProgress.progressPercentage}%
-                </span>
-              </div>
-              <div style={{ width: "100%", backgroundColor: "#e0e0e0", borderRadius: "10px", height: "8px", marginBottom: "0.5rem" }}>
-                <div style={{ 
-                  width: `${tournamentProgress.progressPercentage}%`, 
-                  background: tournamentProgress.progressPercentage < 30 ? "#dc3545" : 
-                             tournamentProgress.progressPercentage < 70 ? "#ffc107" : "#28a745", 
-                  height: "8px", 
-                  borderRadius: "10px", 
-                  transition: "width 0.3s ease" 
-                }}></div>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "var(--text-light)" }}>
-                <span>{tournamentProgress.currentStage}</span>
-                <span>{tournamentStats.completedGames}/{tournamentStats.totalGames} games completed</span>
+                    <thead style={{ fontSize: "0.7rem" }}>
+                      <tr>
+                        <th className="team-name-header" style={{ padding: "0.4rem 0.5rem", textAlign: "left" }}>Team</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>GP</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>W</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>L</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>T</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>GD</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>Pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {overallStandings.map((team, index) => (
+                        <tr key={team.id} style={{ 
+                          backgroundColor: index < 3 ? "rgba(255, 215, 0, 0.1)" : "transparent" 
+                        }}>
+                          <td className="team-name" style={{ 
+                            padding: "0.4rem 0.5rem",
+                            fontSize: "0.75rem",
+                            fontWeight: index < 3 ? "600" : "normal"
+                          }}>
+                            <span style={{ color: index < 3 ? "#f59e0b" : "inherit" }}>
+                              {index + 1}.
+                            </span> {team.name}
+                          </td>
+                          <td className="number-cell" style={{ padding: "0.4rem", textAlign: "center", fontSize: "0.75rem" }}>
+                            {team.games_played || 0}
+                          </td>
+                          <td className="number-cell" style={{ padding: "0.4rem", textAlign: "center", fontSize: "0.75rem" }}>
+                            {team.wins || 0}
+                          </td>
+                          <td className="number-cell" style={{ padding: "0.4rem", textAlign: "center", fontSize: "0.75rem" }}>
+                            {team.losses || 0}
+                          </td>
+                          <td className="number-cell" style={{ padding: "0.4rem", textAlign: "center", fontSize: "0.75rem" }}>
+                            {team.draws || 0}
+                          </td>
+                          <td className="number-cell" style={{ 
+                            padding: "0.4rem", 
+                            textAlign: "center", 
+                            fontSize: "0.75rem",
+                            color: ((team.goals_for || 0) - (team.goals_against || 0)) >= 0 ? '#10b981' : '#ef4444',
+                            fontWeight: "600"
+                          }}>
+                            {((team.goals_for || 0) - (team.goals_against || 0)) > 0 ? '+' : ''}{(team.goals_for || 0) - (team.goals_against || 0)}
+                          </td>
+                          <td className="number-cell" style={{ 
+                            padding: "0.4rem", 
+                            textAlign: "center", 
+                            fontSize: "0.75rem",
+                            fontWeight: "bold"
+                          }}>
+                            {team.points || 0}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div style={{ textAlign: "center", color: "var(--text-light)", fontSize: "0.875rem" }}>
+                    No standings available
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        )}
-
-        {/* Pool Standings Section */}
-        {(pools.length > 0 && Object.keys(poolStandings).length > 0) ? (
-          <div style={{ marginBottom: "3rem" }}>
-            <h2 style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              🏊‍♂️ Pool Standings
-            </h2>
-            <p style={{ color: "var(--text-light)", marginBottom: "2rem" }}>Current pool rankings and qualification status</p>
+          
+          {/* Middle Column - 2x2 Grid Layout */}
+          <div style={{ 
+            display: "flex", 
+            flexDirection: "column", 
+            gap: "0.75rem",
+            minHeight: 0,
+            flex: 1
+          }}>
             
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-              {Object.values(poolStandings).map(({ pool, teams: poolTeams, winner, secondPlace }) => (
-                <div key={pool.id} className="content-card">
-                  <div style={{ padding: "1.5rem", borderBottom: "1px solid #e0e0e0", backgroundColor: "#f8f9fa" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <h3 style={{ fontSize: "1.125rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <Users className="w-5 h-5" style={{ color: "var(--primary-color)" }} />
-                        {pool.name}
-                      </h3>
-                      <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>
-                        {poolTeams.filter(t => t.gamesPlayed > 0).length}/{poolTeams.length} teams active
+            {/* Top Row - Recent Results and Up Next */}
+            <div style={{
+              display: "flex",
+              gap: "0.75rem",
+              flex: "0 1 auto"
+            }}>
+              
+              {/* Recent Results - Left Top */}
+              <div className="content-card" style={{ 
+                display: "flex", 
+                flexDirection: "column",
+                padding: "1rem",
+                flex: "0 1 auto",
+                minWidth: 0
+              }}>
+                <h3 style={{ 
+                  margin: "0 0 0.75rem 0", 
+                  fontSize: "1rem",
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.5rem" 
+                }}>
+                  ⚽ Recent Results
+                </h3>
+                <div style={{ 
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                  maxHeight: "280px",
+                  overflowY: "auto"
+                }}>
+                  {recentGames.length > 0 ? recentGames.slice(0, 4).map((game, index) => (
+                    <div key={index} style={{
+                      background: "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1e40af 100%)",
+                      color: "white",
+                      borderRadius: "8px",
+                      padding: "0.5rem 0.75rem",
+                      fontSize: "0.8rem"
+                    }}>
+                      <div style={{ 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center"
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: "0.75rem", fontWeight: "600" }}>
+                            {game.home_team_name}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", marginTop: "0.125rem" }}>
+                            {game.away_team_name}
+                          </div>
+                        </div>
+                        <div style={{ 
+                          textAlign: "center", 
+                          minWidth: "40px",
+                          fontSize: "1.1rem",
+                          fontWeight: "bold"
+                        }}>
+                          <div>{game.home_score}</div>
+                          <div>{game.away_score}</div>
+                        </div>
+                        <div style={{ fontSize: "0.65rem", opacity: 0.8, textAlign: "right" }}>
+                          {game.field}<br/>
+                          {formatTimeToAMPM(game.scheduled_start_time)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div style={{ overflowX: "auto" }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Pos</th>
-                          <th>Team</th>
-                          <th style={{ textAlign: "center" }}>GP</th>
-                          <th style={{ textAlign: "center" }}>W</th>
-                          <th style={{ textAlign: "center" }}>L</th>
-                          <th style={{ textAlign: "center" }}>T</th>
-                          <th style={{ textAlign: "center" }}>GF</th>
-                          <th style={{ textAlign: "center" }}>GA</th>
-                          <th style={{ textAlign: "center" }}>GD</th>
-                          <th style={{ textAlign: "center" }}>Pts</th>
-                          <th style={{ textAlign: "center" }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {poolTeams.map((team, index) => (
-                          <tr key={team.id} style={{ backgroundColor: index < 2 ? "rgba(0, 120, 215, 0.05)" : "transparent" }}>
-                            <td>
-                              <span style={{ fontWeight: "500" }}>{index + 1}</span>
-                            </td>
-                            <td>
-                              <div style={{ fontWeight: "500" }}>{team.name}</div>
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {team.gamesPlayed}
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {team.wins}
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {team.losses}
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {team.ties}
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {team.goalsFor}
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {team.goalsAgainst}
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              <span style={{
-                                fontWeight: "500",
-                                color: team.goalDifferential > 0 ? "#10b981" : 
-                                       team.goalDifferential < 0 ? "#ef4444" : "var(--text-color)"
-                              }}>
-                                {team.goalDifferential > 0 ? "+" : ""}{team.goalDifferential}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              <span style={{ fontSize: "1.125rem", fontWeight: "bold", color: "var(--primary-color)" }}>{team.points}</span>
-                            </td>
-                            <td style={{ textAlign: "center" }}>
-                              {index === 0 && (
-                                <span style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "0.25rem",
-                                  padding: "0.25rem 0.5rem",
-                                  borderRadius: "9999px",
-                                  fontSize: "0.75rem",
-                                  fontWeight: "500",
-                                  backgroundColor: "#dcfce7",
-                                  color: "#166534"
+                  )) : (
+                    <div style={{ textAlign: "center", color: "var(--text-light)", fontSize: "0.875rem", padding: "1rem" }}>
+                      No completed games yet
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Up Next - Right Top */}
+              <div className="content-card" style={{ 
+                display: "flex", 
+                flexDirection: "column",
+                padding: "1rem",
+                flex: "0 1 auto",
+                minWidth: 0
+              }}>
+                <h3 style={{ 
+                  margin: "0 0 0.75rem 0", 
+                  fontSize: "1rem",
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.5rem" 
+                }}>
+                  📅 Up Next
+                </h3>
+                <div style={{ 
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                  maxHeight: "280px",
+                  overflowY: "auto"
+                }}>
+                  {schedule.length > 0 ? schedule.slice(0, 5).map((game, index) => (
+                    <div key={index} style={{
+                      border: game.gameType === 'playoff' ? "2px solid #f59e0b" : "1px solid #e0e0e0",
+                      borderRadius: "6px",
+                      padding: "0.5rem",
+                      fontSize: "0.8rem",
+                      backgroundColor: index === 0 ? "#fff3cd" : game.gameType === 'playoff' ? "#fef3c7" : "transparent",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "0.75rem", fontWeight: "500", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          {game.gameType === 'playoff' && (
+                            <span style={{ fontSize: "0.7rem", backgroundColor: "#f59e0b", color: "white", padding: "0.1rem 0.3rem", borderRadius: "3px", fontWeight: "600" }}>
+                              {game.round === 'quarterfinal' && `QF${game.position}`}
+                              {game.round === 'semifinal' && `SF${game.position}`}
+                              {game.round === 'final' && 'FINAL'}
+                            </span>
+                          )}
+                          {game.home_team_name} vs {game.away_team_name}
+                        </div>
+                        <div style={{ fontSize: "0.65rem", color: "var(--text-light)" }}>
+                          {game.field || "TBD"}
+                        </div>
+                      </div>
+                      <div style={{ 
+                        fontSize: "0.9rem",
+                        fontWeight: "bold",
+                        color: game.gameType === 'playoff' ? "#f59e0b" : "var(--primary-color)"
+                      }}>
+                        {game.scheduled_start_time ? formatTimeToAMPM(game.scheduled_start_time) : "TBD"}
+                      </div>
+                    </div>
+                  )) : (
+                    <div style={{ textAlign: "center", color: "var(--text-light)", fontSize: "0.875rem", padding: "1rem" }}>
+                      No upcoming games
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Bottom Row - Overall Standings and Tournament Stats */}
+            <div style={{
+              display: "flex",
+              gap: "0.75rem",
+              flex: "1 1 auto"
+            }}>
+              
+              {/* Pool Standings or Tournament Bracket - Left Bottom */}
+              {playoffGamesScheduled ? (
+                // Tournament Bracket View
+                <div className="content-card" style={{ 
+                  display: "flex", 
+                  flexDirection: "column",
+                  padding: "1rem",
+                  flex: "1 1 auto",
+                  minWidth: 0
+                }}>
+                  <h3 style={{ 
+                    margin: "0 0 0.75rem 0", 
+                    fontSize: "1rem",
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "0.5rem" 
+                  }}>
+                    🏆 Tournament Bracket
+                  </h3>
+                  <div style={{ 
+                    flex: 1, 
+                    overflowY: "auto", 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    alignItems: "center",
+                    padding: "0.5rem",
+                    fontSize: "0.65rem"
+                  }}>
+                    {/* Tournament Bracket Visual Layout */}
+                    <div style={{ 
+                      display: "grid", 
+                      gridTemplateColumns: "1fr 0.5fr 1fr", 
+                      gridTemplateRows: "repeat(4, 1fr)",
+                      gap: "0.25rem",
+                      width: "100%",
+                      height: "100%",
+                      alignItems: "center"
+                    }}>
+                      
+                      {/* Left Quarterfinals */}
+                      <div style={{ gridColumn: 1, gridRow: 1, display: "flex", flexDirection: "column", gap: "0.125rem" }}>
+                        {bracketData.quarterfinals?.slice(0, 2).map((game, index) => (
+                          <div key={game.id} style={{
+                            border: "1px solid #e0e0e0",
+                            borderRadius: "3px",
+                            padding: "0.2rem 0.4rem",
+                            backgroundColor: game.status === 'completed' ? "#f0f9ff" : "white",
+                            fontSize: "0.55rem",
+                            minHeight: "28px"
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: "100%" }}>
+                              <div style={{ flex: 1, lineHeight: "1.1" }}>
+                                <div style={{ 
+                                  fontWeight: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "600" : "normal",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "70px"
                                 }}>
-                                  <Trophy className="w-3 h-3" />
-                                  Pool Winner
-                                </span>
-                              )}
-                              {index === 1 && (
-                                <span style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "0.25rem",
-                                  padding: "0.25rem 0.5rem",
-                                  borderRadius: "9999px",
-                                  fontSize: "0.75rem",
-                                  fontWeight: "500",
-                                  backgroundColor: "#fef3c7",
-                                  color: "#92400e"
+                                  {game.home_team_name?.split(' - ')[0] || game.home_team_name}
+                                </div>
+                                <div style={{ 
+                                  fontWeight: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "600" : "normal",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "70px"
                                 }}>
-                                  <Award className="w-3 h-3" />
-                                  2nd Place
-                                </span>
-                              )}
-                            </td>
-                          </tr>
+                                  {game.away_team_name?.split(' - ')[0] || game.away_team_name}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "center", minWidth: "16px", fontSize: "0.5rem" }}>
+                                {game.status === 'completed' ? (
+                                  <div style={{ lineHeight: "1" }}>
+                                    <div>{game.home_score}</div>
+                                    <div>{game.away_score}</div>
+                                  </div>
+                                ) : (
+                                  <div style={{ color: "#64748b", fontSize: "0.45rem" }}>
+                                    {game.scheduled_start_time ? formatTimeToAMPM(game.scheduled_start_time) : 'TBD'}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
+                      </div>
+
+                      {/* Left Semifinal */}
+                      <div style={{ gridColumn: 2, gridRow: "1 / 3", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {bracketData.semifinals?.[0] && (
+                          <div style={{
+                            border: "1px solid #e0e0e0",
+                            borderRadius: "3px",
+                            padding: "0.2rem 0.4rem",
+                            backgroundColor: bracketData.semifinals[0].status === 'completed' ? "#f0f9ff" : bracketData.semifinals[0].home_team_id ? "white" : "#f8f9fa",
+                            fontSize: "0.55rem",
+                            width: "100%",
+                            minHeight: "28px"
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: "100%" }}>
+                              <div style={{ flex: 1, lineHeight: "1.1" }}>
+                                <div style={{ 
+                                  fontWeight: bracketData.semifinals[0].status === 'completed' && bracketData.semifinals[0].winner_team_id === bracketData.semifinals[0].home_team_id ? "600" : "normal",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "50px"
+                                }}>
+                                  {bracketData.semifinals[0].home_team_name?.split(' - ')[0] || 'QF Winner'}
+                                </div>
+                                <div style={{ 
+                                  fontWeight: bracketData.semifinals[0].status === 'completed' && bracketData.semifinals[0].winner_team_id === bracketData.semifinals[0].away_team_id ? "600" : "normal",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "50px"
+                                }}>
+                                  {bracketData.semifinals[0].away_team_name?.split(' - ')[0] || 'QF Winner'}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "center", minWidth: "16px", fontSize: "0.5rem" }}>
+                                {bracketData.semifinals[0].status === 'completed' ? (
+                                  <div style={{ lineHeight: "1" }}>
+                                    <div>{bracketData.semifinals[0].home_score}</div>
+                                    <div>{bracketData.semifinals[0].away_score}</div>
+                                  </div>
+                                ) : bracketData.semifinals[0].home_team_id ? (
+                                  <div style={{ color: "#64748b", fontSize: "0.45rem" }}>
+                                    {bracketData.semifinals[0].scheduled_start_time ? formatTimeToAMPM(bracketData.semifinals[0].scheduled_start_time) : 'TBD'}
+                                  </div>
+                                ) : (
+                                  <div style={{ color: "#94a3b8", fontSize: "0.45rem" }}>-</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Championship Final */}
+                      <div style={{ gridColumn: 3, gridRow: "2 / 4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {bracketData.final?.[0] && (
+                          <div style={{
+                            border: "2px solid #f59e0b",
+                            borderRadius: "4px",
+                            padding: "0.3rem 0.5rem",
+                            backgroundColor: bracketData.final[0].status === 'completed' ? "#fef3c7" : bracketData.final[0].home_team_id ? "#fffbeb" : "#f8f9fa",
+                            fontSize: "0.6rem",
+                            width: "100%",
+                            minHeight: "32px"
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: "100%" }}>
+                              <div style={{ flex: 1, lineHeight: "1.1" }}>
+                                <div style={{ 
+                                  fontWeight: bracketData.final[0].status === 'completed' && bracketData.final[0].winner_team_id === bracketData.final[0].home_team_id ? "700" : "500",
+                                  color: bracketData.final[0].status === 'completed' && bracketData.final[0].winner_team_id === bracketData.final[0].home_team_id ? "#92400e" : "inherit",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "60px"
+                                }}>
+                                  {bracketData.final[0].home_team_name?.split(' - ')[0] || 'SF Winner'} 
+                                  {bracketData.final[0].status === 'completed' && bracketData.final[0].winner_team_id === bracketData.final[0].home_team_id && ' 👑'}
+                                </div>
+                                <div style={{ 
+                                  fontWeight: bracketData.final[0].status === 'completed' && bracketData.final[0].winner_team_id === bracketData.final[0].away_team_id ? "700" : "500",
+                                  color: bracketData.final[0].status === 'completed' && bracketData.final[0].winner_team_id === bracketData.final[0].away_team_id ? "#92400e" : "inherit",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "60px"
+                                }}>
+                                  {bracketData.final[0].away_team_name?.split(' - ')[0] || 'SF Winner'}
+                                  {bracketData.final[0].status === 'completed' && bracketData.final[0].winner_team_id === bracketData.final[0].away_team_id && ' 👑'}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "center", minWidth: "18px", fontSize: "0.55rem" }}>
+                                {bracketData.final[0].status === 'completed' ? (
+                                  <div style={{ fontWeight: "bold", lineHeight: "1" }}>
+                                    <div>{bracketData.final[0].home_score}</div>
+                                    <div>{bracketData.final[0].away_score}</div>
+                                  </div>
+                                ) : bracketData.final[0].home_team_id ? (
+                                  <div style={{ color: "#f59e0b", fontWeight: "600", fontSize: "0.5rem" }}>
+                                    {bracketData.final[0].scheduled_start_time ? formatTimeToAMPM(bracketData.final[0].scheduled_start_time) : 'TBD'}
+                                  </div>
+                                ) : (
+                                  <div style={{ color: "#94a3b8", fontSize: "0.5rem" }}>-</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right Semifinal */}
+                      <div style={{ gridColumn: 2, gridRow: "3 / 5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {bracketData.semifinals?.[1] && (
+                          <div style={{
+                            border: "1px solid #e0e0e0",
+                            borderRadius: "3px",
+                            padding: "0.2rem 0.4rem",
+                            backgroundColor: bracketData.semifinals[1].status === 'completed' ? "#f0f9ff" : bracketData.semifinals[1].home_team_id ? "white" : "#f8f9fa",
+                            fontSize: "0.55rem",
+                            width: "100%",
+                            minHeight: "28px"
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: "100%" }}>
+                              <div style={{ flex: 1, lineHeight: "1.1" }}>
+                                <div style={{ 
+                                  fontWeight: bracketData.semifinals[1].status === 'completed' && bracketData.semifinals[1].winner_team_id === bracketData.semifinals[1].home_team_id ? "600" : "normal",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "50px"
+                                }}>
+                                  {bracketData.semifinals[1].home_team_name?.split(' - ')[0] || 'QF Winner'}
+                                </div>
+                                <div style={{ 
+                                  fontWeight: bracketData.semifinals[1].status === 'completed' && bracketData.semifinals[1].winner_team_id === bracketData.semifinals[1].away_team_id ? "600" : "normal",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "50px"
+                                }}>
+                                  {bracketData.semifinals[1].away_team_name?.split(' - ')[0] || 'QF Winner'}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "center", minWidth: "16px", fontSize: "0.5rem" }}>
+                                {bracketData.semifinals[1].status === 'completed' ? (
+                                  <div style={{ lineHeight: "1" }}>
+                                    <div>{bracketData.semifinals[1].home_score}</div>
+                                    <div>{bracketData.semifinals[1].away_score}</div>
+                                  </div>
+                                ) : bracketData.semifinals[1].home_team_id ? (
+                                  <div style={{ color: "#64748b", fontSize: "0.45rem" }}>
+                                    {bracketData.semifinals[1].scheduled_start_time ? formatTimeToAMPM(bracketData.semifinals[1].scheduled_start_time) : 'TBD'}
+                                  </div>
+                                ) : (
+                                  <div style={{ color: "#94a3b8", fontSize: "0.45rem" }}>-</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right Quarterfinals */}
+                      <div style={{ gridColumn: 1, gridRow: 4, display: "flex", flexDirection: "column", gap: "0.125rem" }}>
+                        {bracketData.quarterfinals?.slice(2, 4).map((game, index) => (
+                          <div key={game.id} style={{
+                            border: "1px solid #e0e0e0",
+                            borderRadius: "3px",
+                            padding: "0.2rem 0.4rem",
+                            backgroundColor: game.status === 'completed' ? "#f0f9ff" : "white",
+                            fontSize: "0.55rem",
+                            minHeight: "28px"
+                          }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: "100%" }}>
+                              <div style={{ flex: 1, lineHeight: "1.1" }}>
+                                <div style={{ 
+                                  fontWeight: game.status === 'completed' && game.winner_team_id === game.home_team_id ? "600" : "normal",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "70px"
+                                }}>
+                                  {game.home_team_name?.split(' - ')[0] || game.home_team_name}
+                                </div>
+                                <div style={{ 
+                                  fontWeight: game.status === 'completed' && game.winner_team_id === game.away_team_id ? "600" : "normal",
+                                  whiteSpace: "nowrap", 
+                                  overflow: "hidden", 
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "70px"
+                                }}>
+                                  {game.away_team_name?.split(' - ')[0] || game.away_team_name}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "center", minWidth: "16px", fontSize: "0.5rem" }}>
+                                {game.status === 'completed' ? (
+                                  <div style={{ lineHeight: "1" }}>
+                                    <div>{game.home_score}</div>
+                                    <div>{game.away_score}</div>
+                                  </div>
+                                ) : (
+                                  <div style={{ color: "#64748b", fontSize: "0.45rem" }}>
+                                    {game.scheduled_start_time ? formatTimeToAMPM(game.scheduled_start_time) : 'TBD'}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Live Action Section */}
-        <div style={{ marginBottom: "3rem" }}>
-          <h2 style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            🏃‍♂️ Live Action
-          </h2>
-          <p style={{ color: "var(--text-light)", marginBottom: "2rem" }}>Current matches and recent results</p>
-          
-          <div className="content-wrapper">
-            {/* Recent Matches Card */}
-            <div className="col-two-thirds">
-              <div className="content-card">
-                <div style={{ marginBottom: "1.5rem" }}>
-                  <h3 style={{ marginBottom: "1rem" }}>⚽ Recent Matches</h3>
-                  <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-                    {['recent', 'live', 'upcoming'].map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setMatchesTab(tab)}
-                        className="btn"
-                        style={{
-                          backgroundColor: matchesTab === tab ? "var(--primary-color)" : "#e0e0e0",
-                          color: matchesTab === tab ? "white" : "#333",
-                          fontSize: "0.875rem",
-                          padding: "0.5rem 1rem"
-                        }}
-                      >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                      </button>
+              ) : (pools.length > 0 && Object.keys(poolStandings).length > 0) ? (
+                <div className="content-card" style={{ 
+                  display: "flex", 
+                  flexDirection: "column",
+                  padding: "1rem",
+                  flex: "1 1 auto",
+                  minWidth: 0
+                }}>
+                  <h3 style={{ 
+                    margin: "0 0 0.75rem 0", 
+                    fontSize: "1rem",
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "0.5rem" 
+                  }}>
+                    🏊‍♂️ Pool Standings
+                  </h3>
+                  <div style={{ 
+                    flex: 1, 
+                    overflowY: "auto", 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    gap: "0.5rem" 
+                  }}>
+                    {Object.values(poolStandings).map(({ pool, teams: poolTeams }) => (
+                      <div key={pool.id} style={{ 
+                        border: "1px solid #e0e0e0", 
+                        borderRadius: "6px",
+                        overflow: "hidden"
+                      }}>
+                        <div style={{ 
+                          padding: "0.25rem 0.5rem", 
+                          backgroundColor: "#f8f9fa", 
+                          borderBottom: "1px solid #e0e0e0",
+                          fontSize: "0.75rem",
+                          fontWeight: "600"
+                        }}>
+                          {pool.name}
+                        </div>
+                        <div>
+                          <table style={{ 
+                            width: "auto", 
+                            borderRadius: 0, 
+                            boxShadow: "none",
+                            marginBottom: 0,
+                            fontSize: "0.65rem"
+                          }}>
+                            <thead style={{ fontSize: "0.6rem" }}>
+                              <tr>
+                                <th className="team-name-header" style={{ padding: "0.2rem 0.4rem", textAlign: "left" }}>Team</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>GP</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>W</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>GD</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>Pts</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {poolTeams.slice(0, 4).map((team, index) => (
+                                <tr key={team.id} style={{ 
+                                  backgroundColor: index < 2 ? "rgba(0, 120, 215, 0.05)" : "transparent" 
+                                }}>
+                                  <td className="team-name" style={{ 
+                                    padding: "0.2rem 0.4rem",
+                                    fontSize: "0.65rem",
+                                    fontWeight: index === 0 ? "600" : "normal"
+                                  }}>
+                                    <span style={{ color: index < 2 ? "var(--primary-color)" : "inherit" }}>
+                                      {index + 1}.
+                                    </span> {team.name}
+                                  </td>
+                                  <td className="number-cell" style={{ padding: "0.2rem", textAlign: "center", fontSize: "0.65rem" }}>
+                                    {team.gamesPlayed}
+                                  </td>
+                                  <td className="number-cell" style={{ padding: "0.2rem", textAlign: "center", fontSize: "0.65rem" }}>
+                                    {team.wins}
+                                  </td>
+                                  <td className="number-cell" style={{ 
+                                    padding: "0.2rem", 
+                                    textAlign: "center", 
+                                    fontSize: "0.65rem",
+                                    color: team.goalDifferential >= 0 ? '#10b981' : '#ef4444',
+                                    fontWeight: "600"
+                                  }}>
+                                    {team.goalDifferential > 0 ? '+' : ''}{team.goalDifferential}
+                                  </td>
+                                  <td className="number-cell" style={{ 
+                                    padding: "0.2rem", 
+                                    textAlign: "center", 
+                                    fontSize: "0.65rem",
+                                    fontWeight: "bold"
+                                  }}>
+                                    {team.points}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
+              ) : (
+                <div className="content-card" style={{ 
+                  display: "flex", 
+                  flexDirection: "column",
+                  padding: "1rem",
+                  flex: "1 1 auto",
+                  minWidth: 0,
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}>
+                  <h3 style={{ margin: "0 0 0.75rem 0", fontSize: "1rem" }}>🏊‍♂️ Pool Standings</h3>
+                  <p style={{ textAlign: "center", color: "var(--text-light)", fontSize: "0.875rem" }}>
+                    No pool standings available
+                  </p>
+                </div>
+              )}
+              
+              {/* Tournament Stats - Right Bottom */}
+              <div className="content-card" style={{ 
+                display: "flex", 
+                flexDirection: "column",
+                padding: "1rem",
+                flex: "0 1 auto",
+                minWidth: 0
+              }}>
+              <h3 style={{ 
+                margin: "0 0 0.75rem 0", 
+                fontSize: "1rem",
+                display: "flex", 
+                alignItems: "center", 
+                gap: "0.5rem" 
+              }}>
+                📈 Tournament Stats
+              </h3>
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: "1fr 1fr", 
+                gap: "0.5rem",
+                fontSize: "0.8rem"
+              }}>
+                <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--primary-color)" }}>
+                    {tournamentStats.completedGames}
+                  </div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Games Played</div>
+                </div>
                 
-                <div>
-                  {matchesTab === "recent" && (recentGames.length > 0 ? recentGames.slice(0, 4).map((game, index) => (
-                    <div key={game.id} style={{ 
-                      display: "flex", 
-                      justifyContent: "space-between", 
-                      alignItems: "center", 
-                      padding: "1rem", 
-                      borderBottom: index < recentGames.slice(0, 4).length - 1 ? "1px solid #e0e0e0" : "none"
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                        <div style={{ 
-                          width: "40px", 
-                          height: "40px", 
-                          backgroundColor: "var(--primary-color)", 
-                          color: "white", 
-                          borderRadius: "50%", 
-                          display: "flex", 
-                          alignItems: "center", 
-                          justifyContent: "center", 
-                          fontSize: "0.75rem", 
-                          fontWeight: "bold" 
-                        }}>
-                          {game.home_team_name ? game.home_team_name.split(' ').map(w => w[0]).join('').substring(0,2) : 'H'}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: "500" }}>{game.home_team_name} vs {game.away_team_name}</div>
-                          <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>{game.pool_name}</div>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                        <div style={{ fontWeight: "bold", fontSize: "1.125rem" }}>{game.home_score} - {game.away_score}</div>
-                        <div style={{ color: "#10b981" }}>✓</div>
-                      </div>
-                    </div>
-                  )) : (
-                    <div style={{ textAlign: "center", padding: "2rem" }}>
-                      <Trophy className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
-                      <p>No recent matches</p>
-                    </div>
-                  ))}
-                  
-                  {matchesTab === "upcoming" && (schedule.length > 0 ? schedule.map((game, index) => (
-                    <div key={game.id} style={{ 
-                      display: "flex", 
-                      justifyContent: "space-between", 
-                      alignItems: "center", 
-                      padding: "1rem", 
-                      borderBottom: index < schedule.length - 1 ? "1px solid #e0e0e0" : "none"
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                        <div style={{ 
-                          width: "40px", 
-                          height: "40px", 
-                          backgroundColor: "var(--accent-color)", 
-                          color: "#333", 
-                          borderRadius: "50%", 
-                          display: "flex", 
-                          alignItems: "center", 
-                          justifyContent: "center", 
-                          fontSize: "0.75rem", 
-                          fontWeight: "bold" 
-                        }}>
-                          {game.home_team_name ? game.home_team_name.split(' ').map(w => w[0]).join('').substring(0,2) : 'H'}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: "500" }}>{game.home_team_name} vs {game.away_team_name}</div>
-                          <div style={{ fontSize: "0.875rem", color: "var(--text-light)" }}>{game.pool_name}</div>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                        <div style={{ fontWeight: "bold" }}>{game.scheduled_start_time || 'TBD'}</div>
-                        <div style={{ color: "var(--accent-color)" }}>⏰</div>
-                      </div>
-                    </div>
-                  )) : (
-                    <div style={{ textAlign: "center", padding: "2rem" }}>
-                      <Calendar className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
-                      <p>No upcoming matches</p>
-                    </div>
-                  ))}
-                  
-                  {matchesTab === "live" && (
-                    <div style={{ textAlign: "center", padding: "2rem" }}>
-                      <Trophy className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
-                      <p>No live matches</p>
-                    </div>
-                  )}
+                <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--primary-color)" }}>
+                    {tournamentStats.activeTeams}
+                  </div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Active Teams</div>
+                </div>
+                
+                <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--accent-color)" }}>
+                    {tournamentStats.totalGoals}
+                  </div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Total Goals</div>
+                </div>
+                
+                <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--accent-color)" }}>
+                    {tournamentStats.avgGoalsPerGame}
+                  </div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Goals/Game</div>
                 </div>
               </div>
-            </div>
-
-            {/* Announcements Card */}
-            <div className="col-one-third">
-              <div className="content-card">
-                <h3 style={{ marginBottom: "1rem" }}>📢 Latest Updates</h3>
-                <div>
-                  {announcements.length > 0 ? announcements.slice(0, 3).map((announcement, index) => (
-                    <div key={announcement.id} style={{ 
-                      padding: "1rem", 
-                      borderBottom: index < announcements.slice(0, 3).length - 1 ? "1px solid #e0e0e0" : "none"
-                    }}>
-                      <h4 style={{ fontSize: "0.9375rem", fontWeight: "600", marginBottom: "0.5rem" }}>
-                        {announcement.title}
-                      </h4>
-                      <p style={{ fontSize: "0.875rem", color: "var(--text-color)", marginBottom: "0.5rem" }}>
-                        {announcement.message.substring(0, 100)}...
-                      </p>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ 
-                          fontSize: "0.75rem", 
-                          backgroundColor: "var(--primary-color)", 
-                          color: "white", 
-                          padding: "0.25rem 0.5rem", 
-                          borderRadius: "4px" 
-                        }}>
-                          New
-                        </span>
-                        <span style={{ fontSize: "0.75rem", color: "var(--text-light)" }}>
-                          {new Date(announcement.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  )) : (
-                    <div style={{ textAlign: "center", padding: "2rem" }}>
-                      <Calendar className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
-                      <p>No announcements</p>
-                    </div>
-                  )}
+              
+              {/* Tournament Leader */}
+              {tournamentStats.tournamentLeader && (
+                <div style={{ 
+                  textAlign: "center", 
+                  padding: "0.5rem", 
+                  backgroundColor: "rgba(0, 120, 215, 0.1)", 
+                  borderRadius: "6px",
+                  marginTop: "0.5rem"
+                }}>
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>🏆 Tournament Leader</div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--primary-color)" }}>
+                    {tournamentStats.tournamentLeader.name}
+                  </div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>
+                    {tournamentStats.tournamentLeader.points} points
+                  </div>
                 </div>
+              )}
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Performance Section */}
-        <div style={{ marginBottom: "3rem" }}>
-          <h2 style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            🏆 Standings & Stats
-          </h2>
-          <p style={{ color: "var(--text-light)", marginBottom: "2rem" }}>Current tournament rankings and statistics</p>
           
-          <div className="content-wrapper">
-            {/* Tournament Standings Card */}
-            <div className="col-three-quarters">
-              <div className="content-card">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-                  <h3>📊 Tournament Standings</h3>
-                  <span style={{ 
-                    fontSize: "0.875rem", 
-                    backgroundColor: "#d4edda", 
-                    color: "#155724", 
-                    padding: "0.25rem 0.75rem", 
-                    borderRadius: "15px" 
+          {/* Right Column - Announcements Only */}
+          <div style={{ 
+            display: "flex", 
+            flexDirection: "column", 
+            minHeight: 0
+          }}>
+            {/* Announcements - Full Height */}
+            <div className="content-card" style={{ 
+              flex: 1, 
+              minHeight: 0, 
+              display: "flex", 
+              flexDirection: "column",
+              padding: "1rem"
+            }}>
+              <h3 style={{ 
+                margin: "0 0 0.75rem 0", 
+                fontSize: "1.1rem",
+                display: "flex", 
+                alignItems: "center", 
+                gap: "0.5rem" 
+              }}>
+                📢 Announcements
+              </h3>
+              <div style={{ 
+                flex: 1, 
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem"
+              }}>
+                {announcements.length > 0 ? announcements.map((announcement, index) => (
+                  <div key={index} style={{
+                    border: "1px solid #e0e0e0",
+                    borderRadius: "8px",
+                    padding: "0.75rem",
+                    backgroundColor: index === 0 ? "#e8f4fd" : "transparent"
                   }}>
-                    Live
-                  </span>
-                </div>
-                <div>
-                  {overallStandings.length > 0 ? (
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Pos</th>
-                          <th>Team</th>
-                          <th>Pool</th>
-                          <th>P</th>
-                          <th>W</th>
-                          <th>D</th>
-                          <th>L</th>
-                          <th>GF</th>
-                          <th>GA</th>
-                          <th>GD</th>
-                          <th>Pts</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {overallStandings.slice(0, 10).map((team, index) => (
-                          <tr key={team.id}>
-                            <td style={{ fontWeight: "600" }}>{index + 1}</td>
-                            <td>
-                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                <div style={{ 
-                                  width: "24px", 
-                                  height: "24px", 
-                                  backgroundColor: "var(--primary-color)", 
-                                  color: "white", 
-                                  borderRadius: "50%", 
-                                  display: "flex", 
-                                  alignItems: "center", 
-                                  justifyContent: "center", 
-                                  fontSize: "0.625rem", 
-                                  fontWeight: "bold" 
-                                }}>
-                                  {team.name ? team.name.split(' ').map(w => w[0]).join('').substring(0,2) : 'T'}
-                                </div>
-                                {team.name}
-                              </div>
-                            </td>
-                            <td>{team.pool_name}</td>
-                            <td>{team.games_played}</td>
-                            <td>{team.wins}</td>
-                            <td>{team.draws}</td>
-                            <td>{team.losses}</td>
-                            <td>{team.goals_for}</td>
-                            <td>{team.goals_against}</td>
-                            <td style={{ color: team.goals_for - team.goals_against >= 0 ? '#10b981' : '#ef4444' }}>
-                              {team.goals_for - team.goals_against > 0 ? '+' : ''}{team.goals_for - team.goals_against}
-                            </td>
-                            <td style={{ fontWeight: "bold" }}>{team.points}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div style={{ textAlign: "center", padding: "2rem" }}>
-                      <Trophy className="w-12 h-12" style={{ color: "var(--text-light)", margin: "0 auto 1rem", display: "block" }} />
-                      <p>No standings available</p>
-                      <p style={{ fontSize: "0.875rem" }}>Set up teams and start playing games</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Tournament Stats Card */}
-            <div className="col-quarter">
-              <div className="content-card">
-                <h3 style={{ marginBottom: "1.5rem" }}>📈 Tournament Stats</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--primary-color)" }}>
-                      {tournamentStats.completedGames}/{tournamentStats.totalGames}
-                    </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-light)" }}>Games Completed</div>
-                  </div>
-                  
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--primary-color)" }}>
-                      {tournamentStats.activeTeams}/{tournamentStats.totalTeams}
-                    </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-light)" }}>Active Teams</div>
-                  </div>
-                  
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--accent-color)" }}>
-                      {tournamentStats.totalGoals}
-                    </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-light)" }}>Total Goals</div>
-                  </div>
-                  
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--accent-color)" }}>
-                      {tournamentStats.avgGoalsPerGame}
-                    </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-light)" }}>Goals/Game</div>
-                  </div>
-
-                  {/* Tournament Leader */}
-                  {tournamentStats.tournamentLeader && (
                     <div style={{ 
-                      textAlign: "center", 
-                      padding: "0.75rem", 
-                      backgroundColor: "rgba(0, 120, 215, 0.1)", 
-                      borderRadius: "8px",
-                      marginTop: "0.5rem"
+                      fontSize: "0.9rem", 
+                      fontWeight: "600", 
+                      marginBottom: "0.5rem",
+                      color: "var(--primary-color)"
                     }}>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-light)", marginBottom: "0.25rem" }}>🏆 Leader</div>
-                      <div style={{ fontSize: "0.875rem", fontWeight: "600", color: "var(--primary-color)" }}>
-                        {tournamentStats.tournamentLeader.name}
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-light)" }}>
-                        {tournamentStats.tournamentLeader.points} pts
-                      </div>
+                      {announcement.title}
                     </div>
-                  )}
-
-                  {/* Highest Scoring Game */}
-                  {tournamentStats.highestScoringGame?.home_team_name && (
                     <div style={{ 
-                      textAlign: "center", 
-                      padding: "0.75rem", 
-                      backgroundColor: "rgba(255, 193, 7, 0.1)", 
-                      borderRadius: "8px"
+                      fontSize: "0.8rem", 
+                      color: "var(--text-color)",
+                      marginBottom: "0.5rem",
+                      lineHeight: "1.4"
                     }}>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-light)", marginBottom: "0.25rem" }}>⚽ Top Game</div>
-                      <div style={{ fontSize: "0.8rem", fontWeight: "600", color: "#f59e0b" }}>
-                        {tournamentStats.highestScoringGame.home_score}-{tournamentStats.highestScoringGame.away_score}
-                      </div>
-                      <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>
-                        {tournamentStats.highestScoringGame.home_team_name} vs {tournamentStats.highestScoringGame.away_team_name}
-                      </div>
+                      {announcement.message}
                     </div>
-                  )}
-                </div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>
+                      {announcement.created_by} • {new Date(announcement.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                )) : (
+                  <div style={{ 
+                    textAlign: "center", 
+                    color: "var(--text-light)", 
+                    fontSize: "0.875rem",
+                    padding: "2rem" 
+                  }}>
+                    No announcements
+                  </div>
+                )}
               </div>
             </div>
           </div>

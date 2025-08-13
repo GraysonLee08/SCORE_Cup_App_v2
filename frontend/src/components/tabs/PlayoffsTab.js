@@ -2,8 +2,9 @@
 // Playoff management tab component for tournament bracket generation and management
 
 import React, { useState, useEffect } from "react";
-import { Trophy, Users, Target, Calendar, Award, Zap, AlertCircle, Play, Clock, CheckCircle } from "lucide-react";
-import { fetchPlayoffs, generatePlayoffBracket, submitPlayoffResult, schedulePlayoffGame, showMessage } from "../../utils/api";
+import { Trophy, Users, Target, Award, AlertCircle, AlertTriangle, Clock, CheckCircle } from "lucide-react";
+import { fetchPlayoffs, generatePlayoffBracket, submitPlayoffResult, showMessage } from "../../utils/api";
+import BracketBuilder from "../BracketBuilder";
 
 const PlayoffsTab = ({ 
   teams, 
@@ -20,11 +21,14 @@ const PlayoffsTab = ({
   onDataChange 
 }) => {
   const [activeView, setActiveView] = useState("qualification");
+  const [showBracketBuilder, setShowBracketBuilder] = useState(false);
   const [poolStandings, setPoolStandings] = useState({});
   const [wildcards, setWildcards] = useState([]);
   const [seeds, setSeeds] = useState([]);
   const [bracket, setBracket] = useState({});
   const [playoffGames, setPlayoffGames] = useState([]);
+  const [wildcardTies, setWildcardTies] = useState([]);
+  const [manualWildcards, setManualWildcards] = useState({});
   const [selectedGame, setSelectedGame] = useState(null);
   const [gameResult, setGameResult] = useState({ 
     home_score: "", 
@@ -150,9 +154,25 @@ const PlayoffsTab = ({
         winner: teamStats[0],
         secondPlace: teamStats[1]
       };
+
+      // Debug logging for pool standings
+      console.log(`🏊 Pool ${pool.name} Results:`, {
+        winner: teamStats[0]?.name,
+        secondPlace: teamStats[1]?.name,
+        allTeams: teamStats.map(t => `${t.name} (${t.points}pts, ${t.goalDifferential}gd)`)
+      });
     });
 
+    console.log('🏆 All Pool Winners:', Object.values(standings).map(s => s.winner?.name));
     setPoolStandings(standings);
+  };
+
+  // Check if teams are completely tied (all tiebreakers equal)
+  const areTeamsCompletelyTied = (teamA, teamB) => {
+    return teamA.points === teamB.points &&
+           teamA.goalDifferential === teamB.goalDifferential &&
+           teamA.goalsFor === teamB.goalsFor &&
+           teamA.headToHead === teamB.headToHead; // Assuming head-to-head is calculated elsewhere
   };
 
   // Determine the 2 best second-place teams (wildcards)
@@ -160,6 +180,8 @@ const PlayoffsTab = ({
     const allSecondPlace = Object.values(poolStandings)
       .map(standing => standing.secondPlace)
       .filter(team => team && team.gamesPlayed > 0);
+
+    console.log('🔍 All Second Place Teams:', allSecondPlace.map(t => `${t.name} (${t.points}pts, ${t.goalDifferential}gd)`));
 
     // Sort second-place teams using same criteria
     allSecondPlace.sort((a, b) => {
@@ -171,8 +193,61 @@ const PlayoffsTab = ({
       return a.name.localeCompare(b.name);
     });
 
-    setWildcards(allSecondPlace.slice(0, 2));
+    // Check for ties in wildcard positions (positions 1 and 2 in sorted order = 1st and 2nd wildcards)
+    const ties = [];
+    
+    if (allSecondPlace.length >= 3) {
+      // Check 1st wildcard position (index 0) - is it tied with 2nd place (index 1) or beyond?
+      const firstWildcardTies = [allSecondPlace[0]];
+      for (let j = 1; j < allSecondPlace.length; j++) {
+        if (areTeamsCompletelyTied(allSecondPlace[0], allSecondPlace[j])) {
+          firstWildcardTies.push(allSecondPlace[j]);
+        }
+      }
+      if (firstWildcardTies.length > 1) {
+        ties.push({
+          position: 1, // 1st wildcard
+          teams: firstWildcardTies
+        });
+      }
+
+      // Check 2nd wildcard position (index 1) - is it tied with teams at index 2+?
+      if (!firstWildcardTies.some(t => t.id === allSecondPlace[1]?.id)) {
+        const secondWildcardTies = [allSecondPlace[1]];
+        for (let j = 2; j < allSecondPlace.length; j++) {
+          if (areTeamsCompletelyTied(allSecondPlace[1], allSecondPlace[j])) {
+            secondWildcardTies.push(allSecondPlace[j]);
+          }
+        }
+        if (secondWildcardTies.length > 1) {
+          ties.push({
+            position: 2, // 2nd wildcard
+            teams: secondWildcardTies
+          });
+        }
+      }
+    }
+
+    setWildcardTies(ties);
+    
+    // Use manual selections if available, otherwise use sorted order
+    let selectedWildcards = allSecondPlace.slice(0, 3); // Take top 3 wildcard teams
+    
+    // Apply manual selections if they exist
+    if (Object.keys(manualWildcards).length > 0) {
+      selectedWildcards = [
+        manualWildcards.first || selectedWildcards[0],
+        manualWildcards.second || selectedWildcards[1],
+        manualWildcards.third || selectedWildcards[2]
+      ].filter(Boolean);
+    }
+
+    console.log('🃏 Selected Wildcards:', selectedWildcards.map(t => t?.name));
+    console.log('⚠️ Wildcard Ties Detected:', ties.length > 0 ? ties.map(t => `Position ${t.position}: ${t.teams.map(team => team.name).join(', ')}`) : 'None');
+
+    setWildcards(selectedWildcards);
   };
+
 
   // Calculate overall seeding (1-8) for qualified teams
   const calculateSeeds = () => {
@@ -185,11 +260,8 @@ const PlayoffsTab = ({
     console.log('🏆 Pool Winners:', poolWinners.length, poolWinners.map(w => w.name));
     console.log('⚡ Wildcards:', wildcardTeams.length, wildcardTeams.map(w => w.name));
     
-    const allQualified = [...poolWinners, ...wildcardTeams];
-    console.log('🎯 All Qualified Teams:', allQualified.length, allQualified.map(t => t.name));
-
-    // Sort all qualified teams using same criteria to determine seeds 1-8
-    allQualified.sort((a, b) => {
+    // Sort pool winners (seeds 1-6) and wildcards (seeds 7-8) separately
+    poolWinners.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.goalDifferential !== a.goalDifferential) return b.goalDifferential - a.goalDifferential;
       if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
@@ -198,27 +270,119 @@ const PlayoffsTab = ({
       return a.name.localeCompare(b.name);
     });
 
-    const seededTeams = allQualified.map((team, index) => ({
+    wildcardTeams.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.goalDifferential !== a.goalDifferential) return b.goalDifferential - a.goalDifferential;
+      if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+      if (a.goalsAgainst !== b.goalsAgainst) return a.goalsAgainst - b.goalsAgainst;
+      if (a.fairPlayPoints !== b.fairPlayPoints) return a.fairPlayPoints - b.fairPlayPoints;
+      return a.name.localeCompare(b.name);
+    });
+
+    // Combine: Pool winners get seeds 1-6, Wildcards get seeds 7-9
+    // But we only use 8 teams for the bracket (top 2 wildcards by default)
+    const allQualified = [...poolWinners, ...wildcardTeams];
+    console.log('🎯 All Qualified Teams:', allQualified.length, allQualified.map(t => t.name));
+
+    // For automatic bracket generation, use 6 pool winners + 2 wildcards
+    const bracketTeams = [...poolWinners, ...wildcardTeams.slice(0, 2)];
+    
+    const seededTeams = bracketTeams.map((team, index) => ({
       ...team,
       seed: index + 1,
       isPoolWinner: poolWinners.some(winner => winner && winner.id === team.id),
       isWildcard: wildcardTeams.some(wildcard => wildcard.id === team.id)
     }));
 
-    console.log('🔢 Final Seeds:', seededTeams.length, seededTeams.map(t => `#${t.seed} ${t.name}`));
+    console.log('🔢 Final Seeds for Bracket:', seededTeams.length, seededTeams.map(t => `#${t.seed} ${t.name}`));
+    console.log('🎲 All Wildcards Available:', wildcardTeams.map(t => t.name));
     setSeeds(seededTeams);
+  };
+
+
+  // Handle saving bracket from BracketBuilder
+  const handleSaveBracketFromBuilder = async (bracketTeams) => {
+    if (!tournament || bracketTeams.length !== 8) {
+      showMessage(setError, setSuccess, "Invalid bracket configuration", true);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Update seeds with the manually selected bracket
+      const manualSeeds = bracketTeams.map((team, index) => ({
+        ...team,
+        seed: index + 1,
+        isPoolWinner: Object.values(poolStandings).some(s => s.winner?.id === team.id),
+        isWildcard: !Object.values(poolStandings).some(s => s.winner?.id === team.id)
+      }));
+
+      setSeeds(manualSeeds);
+      
+      // Store the manual seeds for bracket generation
+      localStorage.setItem('manualBracketSeeds', JSON.stringify(manualSeeds));
+      
+      // Immediately generate the playoff bracket with the custom seeding
+      const customSeeding = manualSeeds.map(team => ({
+        teamId: team.id,
+        seed: team.seed
+      }));
+      
+      console.log('🎯 Sending custom seeding to backend:', customSeeding);
+      const response = await generatePlayoffBracket(tournament.id, customSeeding);
+      
+      if (response.success) {
+        setShowBracketBuilder(false);
+        showMessage(setError, setSuccess, "Custom bracket generated successfully! Check the Tournament tab.");
+        fetchPlayoffData(); // Refresh playoff data
+        onDataChange(); // Refresh parent data
+      } else {
+        showMessage(setError, setSuccess, "Failed to generate bracket: " + response.error, true);
+      }
+    } catch (error) {
+      console.error("Error generating custom bracket:", error);
+      showMessage(setError, setSuccess, "Error generating bracket: " + error.message, true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Generate playoff bracket using backend API
   const handleGenerateBracket = async () => {
-    if (!tournament || seeds.length !== 8) {
+    // Check for manual seeds first
+    const manualSeedsStr = localStorage.getItem('manualBracketSeeds');
+    let finalSeeds = seeds;
+    
+    if (manualSeedsStr) {
+      try {
+        finalSeeds = JSON.parse(manualSeedsStr);
+        setSeeds(finalSeeds);
+        localStorage.removeItem('manualBracketSeeds'); // Clean up after use
+      } catch (e) {
+        console.error('Error parsing manual seeds:', e);
+      }
+    }
+
+    if (!tournament || finalSeeds.length !== 8) {
       showMessage(setError, setSuccess, "Need 8 qualified teams to generate bracket", true);
       return;
     }
 
     try {
       setLoading(true);
-      const response = await generatePlayoffBracket(tournament.id);
+      
+      // Check if we have custom seeding to send
+      let customSeeding = null;
+      if (manualSeedsStr) {
+        customSeeding = finalSeeds.map(team => ({
+          teamId: team.id,
+          seed: team.seed
+        }));
+        console.log('🎯 Using stored custom seeding:', customSeeding);
+      }
+      
+      const response = await generatePlayoffBracket(tournament.id, customSeeding);
       
       if (response.success) {
         showMessage(setError, setSuccess, "Playoff bracket generated successfully!");
@@ -367,27 +531,35 @@ const PlayoffsTab = ({
   const ViewToggle = () => (
     <div className="flex space-x-2 mb-6">
       <button
-        onClick={() => setActiveView("qualification")}
-        className={`tournament-tab ${activeView === "qualification" ? "active" : ""}`}
+        onClick={() => {
+          setActiveView("qualification");
+          setShowBracketBuilder(false);
+        }}
+        className={`tournament-tab ${activeView === "qualification" && !showBracketBuilder ? "active" : ""}`}
       >
         <Users className="w-4 h-4" />
         <span>Qualification</span>
       </button>
       <button
-        onClick={() => setActiveView("bracket")}
+        onClick={() => {
+          setActiveView("qualification");
+          setShowBracketBuilder(true);
+        }}
+        className={`tournament-tab ${showBracketBuilder ? "active" : ""}`}
+      >
+        <Target className="w-4 h-4" />
+        <span>Bracket Builder</span>
+      </button>
+      <button
+        onClick={() => {
+          setActiveView("bracket");
+          setShowBracketBuilder(false);
+        }}
         className={`tournament-tab ${activeView === "bracket" ? "active" : ""}`}
         disabled={seeds.length < 8}
       >
         <Trophy className="w-4 h-4" />
-        <span>Bracket</span>
-      </button>
-      <button
-        onClick={() => setActiveView("schedule")}
-        className={`tournament-tab ${activeView === "schedule" ? "active" : ""}`}
-        disabled={Object.keys(bracket).length === 0}
-      >
-        <Calendar className="w-4 h-4" />
-        <span>Schedule</span>
+        <span>Tournament</span>
       </button>
     </div>
   );
@@ -409,34 +581,49 @@ const PlayoffsTab = ({
     <div>
       <h2 className="text-2xl font-semibold mb-6">Playoff Management</h2>
       
+      {/* Warning for wildcard ties requiring manual selection */}
+      {wildcardTies.length > 0 && (
+        <div style={{
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffeaa7',
+          borderRadius: '6px',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
+        }}>
+          <AlertTriangle style={{ color: '#d68910', flexShrink: 0 }} className="w-5 h-5" />
+          <div>
+            <div style={{ fontWeight: '600', color: '#b7791f', marginBottom: '0.25rem' }}>
+              Manual Wildcard Selection Required
+            </div>
+            <div style={{ color: '#856404', fontSize: '0.875rem' }}>
+              {wildcardTies.length > 1 ? 'Multiple wildcard positions have' : 'A wildcard position has'} completely tied teams. 
+              Please manually select the wildcard team{wildcardTies.length > 1 ? 's' : ''} in the Bracket tab below.
+            </div>
+          </div>
+        </div>
+      )}
+      
       <ViewToggle />
 
-      {activeView === "qualification" && (
+      {/* Bracket Builder View */}
+      {showBracketBuilder && (
+        <BracketBuilder
+          poolStandings={poolStandings}
+          teams={teams}
+          games={games}
+          onSaveBracket={handleSaveBracketFromBuilder}
+          loading={loading}
+          setLoading={setLoading}
+          setError={setError}
+          setSuccess={setSuccess}
+        />
+      )}
+
+      {activeView === "qualification" && !showBracketBuilder && (
         <div className="space-y-6">
-          {/* Generate Bracket Button at Top */}
-          {seeds.length === 8 && (
-            <div className="text-center">
-              <button
-                onClick={handleGenerateBracket}
-                disabled={loading || seeds.length !== 8}
-                className="btn"
-                style={{ 
-                  padding: "0.875rem 2rem", 
-                  fontSize: "1.125rem", 
-                  fontWeight: "600",
-                  backgroundColor: "var(--primary-color)",
-                  color: "white",
-                  borderRadius: "8px",
-                  border: "none",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.6 : 1,
-                  transition: "all 0.2s ease"
-                }}
-              >
-                {loading ? "Generating..." : "🏆 Generate Playoff Bracket"}
-              </button>
-            </div>
-          )}
           
           {/* Tournament Format Info */}
           <div className="content-card">
@@ -1546,166 +1733,6 @@ const PlayoffsTab = ({
         </div>
       )}
 
-      {activeView === "schedule" && (
-        <div>
-          <h3 className="text-xl font-semibold mb-4">Playoff Schedule</h3>
-          {(!bracket.quarterfinals || bracket.quarterfinals.length === 0) ? (
-            <div className="text-center py-12 text-gray-500">
-              <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-xl">Generate bracket first</p>
-              <p>Create the playoff bracket to view scheduling options</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Tournament Rules */}
-              <div className="tournament-card">
-                <h4 className="text-lg font-semibold mb-4">Tournament Format & Rules</h4>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <h5 className="font-medium text-gray-800 mb-2">Match Schedule</h5>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• All playoff games in one day</li>
-                      <li>• Pool games & QFs: 2×20 minutes + 5 min halftime</li>
-                      <li>• Semis & Final: 2×25 minutes + 5 min halftime</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-gray-800 mb-2">Tiebreaker Rules</h5>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• No extra time in playoffs</li>
-                      <li>• If tied: go directly to penalty shootout</li>
-                      <li>• Winner advances to next round</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Match Schedule Overview */}
-              <div className="tournament-card">
-                <h4 className="text-lg font-semibold mb-4">Match Schedule Overview</h4>
-                <div className="space-y-4">
-                  
-                  {/* Quarterfinals */}
-                  <div>
-                    <h5 className="font-medium text-blue-700 mb-2">Quarterfinals</h5>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {bracket.quarterfinals?.map((game) => (
-                        <div key={game.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <div className="font-medium text-sm">QF{game.position}</div>
-                              <div className="text-sm text-gray-600">
-                                {game.home_team_name || 'TBD'} vs {game.away_team_name || 'TBD'}
-                              </div>
-                            </div>
-                            <div className="text-right text-sm">
-                              {game.scheduled_start_time || 'Time TBD'}
-                              {game.field && <div className="text-gray-500">{game.field}</div>}
-                            </div>
-                          </div>
-                          {game.status === 'completed' && (
-                            <div className="mt-2 text-sm font-medium text-green-600">
-                              Final: {game.home_score} - {game.away_score}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Semifinals */}
-                  <div>
-                    <h5 className="font-medium text-blue-700 mb-2">Semifinals</h5>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {bracket.semifinals?.map((game) => (
-                        <div key={game.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <div className="font-medium text-sm">SF{game.position}</div>
-                              <div className="text-sm text-gray-600">
-                                {game.home_team_name || 'QF Winner'} vs {game.away_team_name || 'QF Winner'}
-                              </div>
-                            </div>
-                            <div className="text-right text-sm">
-                              {game.scheduled_start_time || 'Time TBD'}
-                              {game.field && <div className="text-gray-500">{game.field}</div>}
-                            </div>
-                          </div>
-                          {game.status === 'completed' && (
-                            <div className="mt-2 text-sm font-medium text-green-600">
-                              Final: {game.home_score} - {game.away_score}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Final */}
-                  <div>
-                    <h5 className="font-medium text-blue-700 mb-2">Championship Final</h5>
-                    {bracket.final?.map((game) => (
-                      <div key={game.id} className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                        <div className="text-center">
-                          <div className="font-bold text-yellow-700 mb-2">CHAMPIONSHIP MATCH</div>
-                          <div className="text-lg text-gray-700 mb-2">
-                            {game.home_team_name || 'SF Winner'} vs {game.away_team_name || 'SF Winner'}
-                          </div>
-                          <div className="text-gray-600">
-                            {game.scheduled_start_time || 'Time TBD'}
-                            {game.field && ` • ${game.field}`}
-                          </div>
-                          {game.status === 'completed' && (
-                            <div className="mt-3">
-                              <div className="text-lg font-bold text-yellow-700">
-                                Champion: {game.winner_team_name}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                Final Score: {game.home_score} - {game.away_score}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Playoff Progress */}
-              <div className="tournament-card">
-                <h4 className="text-lg font-semibold mb-4">Playoff Progress</h4>
-                <div className="grid md:grid-cols-4 gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600 mb-2">
-                      {bracket.quarterfinals?.filter(g => g.status === 'completed').length || 0}/4
-                    </div>
-                    <div className="text-gray-600">Quarterfinals Complete</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600 mb-2">
-                      {bracket.semifinals?.filter(g => g.status === 'completed').length || 0}/2
-                    </div>
-                    <div className="text-gray-600">Semifinals Complete</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-600 mb-2">
-                      {bracket.final?.filter(g => g.status === 'completed').length || 0}/1
-                    </div>
-                    <div className="text-gray-600">Final Complete</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600 mb-2">
-                      {bracket.final?.some(g => g.status === 'completed') ? '1' : '0'}
-                    </div>
-                    <div className="text-gray-600">Champion Crowned</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

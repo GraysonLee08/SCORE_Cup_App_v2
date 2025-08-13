@@ -832,50 +832,154 @@ const SettingsTab = ({
         </div>
       </div>
 
-      {/* Reset Tournament Confirmation Modal */}
+      {/* Reset Tournament Confirmation Overlay */}
       {showResetConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <span className="text-red-600 text-lg font-bold">⚠️</span>
-                </div>
+        <div 
+          className="overlay"
+          style={{
+            height: '100%',
+            width: '100%',
+            display: 'block',
+            position: 'fixed',
+            zIndex: 9999,
+            top: 0,
+            left: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)'
+          }}
+        >
+          <span 
+            className="closebtn"
+            onClick={cancelResetTournament}
+            title="Close Overlay"
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '45px',
+              fontSize: '60px',
+              cursor: 'pointer',
+              color: 'white',
+              transition: 'color 0.2s ease-in-out'
+            }}
+            onMouseEnter={(e) => e.target.style.color = '#ccc'}
+            onMouseLeave={(e) => e.target.style.color = 'white'}
+          >
+            ×
+          </span>
+          
+          <div 
+            className="overlay-content"
+            style={{
+              position: 'relative',
+              top: '40%',
+              transform: 'translateY(-50%)',
+              width: '80%',
+              maxWidth: '600px',
+              textAlign: 'center',
+              margin: 'auto',
+              color: 'white'
+            }}
+          >
+            <div style={{ marginBottom: '40px' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 20px',
+                border: '3px solid #ef4444'
+              }}>
+                <span style={{ fontSize: '40px' }}>⚠️</span>
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Confirm Tournament Reset
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  This action will permanently delete:
-                </p>
-                <ul className="text-sm text-gray-600 mb-4 space-y-1">
-                  <li>• All registered teams</li>
-                  <li>• All games and schedules</li>
-                  <li>• All pool assignments</li>
-                  <li>• All playoff data</li>
-                  <li>• All match results</li>
-                </ul>
-                <p className="text-sm text-red-600 font-medium mb-6">
-                  This action cannot be undone. Tournament settings will be preserved.
-                </p>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={confirmResetTournament}
-                    disabled={loading}
-                    className="flex-1 btn bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    {loading ? "Resetting..." : "Yes, Reset Tournament"}
-                  </button>
-                  <button
-                    onClick={cancelResetTournament}
-                    disabled={loading}
-                    className="flex-1 btn bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:cursor-not-allowed"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+              
+              <h2 style={{ 
+                fontSize: '32px', 
+                fontWeight: 'bold', 
+                marginBottom: '20px',
+                color: 'white'
+              }}>
+                Confirm Tournament Reset
+              </h2>
+              
+              <p style={{ 
+                fontSize: '18px', 
+                marginBottom: '30px',
+                color: '#e5e5e5'
+              }}>
+                This action will permanently delete:
+              </p>
+              
+              <ul style={{ 
+                fontSize: '16px', 
+                color: '#e5e5e5',
+                listStyle: 'none',
+                padding: 0,
+                marginBottom: '30px',
+                lineHeight: '1.8'
+              }}>
+                <li>• All registered teams</li>
+                <li>• All games and schedules</li>
+                <li>• All pool assignments</li>
+                <li>• All playoff data</li>
+                <li>• All match results</li>
+              </ul>
+              
+              <p style={{ 
+                fontSize: '16px', 
+                color: '#ef4444',
+                fontWeight: 'bold',
+                marginBottom: '40px'
+              }}>
+                ⚠️ This action cannot be undone. Tournament settings will be preserved.
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
+              <button
+                onClick={confirmResetTournament}
+                disabled={loading}
+                style={{
+                  padding: '15px 40px',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                  transition: 'all 0.2s ease-in-out',
+                  minWidth: '200px'
+                }}
+                onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#dc2626')}
+                onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#ef4444')}
+              >
+                {loading ? "Resetting..." : "Yes, Reset Tournament"}
+              </button>
+              
+              <button
+                onClick={cancelResetTournament}
+                disabled={loading}
+                style={{
+                  padding: '15px 40px',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  backgroundColor: '#4b5563',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.5 : 1,
+                  transition: 'all 0.2s ease-in-out',
+                  minWidth: '200px'
+                }}
+                onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#6b7280')}
+                onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#4b5563')}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
