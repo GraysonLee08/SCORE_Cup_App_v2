@@ -18,6 +18,7 @@ COPY src/ ./src/
 ENV GENERATE_SOURCEMAP=false
 ENV SKIP_PREFLIGHT_CHECK=true
 ENV NODE_OPTIONS=--max_old_space_size=4096
+ENV REACT_APP_API_URL=/api
 RUN npm run build
 
 # Stage 2: Production image with nginx
