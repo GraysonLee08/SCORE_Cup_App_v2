@@ -286,8 +286,8 @@ const DisplayScreen = React.memo(() => {
   }
 
   return (
-    <main style={{ height: "100vh", overflow: "hidden", padding: "1rem" }}>
-      <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "100%", margin: "0 auto" }}>
+    <main style={{ minHeight: "100vh", overflow: "auto", padding: "1rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "100%", margin: "0 auto" }}>
         {/* Compact Page Header with Donate Button */}
         <div style={{ 
           display: "flex", 
@@ -350,11 +350,7 @@ const DisplayScreen = React.memo(() => {
 
         {/* Main Dashboard Grid - Responsive Layout */}
         <div className="display-dashboard-grid" style={{ 
-          flex: 1,
-          display: "grid",
-          gridTemplateColumns: "1fr 2fr 1fr",
-          gap: "1rem",
-          overflow: "hidden"
+          minHeight: "calc(100vh - 120px)" // Ensure minimum height but allow growth
         }}>
           
           {/* Left Column - Overall Standings Only */}
