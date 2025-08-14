@@ -7,7 +7,7 @@ import { Users, Settings, Calendar, Trophy, MessageSquare, Target, LogOut } from
 import Login from "./Login";
 
 // Import utilities
-import { fetchTournaments, fetchTeams, fetchPools, fetchGames } from "../utils/api";
+import { fetchTournaments, fetchTeams, fetchPools, fetchGames, API_URL } from "../utils/api";
 import MessageBox from "./common/MessageBox";
 import TeamsTab from "./tabs/TeamsTab";
 import PoolsTab from "./tabs/PoolsTab";
