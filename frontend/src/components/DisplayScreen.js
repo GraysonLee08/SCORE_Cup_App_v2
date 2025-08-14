@@ -239,9 +239,10 @@ const DisplayScreen = React.memo(() => {
 
   const poolStandings = calculatePoolStandings();
 
-  // Check if playoff games have been scheduled (auto-schedule has been run)
-  const playoffGamesScheduled = playoffGames.length > 0 && playoffGames.some(game => 
-    game.status === 'scheduled' && game.scheduled_start_time !== null
+  // Check if playoff games exist (either scheduled or completed) - prioritize playoff bracket after pool play
+  const playoffGamesExist = playoffGames.length > 0;
+  const playoffGamesStarted = playoffGames.length > 0 && playoffGames.some(game => 
+    game.status === 'completed' || (game.status === 'scheduled' && game.scheduled_start_time !== null)
   );
 
   // Organize playoff games into bracket structure for display
@@ -617,7 +618,7 @@ const DisplayScreen = React.memo(() => {
             }}>
               
               {/* Pool Standings or Tournament Bracket - Left Bottom */}
-              {playoffGamesScheduled ? (
+              {playoffGamesExist ? (
                 // Tournament Bracket View
                 <div className="content-card" style={{ 
                   display: "flex", 
@@ -628,12 +629,16 @@ const DisplayScreen = React.memo(() => {
                 }}>
                   <h3 style={{ 
                     margin: "0 0 0.75rem 0", 
-                    fontSize: "1rem",
+                    fontSize: "1.1rem",
                     display: "flex", 
                     alignItems: "center", 
-                    gap: "0.5rem" 
+                    gap: "0.5rem",
+                    background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    fontWeight: "700"
                   }}>
-                    🏆 Tournament Bracket
+                    🏆 Championship Bracket
                   </h3>
                   <div style={{ 
                     flex: 1, 
@@ -647,24 +652,33 @@ const DisplayScreen = React.memo(() => {
                     {/* Tournament Bracket Visual Layout */}
                     <div style={{ 
                       display: "grid", 
-                      gridTemplateColumns: "1fr 0.5fr 1fr", 
+                      gridTemplateColumns: "1fr 0.6fr 1fr", 
                       gridTemplateRows: "repeat(4, 1fr)",
-                      gap: "0.25rem",
+                      gap: "0.4rem",
                       width: "100%",
                       height: "100%",
-                      alignItems: "center"
+                      alignItems: "center",
+                      background: "linear-gradient(135deg, #fefbf3 0%, #f0f9ff 50%, #fef7f0 100%)",
+                      borderRadius: "12px",
+                      padding: "0.75rem",
+                      border: "1px solid #e5e7eb"
                     }}>
                       
                       {/* Left Quarterfinals */}
                       <div style={{ gridColumn: 1, gridRow: 1, display: "flex", flexDirection: "column", gap: "0.125rem" }}>
                         {bracketData.quarterfinals?.slice(0, 2).map((game, index) => (
                           <div key={game.id} style={{
-                            border: "1px solid #e0e0e0",
-                            borderRadius: "3px",
-                            padding: "0.2rem 0.4rem",
-                            backgroundColor: game.status === 'completed' ? "#f0f9ff" : "white",
-                            fontSize: "0.55rem",
-                            minHeight: "28px"
+                            border: game.status === 'completed' ? "2px solid #10b981" : "2px solid #e5e7eb",
+                            borderRadius: "8px",
+                            padding: "0.3rem 0.5rem",
+                            background: game.status === 'completed' 
+                              ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)" 
+                              : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+                            fontSize: "0.6rem",
+                            minHeight: "32px",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                            transition: "all 0.2s ease",
+                            cursor: game.status === 'scheduled' ? "pointer" : "default"
                           }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: "100%" }}>
                               <div style={{ flex: 1, lineHeight: "1.1" }}>
@@ -760,14 +774,32 @@ const DisplayScreen = React.memo(() => {
                       <div style={{ gridColumn: 3, gridRow: "2 / 4", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {bracketData.final?.[0] && (
                           <div style={{
-                            border: "2px solid #f59e0b",
-                            borderRadius: "4px",
-                            padding: "0.3rem 0.5rem",
-                            backgroundColor: bracketData.final[0].status === 'completed' ? "#fef3c7" : bracketData.final[0].home_team_id ? "#fffbeb" : "#f8f9fa",
-                            fontSize: "0.6rem",
+                            border: "3px solid #f59e0b",
+                            borderRadius: "10px",
+                            padding: "0.4rem 0.6rem",
+                            background: bracketData.final[0].status === 'completed' 
+                              ? "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)" 
+                              : "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                            fontSize: "0.65rem",
                             width: "100%",
-                            minHeight: "32px"
+                            minHeight: "38px",
+                            boxShadow: "0 4px 8px rgba(245, 158, 11, 0.3)",
+                            position: "relative"
                           }}>
+                            <div style={{
+                              position: "absolute",
+                              top: "-8px",
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              background: "#dc2626",
+                              color: "white",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              fontSize: "0.4rem",
+                              fontWeight: "700"
+                            }}>
+                              FINAL
+                            </div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: "100%" }}>
                               <div style={{ flex: 1, lineHeight: "1.1" }}>
                                 <div style={{ 
