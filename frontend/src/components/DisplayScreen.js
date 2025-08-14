@@ -5,9 +5,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Trophy } from "lucide-react";
 import '../styles/tournament.css';
-import { fetchPools, fetchTeams } from "../utils/api";
-
-const API_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) || "http://localhost:3002";
+import { fetchPools, fetchTeams, API_URL } from "../utils/api";
 
 const DisplayScreen = React.memo(() => {
   const [tournament, setTournament] = useState(null);

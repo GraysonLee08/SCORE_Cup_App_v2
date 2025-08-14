@@ -7,8 +7,7 @@ import {
   Trophy, TrendingUp, Target, Users, Calendar, 
   BarChart3, PieChart, Activity, Award, Timer 
 } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3002";
+import { API_URL } from '../utils/api';
 
 const StatCard = ({ title, value, icon: Icon, color = "blue", subtitle, trend }) => (
   <div className={`bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow`}>
