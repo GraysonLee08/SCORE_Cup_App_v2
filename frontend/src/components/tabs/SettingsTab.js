@@ -2,7 +2,7 @@
 // Settings management tab component
 
 import React, { useState, useEffect } from "react";
-import { updateTournament, createTournament, showMessage, fetchPools, generatePools, updatePool, deletePool } from "../../utils/api";
+import { updateTournament, createTournament, showMessage, fetchPools, generatePools, updatePool, deletePool, API_URL } from "../../utils/api";
 
 const SettingsTab = ({ 
   tournament, 
@@ -298,7 +298,7 @@ const SettingsTab = ({
         return;
       }
 
-      const response = await fetch('http://localhost:3002/api/admin/reset-tournament', {
+      const response = await fetch(`${API_URL}/api/admin/reset-tournament`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
