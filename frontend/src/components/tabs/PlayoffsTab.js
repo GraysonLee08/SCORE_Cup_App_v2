@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Trophy, Users, Target, Award, AlertCircle, AlertTriangle, Clock, CheckCircle } from "lucide-react";
-import { fetchPlayoffs, generatePlayoffBracket, submitPlayoffResult, showMessage } from "../../utils/api";
+import { fetchPlayoffs, generatePlayoffBracket, submitPlayoffResult, showMessage, API_URL } from "../../utils/api";
 import BracketBuilder from "../BracketBuilder";
 
 const PlayoffsTab = ({ 
@@ -411,7 +411,7 @@ const PlayoffsTab = ({
 
     try {
       setLoading(true);
-      const response = await fetch(process.env.REACT_APP_API_URL + `/api/tournaments/${tournament.id}/playoffs/auto-schedule`, {
+      const response = await fetch(`${API_URL}/api/tournaments/${tournament.id}/playoffs/auto-schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'

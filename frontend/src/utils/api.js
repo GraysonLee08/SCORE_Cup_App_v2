@@ -3,50 +3,58 @@
 
 import axios from "axios";
 
-export const API_URL = (typeof process !== 'undefined' && (process.env?.REACT_APP_API_URL || process.env?.REACT_APP_API_BASE_URL)) || "http://localhost:3002";
+// Handle API URL for both development and production
+const rawApiUrl = (typeof process !== 'undefined' && (process.env?.REACT_APP_API_URL || process.env?.REACT_APP_API_BASE_URL)) || "http://localhost:3002";
+// If API_URL is just '/api', we use empty string so paths like '/api/admin/login' work correctly
+export const API_URL = rawApiUrl === '/api' ? '' : rawApiUrl;
+
+// Helper to construct API URLs
+const getApiUrl = (endpoint) => {
+  return `${API_URL}${endpoint}`;
+};
 
 // API Functions
 export const fetchTournaments = () => 
-  axios.get(`${API_URL}/api/tournaments`).catch(() => ({ data: [] }));
+  axios.get(getApiUrl('/api/tournaments')).catch(() => ({ data: [] }));
 
 export const fetchTeams = () => 
-  axios.get(`${API_URL}/api/teams`).catch(() => ({ data: [] }));
+  axios.get(getApiUrl('/api/teams')).catch(() => ({ data: [] }));
 
 export const fetchPools = (tournamentId) => 
-  axios.get(`${API_URL}/api/tournaments/${tournamentId}/pools`);
+  axios.get(getApiUrl(`/api/tournaments/${tournamentId}/pools`));
 
 export const fetchGames = (tournamentId) => 
-  axios.get(`${API_URL}/api/tournaments/${tournamentId}/games`);
+  axios.get(getApiUrl(`/api/tournaments/${tournamentId}/games`));
 
 export const createTeam = (teamData) => 
-  axios.post(`${API_URL}/api/teams`, teamData);
+  axios.post(getApiUrl('/api/teams'), teamData);
 
 export const deleteTeam = (teamId) => 
-  axios.delete(`${API_URL}/api/teams/${teamId}`);
+  axios.delete(getApiUrl(`/api/teams/${teamId}`));
 
 export const updateTeam = (teamId, data) => 
-  axios.put(`${API_URL}/api/teams/${teamId}`, data);
+  axios.put(getApiUrl(`/api/teams/${teamId}`), data);
 
 export const generatePools = (tournamentId, poolSettings) => 
-  axios.post(`${API_URL}/api/tournaments/${tournamentId}/pools/generate`, poolSettings);
+  axios.post(getApiUrl(`/api/tournaments/${tournamentId}/pools/generate`), poolSettings);
 
 export const createPool = (tournamentId, poolData) => 
-  axios.post(`${API_URL}/api/tournaments/${tournamentId}/pools`, poolData);
+  axios.post(getApiUrl(`/api/tournaments/${tournamentId}/pools`), poolData);
 
 export const updatePool = (poolId, poolData) => 
-  axios.put(`${API_URL}/api/pools/${poolId}`, poolData);
+  axios.put(getApiUrl(`/api/pools/${poolId}`), poolData);
 
 export const deletePool = (poolId) => 
-  axios.delete(`${API_URL}/api/pools/${poolId}`);
+  axios.delete(getApiUrl(`/api/pools/${poolId}`));
 
 export const generateSchedule = (poolId, settings) => 
-  axios.post(`${API_URL}/api/pools/${poolId}/schedule-with-settings`, settings);
+  axios.post(getApiUrl(`/api/pools/${poolId}/schedule-with-settings`), settings);
 
 export const updateTournament = (tournamentId, data) => 
-  axios.put(`${API_URL}/api/tournaments/${tournamentId}`, data);
+  axios.put(getApiUrl(`/api/tournaments/${tournamentId}`), data);
 
 export const createTournament = (data) => 
-  axios.post(`${API_URL}/api/tournaments`, data);
+  axios.post(getApiUrl('/api/tournaments'), data);
 
 export const submitGameResult = (gameId, resultData) => 
   axios.post(`${API_URL}/api/games/${gameId}/result`, resultData);

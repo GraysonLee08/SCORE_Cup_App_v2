@@ -11,12 +11,13 @@ import "./styles/tournament.css";
 
 const Layout = () => {
   useEffect(() => {
-    // Set the background image dynamically from the public folder
-    const backgroundImage = `linear-gradient(rgba(248, 249, 250, 0.85), rgba(255, 255, 255, 0.85)), url("${process.env.PUBLIC_URL}/Copy+of+P1360801.webp")`;
+    // Set initial gradient background immediately
+    document.body.style.background = 'linear-gradient(rgba(248, 249, 250, 0.85), rgba(255, 255, 255, 0.85))';
     
-    // Check if image exists before setting it
+    // Lazy load the background image
     const img = new Image();
     img.onload = () => {
+      const backgroundImage = `linear-gradient(rgba(248, 249, 250, 0.85), rgba(255, 255, 255, 0.85)), url("${process.env.PUBLIC_URL}/Copy+of+P1360801.webp")`;
       document.body.style.background = backgroundImage;
       document.body.style.backgroundSize = 'cover';
       document.body.style.backgroundPosition = 'center center';
@@ -24,10 +25,12 @@ const Layout = () => {
       document.body.style.backgroundRepeat = 'no-repeat';
     };
     img.onerror = () => {
-      // If image fails to load, keep the gradient background
       console.log('Soccer background image not found, using gradient background');
     };
-    img.src = `${process.env.PUBLIC_URL}/Copy+of+P1360801.webp`;
+    // Load image after initial render
+    setTimeout(() => {
+      img.src = `${process.env.PUBLIC_URL}/Copy+of+P1360801.webp`;
+    }, 100);
   }, []);
 
   return (

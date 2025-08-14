@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import { Calendar, Clock, MapPin, Plus, AlertTriangle, Edit2, Trash2, X, Save, Info } from "lucide-react";
+import { API_URL } from "../../utils/api";
 
 const ScheduleTab = ({ 
   games, 
@@ -162,7 +163,7 @@ const ScheduleTab = ({
       setLoading(true);
       setValidationError("");
       
-      const response = await fetch(process.env.REACT_APP_API_URL + '/api/games', {
+      const response = await fetch(`${API_URL}/api/games`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -221,7 +222,7 @@ const ScheduleTab = ({
       setLoading(true);
       setValidationError("");
       
-      const response = await fetch(process.env.REACT_APP_API_URL + `/api/games/${editingGame}`, {
+      const response = await fetch(`${API_URL}/api/games/${editingGame}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -260,7 +261,7 @@ const ScheduleTab = ({
     try {
       setLoading(true);
       
-      const response = await fetch(process.env.REACT_APP_API_URL + `/api/games/${gameId}`, {
+      const response = await fetch(`${API_URL}/api/games/${gameId}`, {
         method: 'DELETE',
         credentials: 'include'
       });

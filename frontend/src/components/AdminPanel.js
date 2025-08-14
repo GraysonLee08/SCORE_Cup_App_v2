@@ -61,7 +61,7 @@ const AdminPanel = () => {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch(process.env.REACT_APP_API_URL + '/api/admin/check', {
+      const response = await fetch(`${API_URL}/api/admin/check`, {
         credentials: 'include'
       });
       const data = await response.json();
@@ -78,7 +78,7 @@ const AdminPanel = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch(process.env.REACT_APP_API_URL + '/api/admin/logout', {
+      await fetch(`${API_URL}/api/admin/logout`, {
         method: 'POST',
         credentials: 'include'
       });

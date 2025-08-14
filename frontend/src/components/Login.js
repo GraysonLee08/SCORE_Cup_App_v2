@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff } from 'lucide-react';
+import { API_URL } from '../utils/api';
 
 const Login = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
@@ -13,7 +14,7 @@ const Login = ({ onLoginSuccess }) => {
     setError('');
 
     try {
-      const response = await fetch(process.env.REACT_APP_API_URL + '/api/admin/login', {
+      const response = await fetch(`${API_URL}/api/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
