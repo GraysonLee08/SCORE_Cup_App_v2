@@ -551,7 +551,6 @@ textarea:focus {
 @media (min-width: 1200px) {
   .display-dashboard-grid {
     grid-template-columns: 1fr 2fr 1fr !important;
-    max-height: calc(100vh - 200px) !important;
   }
 }
 
@@ -559,7 +558,6 @@ textarea:focus {
 @media (max-width: 1199px) and (min-width: 768px) {
   .display-dashboard-grid {
     grid-template-columns: 1fr 1fr !important;
-    max-height: calc(100vh - 200px) !important;
   }
   
   /* Stack middle column items more compactly */
@@ -618,8 +616,9 @@ textarea:focus {
     margin-bottom: 1rem;
   }
   
+  /* Allow all content cards to grow dynamically */
   .content-card {
-    max-height: 400px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
   }
 }

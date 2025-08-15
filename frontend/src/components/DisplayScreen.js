@@ -121,38 +121,122 @@ const DisplayScreen = React.memo(() => {
   };
 
   // Calculate comprehensive tournament statistics
+  const completedGames = allGames?.filter(game => game.status === "completed") || [];
+  
+  // Calculate fun tournament stats
+  const calculateFunStats = () => {
+    if (!completedGames.length || !standings?.length) return {};
+    
+    // Biggest Win - largest goal margin
+    let biggestWin = null;
+    let biggestMargin = 0;
+    completedGames.forEach(game => {
+      const margin = Math.abs((game.home_score || 0) - (game.away_score || 0));
+      if (margin > biggestMargin) {
+        biggestMargin = margin;
+        biggestWin = {
+          winner: game.home_score > game.away_score ? game.home_team_name : game.away_team_name,
+          loser: game.home_score > game.away_score ? game.away_team_name : game.home_team_name,
+          score: `${Math.max(game.home_score, game.away_score)}-${Math.min(game.home_score, game.away_score)}`,
+          margin
+        };
+      }
+    });
+    
+    // Clean Sheets - teams with shutouts
+    const cleanSheets = {};
+    completedGames.forEach(game => {
+      if (game.home_score === 0) {
+        cleanSheets[game.away_team_name] = (cleanSheets[game.away_team_name] || 0) + 1;
+      }
+      if (game.away_score === 0) {
+        cleanSheets[game.home_team_name] = (cleanSheets[game.home_team_name] || 0) + 1;
+      }
+    });
+    const cleanSheetLeader = Object.entries(cleanSheets).sort((a, b) => b[1] - a[1])[0];
+    
+    // Most goals by a team in a single game
+    let mostGoalsInGame = { team: null, goals: 0, opponent: null };
+    completedGames.forEach(game => {
+      if (game.home_score > mostGoalsInGame.goals) {
+        mostGoalsInGame = { 
+          team: game.home_team_name, 
+          goals: game.home_score, 
+          opponent: game.away_team_name 
+        };
+      }
+      if (game.away_score > mostGoalsInGame.goals) {
+        mostGoalsInGame = { 
+          team: game.away_team_name, 
+          goals: game.away_score, 
+          opponent: game.home_team_name 
+        };
+      }
+    });
+    
+    // One-goal wins (clutch victories)
+    const oneGoalWins = {};
+    completedGames.forEach(game => {
+      if (Math.abs(game.home_score - game.away_score) === 1) {
+        const winner = game.home_score > game.away_score ? game.home_team_name : game.away_team_name;
+        oneGoalWins[winner] = (oneGoalWins[winner] || 0) + 1;
+      }
+    });
+    const clutchTeam = Object.entries(oneGoalWins).sort((a, b) => b[1] - a[1])[0];
+    
+    // Current win streaks
+    const currentStreaks = {};
+    standings.forEach(team => {
+      const teamGames = completedGames
+        .filter(g => g.home_team_name === team.name || g.away_team_name === team.name)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
+      let streak = 0;
+      for (const game of teamGames) {
+        const won = (game.home_team_name === team.name && game.home_score > game.away_score) ||
+                   (game.away_team_name === team.name && game.away_score > game.home_score);
+        if (won) streak++;
+        else break;
+      }
+      if (streak > 0) currentStreaks[team.name] = streak;
+    });
+    const hotTeam = Object.entries(currentStreaks).sort((a, b) => b[1] - a[1])[0];
+    
+    return {
+      biggestWin,
+      cleanSheetLeader,
+      mostGoalsInGame,
+      clutchTeam,
+      hotTeam
+    };
+  };
+  
+  const funStats = calculateFunStats();
+  
   const tournamentStats = {
     totalTeams: standings?.length || 0,
     activeTeams: standings?.filter(team => team.games_played > 0).length || 0,
     totalGames: allGames?.length || 0,
-    completedGames: allGames?.filter(game => game.status === "completed").length || 0,
+    completedGames: completedGames.length,
     upcomingGames: allGames?.filter(game => game.status === "scheduled").length || 0,
-    totalGoals: allGames?.length > 0 
-      ? allGames
-          .filter(game => game.status === "completed")
-          .reduce((total, game) => total + (game.home_score || 0) + (game.away_score || 0), 0)
+    totalGoals: completedGames.reduce((total, game) => total + (game.home_score || 0) + (game.away_score || 0), 0),
+    avgGoalsPerGame: completedGames.length > 0 
+      ? (completedGames.reduce((total, game) => total + (game.home_score || 0) + (game.away_score || 0), 0) / completedGames.length).toFixed(1)
       : 0,
-    avgGoalsPerGame: allGames?.length > 0 && allGames.filter(game => game.status === "completed").length > 0 
-      ? (allGames
-          .filter(game => game.status === "completed")
-          .reduce((total, game) => total + (game.home_score || 0) + (game.away_score || 0), 0) / 
-         allGames.filter(game => game.status === "completed").length).toFixed(1)
-      : 0,
-    highestScoringGame: allGames?.length > 0 
-      ? allGames
-          .filter(game => game.status === "completed")
-          .reduce((highest, game) => {
-            const gameTotal = (game.home_score || 0) + (game.away_score || 0);
-            const highestTotal = (highest.home_score || 0) + (highest.away_score || 0);
-            return gameTotal > highestTotal ? game : highest;
-          }, {})
+    highestScoringGame: completedGames.length > 0 
+      ? completedGames.reduce((highest, game) => {
+          const gameTotal = (game.home_score || 0) + (game.away_score || 0);
+          const highestTotal = (highest.home_score || 0) + (highest.away_score || 0);
+          return gameTotal > highestTotal ? game : highest;
+        }, completedGames[0])
       : {},
     tournamentLeader: standings?.length > 0 
       ? [...standings].sort((a, b) => b.points - a.points || (b.goals_for - b.goals_against) - (a.goals_for - a.goals_against))[0]
       : null,
     topScorer: standings?.length > 0 
       ? [...standings].sort((a, b) => (b.goals_for || 0) - (a.goals_for || 0))[0]
-      : null
+      : null,
+    ...funStats
   };
 
   // Calculate pool standings with proper tournament format criteria
@@ -350,20 +434,15 @@ const DisplayScreen = React.memo(() => {
 
 
         {/* Main Dashboard Grid - Responsive Layout */}
-        <div className="display-dashboard-grid" style={{ 
-          minHeight: "calc(100vh - 120px)" // Ensure minimum height but allow growth
-        }}>
+        <div className="display-dashboard-grid">
           
           {/* Left Column - Overall Standings Only */}
           <div style={{ 
             display: "flex", 
-            flexDirection: "column", 
-            minHeight: 0
+            flexDirection: "column"
           }}>
-            {/* Overall Standings - Full Height */}
+            {/* Overall Standings - Dynamic Height */}
             <div className="content-card" style={{ 
-              flex: 1, 
-              minHeight: 0, 
               display: "flex", 
               flexDirection: "column",
               padding: "1rem"
@@ -378,8 +457,6 @@ const DisplayScreen = React.memo(() => {
                 🏆 Overall Standings
               </h3>
               <div style={{ 
-                flex: 1, 
-                overflowY: "auto",
                 overflowX: "auto"
               }}>
                 {overallStandings.length > 0 ? (
@@ -462,16 +539,13 @@ const DisplayScreen = React.memo(() => {
           <div className="middle-column" style={{ 
             display: "flex", 
             flexDirection: "column", 
-            gap: "0.75rem",
-            minHeight: 0,
-            flex: 1
+            gap: "0.75rem"
           }}>
             
             {/* Top Row - Recent Results and Up Next */}
             <div className="top-row-games" style={{
               display: "flex",
-              gap: "0.75rem",
-              flex: "0 1 auto"
+              gap: "0.75rem"
             }}>
               
               {/* Recent Results - Left Top */}
@@ -479,7 +553,7 @@ const DisplayScreen = React.memo(() => {
                 display: "flex", 
                 flexDirection: "column",
                 padding: "1rem",
-                flex: "0 1 auto",
+                flex: "1 1 50%",
                 minWidth: 0
               }}>
                 <h3 style={{ 
@@ -494,9 +568,7 @@ const DisplayScreen = React.memo(() => {
                 <div style={{ 
                   display: "flex",
                   flexDirection: "column",
-                  gap: "0.5rem",
-                  maxHeight: "280px",
-                  overflowY: "auto"
+                  gap: "0.5rem"
                 }}>
                   {recentGames.length > 0 ? recentGames.slice(0, 4).map((game, index) => (
                     <div key={index} style={{
@@ -547,7 +619,7 @@ const DisplayScreen = React.memo(() => {
                 display: "flex", 
                 flexDirection: "column",
                 padding: "1rem",
-                flex: "0 1 auto",
+                flex: "1 1 50%",
                 minWidth: 0
               }}>
                 <h3 style={{ 
@@ -562,9 +634,7 @@ const DisplayScreen = React.memo(() => {
                 <div style={{ 
                   display: "flex",
                   flexDirection: "column",
-                  gap: "0.5rem",
-                  maxHeight: "280px",
-                  overflowY: "auto"
+                  gap: "0.5rem"
                 }}>
                   {schedule.length > 0 ? schedule.slice(0, 5).map((game, index) => (
                     <div key={index} style={{
@@ -612,9 +682,7 @@ const DisplayScreen = React.memo(() => {
             {/* Bottom Row - Pool Standings/Bracket and Tournament Stats */}
             <div className="bottom-row-pools" style={{
               display: "flex",
-              gap: "0.75rem",
-              flex: "1 1 auto",
-              minHeight: 0
+              gap: "0.75rem"
             }}>
               
               {/* Pool Standings or Tournament Bracket - Left Bottom */}
@@ -641,8 +709,6 @@ const DisplayScreen = React.memo(() => {
                     🏆 Championship Bracket
                   </h3>
                   <div style={{ 
-                    flex: 1, 
-                    overflowY: "auto", 
                     display: "flex", 
                     flexDirection: "column", 
                     alignItems: "center",
@@ -967,13 +1033,9 @@ const DisplayScreen = React.memo(() => {
                     🏊‍♂️ Pool Standings
                   </h3>
                   <div style={{ 
-                    flex: 1, 
-                    overflowY: "auto", 
                     display: "flex", 
                     flexDirection: "column", 
-                    gap: "0.5rem",
-                    minHeight: 0,
-                    maxHeight: "600px"
+                    gap: "0.5rem"
                   }}>
                     {Object.values(poolStandings).map(({ pool, teams: poolTeams }) => (
                       <div key={pool.id} style={{ 
@@ -1091,58 +1153,155 @@ const DisplayScreen = React.memo(() => {
                 📈 Tournament Stats
               </h3>
               <div style={{ 
-                display: "grid", 
-                gridTemplateColumns: "1fr 1fr", 
-                gap: "0.5rem",
-                fontSize: "0.8rem"
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem"
               }}>
-                <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--primary-color)" }}>
-                    {tournamentStats.completedGames}
-                  </div>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Games Played</div>
-                </div>
-                
-                <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--primary-color)" }}>
-                    {tournamentStats.activeTeams}
-                  </div>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Active Teams</div>
-                </div>
-                
-                <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--accent-color)" }}>
-                    {tournamentStats.totalGoals}
-                  </div>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Total Goals</div>
-                </div>
-                
-                <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--accent-color)" }}>
-                    {tournamentStats.avgGoalsPerGame}
-                  </div>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Goals/Game</div>
-                </div>
-              </div>
-              
-              {/* Tournament Leader */}
-              {tournamentStats.tournamentLeader && (
+                {/* Basic Stats Grid */}
                 <div style={{ 
-                  textAlign: "center", 
-                  padding: "0.5rem", 
-                  backgroundColor: "rgba(0, 120, 215, 0.1)", 
-                  borderRadius: "6px",
-                  marginTop: "0.5rem"
+                  display: "grid", 
+                  gridTemplateColumns: "1fr 1fr", 
+                  gap: "0.5rem",
+                  fontSize: "0.8rem"
                 }}>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>🏆 Tournament Leader</div>
-                  <div style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--primary-color)" }}>
-                    {tournamentStats.tournamentLeader.name}
+                  <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--primary-color)" }}>
+                      {tournamentStats.completedGames}
+                    </div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Games Played</div>
                   </div>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>
-                    {tournamentStats.tournamentLeader.points} points
+                  
+                  <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--primary-color)" }}>
+                      {tournamentStats.activeTeams}
+                    </div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Active Teams</div>
+                  </div>
+                  
+                  <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--accent-color)" }}>
+                      {tournamentStats.totalGoals}
+                    </div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Total Goals</div>
+                  </div>
+                  
+                  <div style={{ textAlign: "center", padding: "0.5rem", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                    <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "var(--accent-color)" }}>
+                      {tournamentStats.avgGoalsPerGame}
+                    </div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>Goals/Game</div>
                   </div>
                 </div>
-              )}
+                
+                {/* Fun Stats */}
+                {/* Biggest Win */}
+                {tournamentStats.biggestWin && (
+                  <div style={{ 
+                    padding: "0.5rem", 
+                    backgroundColor: "#fff3cd", 
+                    borderRadius: "6px",
+                    borderLeft: "3px solid #ffc107"
+                  }}>
+                    <div style={{ fontSize: "0.7rem", color: "#856404", fontWeight: "600" }}>💥 Biggest Win</div>
+                    <div style={{ fontSize: "0.85rem", color: "#856404" }}>
+                      {tournamentStats.biggestWin.winner} {tournamentStats.biggestWin.score}
+                    </div>
+                    <div style={{ fontSize: "0.65rem", color: "#856404", opacity: 0.8 }}>
+                      vs {tournamentStats.biggestWin.loser}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Hot Streak */}
+                {tournamentStats.hotTeam && (
+                  <div style={{ 
+                    padding: "0.5rem", 
+                    backgroundColor: "#f8d7da", 
+                    borderRadius: "6px",
+                    borderLeft: "3px solid #dc3545"
+                  }}>
+                    <div style={{ fontSize: "0.7rem", color: "#721c24", fontWeight: "600" }}>🔥 Hot Streak</div>
+                    <div style={{ fontSize: "0.85rem", color: "#721c24" }}>
+                      {tournamentStats.hotTeam[0]}
+                    </div>
+                    <div style={{ fontSize: "0.65rem", color: "#721c24" }}>
+                      {tournamentStats.hotTeam[1]} game win streak
+                    </div>
+                  </div>
+                )}
+                
+                {/* Clean Sheet Leader */}
+                {tournamentStats.cleanSheetLeader && (
+                  <div style={{ 
+                    padding: "0.5rem", 
+                    backgroundColor: "#d4edda", 
+                    borderRadius: "6px",
+                    borderLeft: "3px solid #28a745"
+                  }}>
+                    <div style={{ fontSize: "0.7rem", color: "#155724", fontWeight: "600" }}>🧤 Clean Sheets</div>
+                    <div style={{ fontSize: "0.85rem", color: "#155724" }}>
+                      {tournamentStats.cleanSheetLeader[0]}
+                    </div>
+                    <div style={{ fontSize: "0.65rem", color: "#155724" }}>
+                      {tournamentStats.cleanSheetLeader[1]} shutout{tournamentStats.cleanSheetLeader[1] > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Most Goals in a Game */}
+                {tournamentStats.mostGoalsInGame?.team && (
+                  <div style={{ 
+                    padding: "0.5rem", 
+                    backgroundColor: "#e7e8ff", 
+                    borderRadius: "6px",
+                    borderLeft: "3px solid #6f42c1"
+                  }}>
+                    <div style={{ fontSize: "0.7rem", color: "#4c2889", fontWeight: "600" }}>⚽ Goal Fest</div>
+                    <div style={{ fontSize: "0.85rem", color: "#4c2889" }}>
+                      {tournamentStats.mostGoalsInGame.team} - {tournamentStats.mostGoalsInGame.goals} goals
+                    </div>
+                    <div style={{ fontSize: "0.65rem", color: "#4c2889", opacity: 0.8 }}>
+                      vs {tournamentStats.mostGoalsInGame.opponent}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Clutch Team */}
+                {tournamentStats.clutchTeam && (
+                  <div style={{ 
+                    padding: "0.5rem", 
+                    backgroundColor: "#d1ecf1", 
+                    borderRadius: "6px",
+                    borderLeft: "3px solid #17a2b8"
+                  }}>
+                    <div style={{ fontSize: "0.7rem", color: "#0c5460", fontWeight: "600" }}>⚡ Clutch Team</div>
+                    <div style={{ fontSize: "0.85rem", color: "#0c5460" }}>
+                      {tournamentStats.clutchTeam[0]}
+                    </div>
+                    <div style={{ fontSize: "0.65rem", color: "#0c5460" }}>
+                      {tournamentStats.clutchTeam[1]} one-goal win{tournamentStats.clutchTeam[1] > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Tournament Leader */}
+                {tournamentStats.tournamentLeader && (
+                  <div style={{ 
+                    textAlign: "center", 
+                    padding: "0.5rem", 
+                    backgroundColor: "rgba(0, 120, 215, 0.1)", 
+                    borderRadius: "6px"
+                  }}>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>🏆 Tournament Leader</div>
+                    <div style={{ fontSize: "0.85rem", fontWeight: "600", color: "var(--primary-color)" }}>
+                      {tournamentStats.tournamentLeader.name}
+                    </div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-light)" }}>
+                      {tournamentStats.tournamentLeader.points} points
+                    </div>
+                  </div>
+                )}
+              </div>
               </div>
             </div>
           </div>
@@ -1150,13 +1309,10 @@ const DisplayScreen = React.memo(() => {
           {/* Right Column - Announcements Only */}
           <div style={{ 
             display: "flex", 
-            flexDirection: "column", 
-            minHeight: 0
+            flexDirection: "column"
           }}>
-            {/* Announcements - Full Height */}
+            {/* Announcements - Dynamic Height */}
             <div className="content-card" style={{ 
-              flex: 1, 
-              minHeight: 0, 
               display: "flex", 
               flexDirection: "column",
               padding: "1rem"
@@ -1171,8 +1327,6 @@ const DisplayScreen = React.memo(() => {
                 📢 Announcements
               </h3>
               <div style={{ 
-                flex: 1, 
-                overflowY: "auto",
                 display: "flex",
                 flexDirection: "column",
                 gap: "0.75rem"
