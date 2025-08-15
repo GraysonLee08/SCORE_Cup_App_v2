@@ -610,7 +610,8 @@ const DisplayScreen = React.memo(() => {
             <div style={{
               display: "flex",
               gap: "0.75rem",
-              flex: "1 1 auto"
+              flex: "1 1 auto",
+              minHeight: 0
             }}>
               
               {/* Pool Standings or Tournament Bracket - Left Bottom */}
@@ -950,7 +951,8 @@ const DisplayScreen = React.memo(() => {
                   flexDirection: "column",
                   padding: "1rem",
                   flex: "1 1 auto",
-                  minWidth: 0
+                  minWidth: 0,
+                  minHeight: 0
                 }}>
                   <h3 style={{ 
                     margin: "0 0 0.75rem 0", 
@@ -966,7 +968,8 @@ const DisplayScreen = React.memo(() => {
                     overflowY: "auto", 
                     display: "flex", 
                     flexDirection: "column", 
-                    gap: "0.5rem" 
+                    gap: "0.5rem",
+                    minHeight: 0
                   }}>
                     {Object.values(poolStandings).map(({ pool, teams: poolTeams }) => (
                       <div key={pool.id} style={{ 

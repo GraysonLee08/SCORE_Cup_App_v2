@@ -33,6 +33,7 @@
       "Bash(npm run build:*)",
       "Bash(docker build:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }
