@@ -379,25 +379,27 @@ const DisplayScreen = React.memo(() => {
               </h3>
               <div style={{ 
                 flex: 1, 
-                overflowY: "auto" 
+                overflowY: "auto",
+                overflowX: "auto"
               }}>
                 {overallStandings.length > 0 ? (
                   <table style={{ 
-                    width: "auto", 
+                    width: "100%", 
                     borderRadius: 0, 
                     boxShadow: "none",
                     marginBottom: 0,
-                    fontSize: "0.75rem"
+                    fontSize: "0.75rem",
+                    minWidth: "300px"
                   }}>
                     <thead style={{ fontSize: "0.7rem" }}>
                       <tr>
-                        <th className="team-name-header" style={{ padding: "0.4rem 0.5rem", textAlign: "left" }}>Team</th>
-                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>GP</th>
-                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>W</th>
-                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>L</th>
-                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>T</th>
-                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>GD</th>
-                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center" }}>Pts</th>
+                        <th className="team-name-header" style={{ padding: "0.4rem 0.5rem", textAlign: "left", minWidth: "100px" }}>Team</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center", minWidth: "30px" }}>GP</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center", minWidth: "30px" }}>W</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center", minWidth: "30px" }}>L</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center", minWidth: "30px" }}>T</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center", minWidth: "35px" }}>GD</th>
+                        <th className="number-header" style={{ padding: "0.4rem", textAlign: "center", minWidth: "35px" }}>Pts</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -970,13 +972,15 @@ const DisplayScreen = React.memo(() => {
                     display: "flex", 
                     flexDirection: "column", 
                     gap: "0.5rem",
-                    minHeight: 0
+                    minHeight: 0,
+                    maxHeight: "600px"
                   }}>
                     {Object.values(poolStandings).map(({ pool, teams: poolTeams }) => (
                       <div key={pool.id} style={{ 
                         border: "1px solid #e0e0e0", 
                         borderRadius: "6px",
-                        overflow: "hidden"
+                        overflow: "visible",
+                        marginBottom: "0.5rem"
                       }}>
                         <div style={{ 
                           padding: "0.25rem 0.5rem", 
@@ -987,21 +991,22 @@ const DisplayScreen = React.memo(() => {
                         }}>
                           {pool.name}
                         </div>
-                        <div>
+                        <div style={{ overflowX: "auto" }}>
                           <table style={{ 
-                            width: "auto", 
+                            width: "100%", 
                             borderRadius: 0, 
                             boxShadow: "none",
                             marginBottom: 0,
-                            fontSize: "0.65rem"
+                            fontSize: "0.65rem",
+                            tableLayout: "fixed"
                           }}>
                             <thead style={{ fontSize: "0.6rem" }}>
                               <tr>
-                                <th className="team-name-header" style={{ padding: "0.2rem 0.4rem", textAlign: "left" }}>Team</th>
-                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>GP</th>
-                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>W</th>
-                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>GD</th>
-                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>Pts</th>
+                                <th className="team-name-header" style={{ padding: "0.2rem 0.4rem", textAlign: "left", width: "50%" }}>Team</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center", width: "12.5%" }}>GP</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center", width: "12.5%" }}>W</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center", width: "12.5%" }}>GD</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center", width: "12.5%" }}>Pts</th>
                               </tr>
                             </thead>
                             <tbody>
