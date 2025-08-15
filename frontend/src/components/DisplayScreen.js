@@ -459,7 +459,7 @@ const DisplayScreen = React.memo(() => {
           </div>
           
           {/* Middle Column - 2x2 Grid Layout */}
-          <div style={{ 
+          <div className="middle-column" style={{ 
             display: "flex", 
             flexDirection: "column", 
             gap: "0.75rem",
@@ -468,7 +468,7 @@ const DisplayScreen = React.memo(() => {
           }}>
             
             {/* Top Row - Recent Results and Up Next */}
-            <div style={{
+            <div className="top-row-games" style={{
               display: "flex",
               gap: "0.75rem",
               flex: "0 1 auto"
@@ -609,8 +609,8 @@ const DisplayScreen = React.memo(() => {
               </div>
             </div>
             
-            {/* Bottom Row - Overall Standings and Tournament Stats */}
-            <div style={{
+            {/* Bottom Row - Pool Standings/Bracket and Tournament Stats */}
+            <div className="bottom-row-pools" style={{
               display: "flex",
               gap: "0.75rem",
               flex: "1 1 auto",
@@ -991,22 +991,22 @@ const DisplayScreen = React.memo(() => {
                         }}>
                           {pool.name}
                         </div>
-                        <div style={{ overflowX: "auto" }}>
+                        <div>
                           <table style={{ 
                             width: "100%", 
                             borderRadius: 0, 
                             boxShadow: "none",
                             marginBottom: 0,
                             fontSize: "0.65rem",
-                            tableLayout: "fixed"
+                            tableLayout: "auto"
                           }}>
                             <thead style={{ fontSize: "0.6rem" }}>
                               <tr>
-                                <th className="team-name-header" style={{ padding: "0.2rem 0.4rem", textAlign: "left", width: "50%" }}>Team</th>
-                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center", width: "12.5%" }}>GP</th>
-                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center", width: "12.5%" }}>W</th>
-                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center", width: "12.5%" }}>GD</th>
-                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center", width: "12.5%" }}>Pts</th>
+                                <th className="team-name-header" style={{ padding: "0.2rem 0.4rem", textAlign: "left" }}>Team</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>GP</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>W</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>GD</th>
+                                <th className="number-header" style={{ padding: "0.2rem", textAlign: "center" }}>Pts</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1017,7 +1017,8 @@ const DisplayScreen = React.memo(() => {
                                   <td className="team-name" style={{ 
                                     padding: "0.2rem 0.4rem",
                                     fontSize: "0.65rem",
-                                    fontWeight: index === 0 ? "600" : "normal"
+                                    fontWeight: index === 0 ? "600" : "normal",
+                                    whiteSpace: "nowrap"
                                   }}>
                                     <span style={{ color: index < 2 ? "var(--primary-color)" : "inherit" }}>
                                       {index + 1}.

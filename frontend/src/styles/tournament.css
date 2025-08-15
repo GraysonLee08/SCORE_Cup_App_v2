@@ -574,6 +574,37 @@ textarea:focus {
     grid-template-columns: 1fr !important;
     max-height: none !important;
     overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Reorder main columns for mobile */
+  .display-dashboard-grid > div:nth-child(1) { /* Overall Standings (left column) */
+    order: 4;
+  }
+  
+  .display-dashboard-grid > div:nth-child(2) { /* Middle column with multiple sections */
+    order: 2;
+  }
+  
+  .display-dashboard-grid > div:nth-child(3) { /* Announcements (right column) */
+    order: 1;
+  }
+  
+  /* Reorder items within middle column */
+  .middle-column {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .middle-column .top-row-games {
+    order: 1; /* Recent Results and Up Next stay at top */
+    flex-direction: column !important;
+  }
+  
+  .middle-column .bottom-row-pools {
+    order: 2; /* Pool Standings/Bracket below games */
+    flex-direction: column !important;
   }
   
   main {
