@@ -292,11 +292,12 @@ const DisplayScreen = React.memo(() => {
         <div style={{ 
           display: "flex", 
           alignItems: "center", 
-          justifyContent: "center", 
+          justifyContent: "space-between", 
           marginBottom: "0.5rem",
-          position: "relative"
+          flexWrap: "wrap",
+          gap: "1rem"
         }}>
-          <div style={{ textAlign: "center" }}>
+          <div style={{ textAlign: "center", flex: "1 1 auto" }}>
             <h1 style={{ 
               color: "var(--primary-color)", 
               marginBottom: "0.25rem", 
@@ -310,7 +311,7 @@ const DisplayScreen = React.memo(() => {
               Live tournament results and standings
             </p>
           </div>
-          <div style={{ position: "absolute", right: 0 }}>
+          <div style={{ flex: "0 0 auto" }}>
             <a 
               href="https://givebutter.com/ZAf4Uk"
               target="_blank"
