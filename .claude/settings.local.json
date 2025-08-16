@@ -31,7 +31,8 @@
       "Bash(timeout 30 docker-compose logs -f tournament_frontend)",
       "Bash(docker exec:*)",
       "Bash(npm run build:*)",
-      "Bash(docker build:*)"
+      "Bash(docker build:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

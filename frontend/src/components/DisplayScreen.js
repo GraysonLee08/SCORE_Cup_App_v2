@@ -86,7 +86,7 @@ const DisplayScreen = React.memo(() => {
           .slice(0, 5);
         setRecentGames(completed);
         
-        // Process upcoming games after playoff fetch is complete
+        // Process upcoming games after playoff fetch is complete - REMOVED LIMIT
         const processUpcomingGames = (currentPlayoffGames) => {
           const poolUpcoming = gamesRes.data
             .filter((game) => game.status === "scheduled" && game.scheduled_start_time)
@@ -104,8 +104,8 @@ const DisplayScreen = React.memo(() => {
               if (!b.scheduled_start_time) return -1;
               // Both have times, sort by time
               return new Date(`2024-01-01T${a.scheduled_start_time}`) - new Date(`2024-01-01T${b.scheduled_start_time}`);
-            })
-            .slice(0, 6);
+            });
+          // REMOVED .slice(0, 6) to show all games
           
           setSchedule(allUpcoming);
         };
@@ -614,13 +614,14 @@ const DisplayScreen = React.memo(() => {
                 </div>
               </div>
               
-              {/* Up Next - Right Top */}
+              {/* Up Next - Right Top - WITH SCROLL */}
               <div className="content-card" style={{ 
                 display: "flex", 
                 flexDirection: "column",
                 padding: "1rem",
                 flex: "1 1 50%",
-                minWidth: 0
+                minWidth: 0,
+                maxHeight: "350px"
               }}>
                 <h3 style={{ 
                   margin: "0 0 0.75rem 0", 
@@ -629,14 +630,17 @@ const DisplayScreen = React.memo(() => {
                   alignItems: "center", 
                   gap: "0.5rem" 
                 }}>
-                  📅 Up Next
+                  📅 Up Next {schedule.length > 0 && `(${schedule.length} games)`}
                 </h3>
                 <div style={{ 
                   display: "flex",
                   flexDirection: "column",
-                  gap: "0.5rem"
+                  gap: "0.5rem",
+                  overflowY: "auto",
+                  maxHeight: "280px",
+                  paddingRight: "0.5rem"
                 }}>
-                  {schedule.length > 0 ? schedule.slice(0, 5).map((game, index) => (
+                  {schedule.length > 0 ? schedule.map((game, index) => (
                     <div key={index} style={{
                       border: game.gameType === 'playoff' ? "2px solid #f59e0b" : "1px solid #e0e0e0",
                       borderRadius: "6px",
