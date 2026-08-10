@@ -183,7 +183,12 @@ Tables: `events`, `divisions`, `fields`, `stages`, `pools`, `teams`, `fixtures`,
 
 **Cards attach to a player** — fixture, team, player, type, minute. This reverses an earlier team-level decision: the 2026 rules make suspensions player-specific ("banned for at least the next match", "two reds bans them for the tournament"), and the penalty-points tiebreaker feeds standings. Neither is expressible with team-level counts.
 
-To keep this workable for a ref standing on a field, entry is **jersey number first** with name autocomplete as a fallback, and a **free-text escape hatch** for a player missing from the roster — recorded against the team and flagged for the admin to reconcile. A card must never be blocked by an incomplete roster.
+**Attribution is two-step, because jerseys have no numbers.** A referee cannot identify a stranger with nothing on their back, and the signed paper game card records card *counts* per team, not names — so the rules themselves leave this gap. It is closed by the only person who can reliably close it: the captain.
+
+1. **During play**, the ref logs the card against a **team** — type, minute, and an optional identifying note ("tall, red headband"). Two taps, no roster lookup, game continues.
+2. **At match end**, during the captain sign-off the rules already require, the carded team's captain **attributes each card to a player** from their roster.
+
+A card therefore has a nullable `player_id`: valid and official the moment the ref taps it, enriched at sign-off. This also means the ref's workflow functions with **no roster at all**, and attribution degrades to a typed name rather than failing.
 
 **Suspensions are derived, not stored.** A player's eligibility for a given fixture is computed from their card history and the fixture ordering, plus any explicit **Match Commissioner extension** recorded as its own row. Same principle as standings: no second copy to drift.
 
@@ -239,7 +244,9 @@ Mobile-first. Shows only assigned fields' fixtures, current game first, next gam
 
 **Score entry uses increment buttons, not text inputs** — a ref is standing in August sun, possibly wearing gloves, holding a whistle. Knockout fixtures additionally expose a **penalty-shootout entry** when regulation ends level. Submits optimistically with a localStorage retry queue.
 
-**Card entry is jersey-number-first** with name autocomplete and a free-text fallback for players missing from the roster.
+**Card entry is team-level and instant** (§5) — type and minute, plus an optional identifying note. No roster lookup mid-game.
+
+**Match-end sign-off.** The ref hands their phone to both captains, who confirm final score, penalty result if any, and card counts — mirroring the paper game card. The carded team's captain **attributes each card to a player** at this point. Each signature is captured with a name and timestamp into the audit log. Whether this *replaces* the paper card or merely mirrors it is an open question for the organizer; the flow is identical either way.
 
 **Suspension warnings.** Before a fixture, the ref view lists any player on either team who is **serving a ban** — the rules make this the referee's problem to enforce, and an app that holds the card history and stays silent about it is worse than useless. The same warning appears in the coach and participant views so a team is not surprised at kickoff.
 

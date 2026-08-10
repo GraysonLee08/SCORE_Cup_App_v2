@@ -49,13 +49,14 @@ A red card (or two yellows in a match) bans a player for at least the next match
 - The **Match Commissioner** can extend a ban. Who is that person, and do they need their own login, or does an admin record it on their behalf?
 - Two reds in the tournament = banned for the rest of it. Does that span **both divisions** (i.e. could someone play on teams in both)?
 
-### 5. Digital game card — replace or mirror the paper card?
-**Status:** OPEN
-Rules require both captains to sign a paper game summary card verifying winner, score, and card counts; once signed it is official.
-- Does the app **replace** that with digital captain sign-off, or **mirror** it while paper stays authoritative?
-- If the app disagrees with a signed card, which wins?
+### 5. Digital game card — does it replace the paper card?
+**Status:** PARTIAL — we are building digital sign-off; its *authority* is unconfirmed
+Decided: captains sign off on the ref's phone at match end, confirming score, penalty result, and card counts. This is also where cards get attributed to players (jerseys have no numbers, so the ref logs cards team-level during play).
+- Does digital sign-off **replace** the paper card, or must paper still be signed?
+- If the app and a signed paper card disagree, which is official?
+- Are captains identified in the app (roster-linked), or do they just type their name?
 
-*Digital sign-off is a genuinely nice feature — captains confirm on the ref's phone — but it changes what "official" means and needs the organizer's blessing.*
+*Build is the same either way, so this is not blocking — but the organizer should decide before the day.*
 
 ### 6. Squad composition — track or just display?
 **Status:** OPEN
@@ -130,6 +131,8 @@ Player-level card tracking is required by the rules, which means rosters must ex
 | Feasibility check | In the core build, not a stretch goal | 2026-08-10 |
 | Field allocation | Per-division allowed-field set; empty = shared pool | 2026-08-10 |
 | **Cards** | **Player-level — reversed from team-level.** Rules require per-player suspensions. | 2026-08-10 |
+| Card attribution | Two-step: ref logs team-level during play (no jersey numbers); **captain attributes to a player at match-end sign-off** | 2026-08-10 |
+| Captain sign-off | **Digital, on the ref's phone** — score, penalties, card counts, signatures logged | 2026-08-10 |
 | Points | 3 win / 1 tie / 0 loss, **+1 bonus for a shutout win** (not 0–0) | 2026-08-10 |
 | Tiebreakers | Head-to-head → goals for → goals against → fewest cards → rock-paper-scissors | 2026-08-10 |
 | Pool draws | Allowed | 2026-08-10 |
