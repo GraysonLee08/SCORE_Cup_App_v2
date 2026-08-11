@@ -34,11 +34,22 @@ export function generatePoolFixtures(
   pools: PoolInput[],
   gamesPerTeam: number,
 ): Fixture[] {
-  const fixtures: Fixture[] = [];
-
-  for (const pool of pools) {
+  const perPool = pools.map((pool) => {
     validatePool(pool, gamesPerTeam);
-    fixtures.push(...generateForPool(stageId, pool, gamesPerTeam));
+    return generateForPool(stageId, pool, gamesPerTeam);
+  });
+
+  // Interleave pools rather than concatenating them. The scheduler fills each
+  // time slot from the front of this list, so grouping by pool strands the
+  // smallest pool's games at the end on a single field while the others sit
+  // idle. Round-robining across pools keeps every field busy.
+  const fixtures: Fixture[] = [];
+  const longest = perPool.reduce((max, list) => Math.max(max, list.length), 0);
+  for (let i = 0; i < longest; i++) {
+    for (const list of perPool) {
+      const fixture = list[i];
+      if (fixture) fixtures.push(fixture);
+    }
   }
 
   return fixtures;
