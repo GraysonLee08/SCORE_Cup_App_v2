@@ -21,7 +21,15 @@ The director's email said the two tournaments run **"one after the other."** You
 ### 2. Pool structure — how do 10 teams each play exactly 3 games?
 **Status:** OPEN · **Blocking**
 The rules say "all teams play 3 pool play games." With 10 teams that's 15 fixtures per division, which is **not** a round robin — 2 pools of 5 would give each team 4 games.
-- How are the 10 teams grouped? (Two pools of 5 playing 3 of 4 opponents? Pools of unequal size? One group with a fixed 3-game schedule?)
+
+**We can narrow this by arithmetic.** A pool where every team plays exactly K games needs `teams × K / 2` fixtures, which must be a whole number. For a pool of 5 with 3 games each: `5 × 3 / 2 = 7.5`. **So two pools of five, each team playing three games, is impossible** — someone would have to play a different number of games. The engine enforces this and refuses to generate a lopsided schedule.
+
+That leaves a short list of possibilities:
+- **One pool of 10 per division, 3 games each** (`10 × 3 / 2 = 15` ✓) — most likely, and standings would then be a single table of 10.
+- Pools of even size (e.g. two pools of 4 plus something for the other 2).
+- Teams actually play a different number of games than 3 in some pools.
+
+- Which is it? How are the 10 teams grouped?
 - If teams within a pool don't all play each other, **head-to-head as the first tiebreaker may not exist** between two tied teams. What happens then — skip to goals for?
 - How many teams **advance to knockout**, and how are they seeded?
 - Is there a **third-place game**?

@@ -53,3 +53,13 @@ Thumbs.db
 *.bak
 *backup*
 *-backup.*
+# Lockfile is committed deliberately: the old app had none, so every Docker
+# build resolved a fresh dependency tree.
+!package-lock.json
+
+# Secrets — .env.production was previously committed to this public repo.
+.env.*
+!.env.example
+
+# Internal drafts with staff names — not for a public repo.
+docs/email-*.md
