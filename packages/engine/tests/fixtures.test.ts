@@ -79,6 +79,40 @@ describe('generatePoolFixtures', () => {
     ).toThrow(/at most 3 games/);
   });
 
+  it('supports an odd number of teams when games per team is even', () => {
+    // 11 teams x 4 games = 44 game-slots = 22 fixtures. Valid.
+    const fixtures = generatePoolFixtures('stage1', [{ id: 'A', teamIds: teams(11) }], 4);
+
+    expect(fixtures).toHaveLength(22);
+
+    const counts = gamesPerTeamCount(fixtures);
+    expect(counts.size).toBe(11);
+    for (const [teamId, count] of counts) {
+      expect(count, `${teamId} should play exactly 4`).toBe(4);
+    }
+
+    const keys = fixtures.map(pairKey);
+    expect(new Set(keys).size, 'no repeated pairings').toBe(keys.length);
+  });
+
+  it('refuses an odd team count with an odd games-per-team', () => {
+    // 11 teams x 3 games = 33 game-slots. Every fixture consumes 2, so no
+    // schedule exists -- byes cannot fix this, since a bye is not a game.
+    expect(() =>
+      generatePoolFixtures('stage1', [{ id: 'A', teamIds: teams(11) }], 3),
+    ).toThrow(/not a whole number/);
+  });
+
+  it('handles odd team counts at every even game count', () => {
+    for (const gamesPerTeam of [2, 4, 6, 8, 10]) {
+      const fixtures = generatePoolFixtures('stage1', [{ id: 'A', teamIds: teams(11) }], gamesPerTeam);
+      expect(fixtures).toHaveLength((11 * gamesPerTeam) / 2);
+      for (const count of gamesPerTeamCount(fixtures).values()) {
+        expect(count).toBe(gamesPerTeam);
+      }
+    }
+  });
+
   it('handles multiple pools independently', () => {
     const fixtures = generatePoolFixtures(
       'stage1',
