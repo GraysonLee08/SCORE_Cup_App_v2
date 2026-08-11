@@ -1,109 +1,22 @@
+# Local development stack. Production and staging use their own compose files.
 services:
-  tournament_db:
-    build:
-      context: ./database-docker
-      dockerfile: Dockerfile
-    container_name: tournament_db
+  db:
+    image: postgres:16-alpine
     environment:
-      POSTGRES_DB: tournament_db
-      POSTGRES_USER: tournament_user
-      POSTGRES_PASSWORD: tournament_pass_2024
+      POSTGRES_DB: scup
+      POSTGRES_USER: scup
+      POSTGRES_PASSWORD: scup_dev_password
+    # Bound to localhost only. Never publish Postgres to 0.0.0.0 -- the
+    # previous deployment exposed 5454 to the internet.
     ports:
-      - "5433:5432"
+      - '127.0.0.1:5433:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - tournament_network
+      - scup-dev-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tournament_user -d tournament_db"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-
-  tournament_backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: tournament_backend
-    environment:
-      DB_HOST: tournament_db
-      DB_PORT: 5432
-      DB_NAME: tournament_db
-      DB_USER: tournament_user
-      DB_PASSWORD: tournament_pass_2024
-      NODE_ENV: development
-      ADMIN_PASSWORD: ScoresCup312
-    ports:
-      - "3002:3002"
-    depends_on:
-      tournament_db:
-        condition: service_healthy
-    networks:
-      - tournament_network
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-
-  tournament_frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: tournament_frontend
-    ports:
-      - "3000:3000"
-    depends_on:
-      tournament_backend:
-        condition: service_healthy
-    networks:
-      - tournament_network
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-      - /app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-      - REACT_APP_API_URL=http://localhost:3002
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 120s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
+      test: ['CMD-SHELL', 'pg_isready -U scup -d scup']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  postgres_data:
-
-networks:
-  tournament_network:
-    driver: bridge
+  scup-dev-data:
