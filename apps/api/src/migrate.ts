@@ -11,11 +11,24 @@ const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'migra
  * own transaction. Deliberately tiny: a migration tool that fails during
  * tournament week is worse than no migration tool.
  */
+/**
+ * Arbitrary but fixed: any process running migrations uses this same lock id.
+ * Two API containers starting together would otherwise race on CREATE TYPE and
+ * one would crash on a duplicate-key error from the system catalogue.
+ */
+const MIGRATION_LOCK_ID = 8_291_026;
+
 export async function migrate(connectionString: string): Promise<string[]> {
   const db = createPool(connectionString);
   const applied: string[] = [];
 
+  // Advisory locks are held by a connection, so this must be one checked-out
+  // client rather than pool.query, which may hand back a different connection.
+  const lockClient = await db.connect();
+
   try {
+    await lockClient.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_ID]);
+
     await db.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         filename   TEXT PRIMARY KEY,
@@ -50,6 +63,8 @@ export async function migrate(connectionString: string): Promise<string[]> {
 
     return applied;
   } finally {
+    await lockClient.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_ID]).catch(() => {});
+    lockClient.release();
     await db.end();
   }
 }

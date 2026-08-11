@@ -5,6 +5,9 @@ import type { Config } from './config.js';
 import type { Db } from './db.js';
 import { errorHandler } from './auth/middleware.js';
 import { authRoutes } from './routes/auth.js';
+import { teamRoutes } from './routes/teams.js';
+import { registrationRoutes } from './routes/registration.js';
+import { rosterRoutes } from './routes/roster.js';
 
 /**
  * Wrap async route handlers so a rejected promise reaches the error handler
@@ -81,9 +84,15 @@ export function createApp(config: Config, db: Db): Express {
     }
   });
 
-  const auth = authRoutes(db);
-  wrapAsyncRoutes(auth);
-  app.use('/api/auth', auth);
+  const mount = (path: string, router: express.Router) => {
+    wrapAsyncRoutes(router);
+    app.use(path, router);
+  };
+
+  mount('/api/auth', authRoutes(db));
+  mount('/api/teams', teamRoutes(db));
+  mount('/api/register', registrationRoutes(db));
+  mount('/api/rosters', rosterRoutes(db));
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found.', code: 'not_found' });
