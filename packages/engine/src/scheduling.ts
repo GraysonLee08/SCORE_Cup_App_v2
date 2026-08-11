@@ -1,0 +1,229 @@
+import type {
+  FieldId,
+  Fixture,
+  FixtureId,
+  MatchTiming,
+  ScheduledFixture,
+  TeamId,
+} from './types.js';
+import { slotMinutes } from './types.js';
+
+export class SchedulingError extends Error {
+  override name = 'SchedulingError';
+}
+
+export interface ScheduleInput {
+  fixtures: Fixture[];
+  /** Fields this stage may use. A division pinned to 2 of 4 fields passes only those. */
+  fields: FieldId[];
+  timing: MatchTiming;
+  /** Minimum gap between the end of a team's game and the start of their next. */
+  minRestMinutes: number;
+  /** Minutes from the event start before this stage may begin. */
+  startOffsetMinutes?: number;
+}
+
+export interface ScheduleResult {
+  scheduled: ScheduledFixture[];
+  /** Time slots that actually hosted games. */
+  waves: number;
+  /**
+   * Total slots spanned, including ones left empty because every team was
+   * resting. `slotsElapsed - waves` is dead time -- if that number is large,
+   * the rest gap is costing more than the field count is buying.
+   */
+  slotsElapsed: number;
+  /** Offset of the first kickoff. */
+  startMinutes: number;
+  /** Offset at which the last game finishes. */
+  endMinutes: number;
+}
+
+/** Actual playing time, excluding the changeover gap before the next game. */
+function playMinutes(timing: MatchTiming): number {
+  return timing.halfMinutes * 2 + timing.halftimeMinutes;
+}
+
+/** Teams we actually know. Unresolved bracket references constrain nothing yet. */
+function concreteTeams(fixture: Fixture): TeamId[] {
+  const teams: TeamId[] = [];
+  for (const ref of [fixture.home, fixture.away]) {
+    if (ref.kind === 'team') teams.push(ref.teamId);
+  }
+  return teams;
+}
+
+/** Fixtures that must finish before this one can be played. */
+function dependencies(fixture: Fixture): FixtureId[] {
+  const deps: FixtureId[] = [];
+  for (const ref of [fixture.home, fixture.away]) {
+    if (ref.kind === 'fixtureWinner' || ref.kind === 'fixtureLoser') {
+      deps.push(ref.fixtureId);
+    }
+  }
+  return deps;
+}
+
+/**
+ * Assign every fixture a field and a kickoff time.
+ *
+ * Greedy, wave by wave: at each time slot, fill the available fields with any
+ * fixture whose teams are rested and whose prerequisites have finished. This
+ * is deliberately simple and predictable -- an admin can override any game
+ * afterwards, and a schedule a human can follow beats an optimal one they
+ * cannot.
+ *
+ * Constraints honoured:
+ *  - a team never plays two games at once
+ *  - a team gets `minRestMinutes` between their games
+ *  - a bracket game never precedes the games feeding it
+ *  - only the given fields are used
+ */
+export function scheduleFixtures(input: ScheduleInput): ScheduleResult {
+  if (input.fields.length === 0) {
+    throw new SchedulingError('Cannot schedule with no fields available.');
+  }
+
+  const slot = slotMinutes(input.timing);
+  const play = playMinutes(input.timing);
+  const startMinutes = input.startOffsetMinutes ?? 0;
+
+  const remaining = [...input.fixtures];
+  const scheduled: ScheduledFixture[] = [];
+  const teamFreeAt = new Map<TeamId, number>();
+  const fixtureEndsAt = new Map<FixtureId, number>();
+
+  let now = startMinutes;
+  let waves = 0;
+  let slotsElapsed = 0;
+  let emptyWaves = 0;
+  // A fixture can be blocked only by rest or by a prerequisite, both of which
+  // resolve as time advances. This bound is generous but stops a genuine
+  // deadlock (e.g. a bracket cycle) from looping forever.
+  const emptyWaveLimit = input.fixtures.length + 10;
+
+  while (remaining.length > 0) {
+    const waveFixtures: Fixture[] = [];
+    const teamsThisWave = new Set<TeamId>();
+
+    for (const fixture of remaining) {
+      if (waveFixtures.length >= input.fields.length) break;
+
+      const teams = concreteTeams(fixture);
+      if (teams.some((t) => teamsThisWave.has(t))) continue;
+      if (teams.some((t) => (teamFreeAt.get(t) ?? -Infinity) > now)) continue;
+
+      const deps = dependencies(fixture);
+      const depsReady = deps.every((id) => {
+        const endsAt = fixtureEndsAt.get(id);
+        return endsAt !== undefined && endsAt <= now;
+      });
+      if (!depsReady) continue;
+
+      waveFixtures.push(fixture);
+      for (const team of teams) teamsThisWave.add(team);
+    }
+
+    if (waveFixtures.length === 0) {
+      emptyWaves += 1;
+      slotsElapsed += 1;
+      if (emptyWaves > emptyWaveLimit) {
+        throw new SchedulingError(
+          `Could not schedule ${remaining.length} remaining fixture(s). ` +
+            `This usually means a bracket references a fixture that does not exist, ` +
+            `or the rest gap (${input.minRestMinutes} min) cannot be satisfied.`,
+        );
+      }
+      now += slot;
+      continue;
+    }
+
+    emptyWaves = 0;
+    waves += 1;
+    slotsElapsed += 1;
+
+    waveFixtures.forEach((fixture, index) => {
+      const fieldId = input.fields[index];
+      if (fieldId === undefined) {
+        throw new SchedulingError(`Field index ${index} out of range.`);
+      }
+
+      scheduled.push({ ...fixture, fieldId, kickoffOffsetMinutes: now });
+      fixtureEndsAt.set(fixture.id, now + play);
+
+      for (const team of concreteTeams(fixture)) {
+        teamFreeAt.set(team, now + play + input.minRestMinutes);
+      }
+
+      const at = remaining.indexOf(fixture);
+      if (at >= 0) remaining.splice(at, 1);
+    });
+
+    now += slot;
+  }
+
+  const endMinutes = scheduled.reduce(
+    (latest, f) => Math.max(latest, f.kickoffOffsetMinutes + play),
+    startMinutes,
+  );
+
+  return { scheduled, waves, slotsElapsed, startMinutes, endMinutes };
+}
+
+export interface FeasibilityInput extends ScheduleInput {
+  /** Total minutes available, e.g. 9am-3pm is 360. */
+  availableMinutes: number;
+}
+
+export interface FeasibilityReport {
+  fits: boolean;
+  requiredMinutes: number;
+  availableMinutes: number;
+  /** Positive when the schedule overruns the window. */
+  overByMinutes: number;
+  waves: number;
+  fixtureCount: number;
+  fieldCount: number;
+  /** Plain-language summary for the admin setup screen. */
+  summary: string;
+}
+
+/**
+ * Answer "does this tournament fit in the day?" before anyone commits to it.
+ *
+ * Pure, and cheap enough to re-run on every keystroke in the setup form, so an
+ * admin can adjust slot length, fields or pool structure until it fits --
+ * three weeks out rather than at 2pm on tournament day.
+ */
+export function checkFeasibility(input: FeasibilityInput): FeasibilityReport {
+  const result = scheduleFixtures(input);
+  const requiredMinutes = result.endMinutes - result.startMinutes;
+  const overByMinutes = requiredMinutes - input.availableMinutes;
+  const fits = overByMinutes <= 0;
+
+  return {
+    fits,
+    requiredMinutes,
+    availableMinutes: input.availableMinutes,
+    overByMinutes: Math.max(0, overByMinutes),
+    waves: result.waves,
+    fixtureCount: input.fixtures.length,
+    fieldCount: input.fields.length,
+    summary: fits
+      ? `${input.fixtures.length} games across ${input.fields.length} field(s) needs ` +
+        `${formatDuration(requiredMinutes)}. You have ${formatDuration(input.availableMinutes)} — ` +
+        `${formatDuration(-overByMinutes)} to spare.`
+      : `${input.fixtures.length} games across ${input.fields.length} field(s) needs ` +
+        `${formatDuration(requiredMinutes)}, but you only have ` +
+        `${formatDuration(input.availableMinutes)} — over by ${formatDuration(overByMinutes)}.`,
+  };
+}
+
+export function formatDuration(minutes: number): string {
+  const abs = Math.abs(Math.round(minutes));
+  const hours = Math.floor(abs / 60);
+  const mins = abs % 60;
+  if (hours === 0) return `${mins}m`;
+  if (mins === 0) return `${hours}h`;
+  return `${hours}h${String(mins).padStart(2, '0')}m`;
+}
