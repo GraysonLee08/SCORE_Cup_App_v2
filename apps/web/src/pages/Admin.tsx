@@ -9,7 +9,8 @@ import GenerateWidget from '../components/admin/setup/GenerateWidget.js';
 import CreateEventWidget from '../components/admin/setup/CreateEventWidget.js';
 import ResultsPanel from '../components/admin/ResultsPanel.js';
 import ScheduleGrid from '../components/admin/ScheduleGrid.js';
-import TeamsPanel from '../components/admin/TeamsPanel.js';
+import TeamsWidget from '../components/admin/setup/TeamsWidget.js';
+import PlayersWidget from '../components/admin/setup/PlayersWidget.js';
 import PeoplePanel from '../components/admin/PeoplePanel.js';
 import AnnouncementsPanel from '../components/admin/AnnouncementsPanel.js';
 import AuditPanel from '../components/admin/AuditPanel.js';
@@ -32,16 +33,17 @@ interface NavItem {
 const NAV: NavItem[] = [
   {
     key: 'setup',
-    label: 'Setup',
-    blurb: 'Tournament, divisions and pools.',
+    label: 'Tournament setup',
+    blurb: 'Tournament, divisions, pools, teams and players.',
     children: [
       { key: 'setup.tournament', label: 'Tournament', blurb: 'Name, date, venue, timings and pitches. Every division inherits these.' },
       { key: 'setup.divisions', label: 'Divisions', blurb: 'The separate competitions within the tournament, and the fields each uses.' },
       { key: 'setup.pools', label: 'Pools', blurb: 'How each division groups its teams for pool play.' },
+      { key: 'setup.teams', label: 'Teams', blurb: 'The teams competing in a division, their pool and their join code.' },
+      { key: 'setup.players', label: 'Players', blurb: 'Who is on each team’s roster.' },
       { key: 'setup.generate', label: 'Generate schedule', blurb: 'Check the day fits, then build the fixtures.' },
     ],
   },
-  { key: 'teams', label: 'Teams & rosters', blurb: 'Teams within a division, join codes, and who is on each roster.' },
   { key: 'people', label: 'User management', blurb: 'Referees, coaches and players — accounts and passwords.' },
   { key: 'schedule', label: 'Schedule grid', blurb: 'Every game by field and kickoff. Move anything; clashes are flagged as you go.' },
   { key: 'results', label: 'Results & standings', blurb: 'Correct any score or card, and see the effect before you save.' },
@@ -205,8 +207,10 @@ export default function Admin({
                 <DivisionsWidget data={data} onChanged={reload} />
               )}
               {active === 'setup.pools' && <PoolsWidget data={data} onChanged={reload} />}
+              {active === 'setup.teams' && <TeamsWidget data={data} onChanged={reload} />}
+              {active === 'setup.players' && <PlayersWidget data={data} onChanged={reload} />}
               {active === 'setup.generate' && <GenerateWidget data={data} onChanged={reload} />}
-              {active === 'teams' && <TeamsPanel data={data} onChanged={reload} />}
+
               {active === 'people' && <PeoplePanel data={data} />}
               {active === 'schedule' && <ScheduleGrid data={data} />}
               {active === 'results' && <ResultsPanel data={data} />}
