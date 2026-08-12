@@ -19,6 +19,7 @@ const createEventSchema = z.object({
   endTime: z.string().regex(timePattern),
   minRestMinutes: z.number().int().min(0).max(240).optional(),
   timezone: z.string().max(60).optional(),
+  location: z.string().max(200).optional(),
 });
 
 const createDivisionSchema = z.object({
@@ -52,8 +53,8 @@ export function eventRoutes(db: Db): Router {
 
     const { rows } = await db.query<{ id: string }>(
       `INSERT INTO events (name, season, event_date, start_time, end_time,
-                           min_rest_minutes, timezone)
-       VALUES ($1,$2,$3,$4,$5,COALESCE($6,5),COALESCE($7,'America/Chicago')) RETURNING id`,
+                           min_rest_minutes, timezone, location)
+       VALUES ($1,$2,$3,$4,$5,COALESCE($6,5),COALESCE($7,'America/Chicago'),$8) RETURNING id`,
       [
         d.name,
         d.season ?? null,
@@ -62,6 +63,7 @@ export function eventRoutes(db: Db): Router {
         d.endTime,
         d.minRestMinutes ?? null,
         d.timezone ?? null,
+        d.location ?? null,
       ],
     );
 
@@ -281,12 +283,14 @@ export function eventRoutes(db: Db): Router {
               start_time = COALESCE($4::time, start_time),
               end_time = COALESCE($5::time, end_time),
               min_rest_minutes = COALESCE($6, min_rest_minutes),
-              timezone = COALESCE($7, timezone)
-        WHERE id = $8`,
+              timezone = COALESCE($7, timezone),
+              location = COALESCE($8, location)
+        WHERE id = $9`,
       [
         d.name ?? null, d.season ?? null, d.eventDate ?? null,
         d.startTime ?? null, d.endTime ?? null,
-        d.minRestMinutes ?? null, d.timezone ?? null, eventId,
+        d.minRestMinutes ?? null, d.timezone ?? null,
+        d.location ?? null, eventId,
       ],
     );
 

@@ -38,10 +38,15 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(1),
 });
 
+/**
+ * Admin is deliberately absent. Escalating someone to full control should be a
+ * conscious act outside a running tournament, not a dropdown on a busy screen
+ * -- and enforcing it only in the UI would not be enforcing it at all.
+ */
 const createUserSchema = z.object({
   email: z.string().email(),
   displayName: z.string().min(1).max(120),
-  role: z.enum(['admin', 'ref', 'coach', 'participant']),
+  role: z.enum(['ref', 'coach', 'participant']),
 });
 
 function toSessionUser(row: UserRow): SessionUser {

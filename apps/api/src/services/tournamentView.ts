@@ -41,6 +41,8 @@ export interface PublicFixture {
   /** Cards per side, counts only. Who received them is not public. */
   homeCards: { yellow: number; red: number };
   awayCards: { yellow: number; red: number };
+  /** Name only -- who is refereeing is useful publicly; their account is not. */
+  refereeName: string | null;
 }
 
 export interface PublicPoolTable {
@@ -79,6 +81,7 @@ interface FixtureRow {
   home_penalties: number | null;
   away_penalties: number | null;
   round: string | null;
+  referee_name: string | null;
 }
 
 export async function loadPublicDivision(db: Db, divisionId: string): Promise<PublicDivision> {
@@ -101,13 +104,15 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
             f.kickoff_at, f.status, f.home_ref, f.away_ref,
             f.home_team_id, f.away_team_id,
             home.name AS home_team_name, away.name AS away_team_name,
-            f.home_score, f.away_score, f.home_penalties, f.away_penalties, f.round
+            f.home_score, f.away_score, f.home_penalties, f.away_penalties, f.round,
+            ref.display_name AS referee_name
        FROM fixtures f
        JOIN stages s ON s.id = f.stage_id
        LEFT JOIN pools p ON p.id = f.pool_id
        LEFT JOIN fields fl ON fl.id = f.field_id
        LEFT JOIN teams home ON home.id = f.home_team_id
        LEFT JOIN teams away ON away.id = f.away_team_id
+       LEFT JOIN users ref ON ref.id = f.referee_user_id
       WHERE s.division_id = $1
       ORDER BY f.kickoff_at NULLS LAST, fl.sort_order`,
     [divisionId],
@@ -257,6 +262,7 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
       awayPenalties: f.away_penalties,
       homeCards: cardCount(f.id, f.home_team_id),
       awayCards: cardCount(f.id, f.away_team_id),
+      refereeName: f.referee_name,
     };
   });
 

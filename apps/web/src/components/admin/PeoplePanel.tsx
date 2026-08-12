@@ -3,9 +3,12 @@ import { api, ApiFailure } from '../../api.js';
 import type { AdminEvent, AdminUser } from '../../types.js';
 
 /**
- * Referees, coaches and admins. Two jobs that matter on the day: assigning a
- * referee to fields, and issuing a temporary password when someone is locked
- * out (there is no self-service reset, by design).
+ * Accounts for everyone who signs in. Two jobs matter on the day: assigning a
+ * referee to their fields, and issuing a temporary password when someone is
+ * locked out -- there is no self-service reset, by design.
+ *
+ * Admin accounts cannot be created here. Handing out full control should take
+ * a deliberate act outside the running tournament.
  */
 export default function PeoplePanel({ data }: { data: AdminEvent }) {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -52,6 +55,10 @@ export default function PeoplePanel({ data }: { data: AdminEvent }) {
 
       <section className="card stack">
         <h2>Add a person</h2>
+        <p className="hint">
+          Creates the account and a one-time password to pass on. Admin accounts are
+          deliberately not created here.
+        </p>
         <div className="row">
           <div>
             <label htmlFor="p-name">Name</label>
@@ -80,7 +87,7 @@ export default function PeoplePanel({ data }: { data: AdminEvent }) {
             >
               <option value="ref">Referee</option>
               <option value="coach">Coach</option>
-              <option value="admin">Admin</option>
+              <option value="participant">Player</option>
             </select>
           </div>
         </div>

@@ -673,3 +673,321 @@ a {
     padding: 0 0.45rem;
   }
 }
+
+/* --- Admin: desktop-first ------------------------------------------------
+   Admins do this at a desk. The shell fills the viewport and never scrolls;
+   only the content column does, so the nav and page heading stay put. */
+
+.admin-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100dvh;
+  max-width: none;
+  padding: 0;
+  background: var(--page);
+}
+
+.admin-body {
+  display: grid;
+  grid-template-columns: 216px 1fr;
+  min-height: 0;
+}
+
+.admin-nav {
+  background: #fff;
+  border-right: 1px solid var(--line);
+  padding: 1rem 0.6rem;
+  overflow-y: auto;
+}
+
+.admin-nav button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  min-height: 40px;
+  padding: 0 0.75rem;
+  margin-bottom: 0.15rem;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.admin-nav button:hover {
+  background: #eef2f6;
+}
+
+.admin-nav button.active {
+  background: var(--brand);
+  color: #fff;
+}
+
+.admin-nav .nav-group {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  padding: 0.9rem 0.75rem 0.35rem;
+  font-weight: 700;
+}
+
+.admin-main {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1.4rem 1.6rem 3rem;
+}
+
+.admin-main > header {
+  margin-bottom: 1.1rem;
+}
+
+.admin-main > header h1 {
+  font-size: 1.4rem;
+  margin: 0 0 0.15rem;
+}
+
+.admin-main > header p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+/* Wide screens get two columns so a setup form does not become a long scroll. */
+.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.admin .card {
+  padding: 1.1rem 1.2rem;
+}
+
+.admin .card h2 {
+  font-size: 1.05rem;
+  letter-spacing: 0;
+}
+
+.admin .card h3 {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  margin: 1.1rem 0 0.5rem;
+}
+
+/* Tighter controls than the field-facing views: a mouse is more precise than
+   a gloved thumb, and vertical space is the scarce resource here. */
+.admin input,
+.admin select,
+.admin button {
+  min-height: 38px;
+}
+
+.admin .field {
+  margin-bottom: 0.7rem;
+}
+
+.admin label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin table.standings th,
+.admin table.standings td {
+  padding: 0.35rem 0.4rem;
+}
+
+.hint {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin: 0.25rem 0 0;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.sticky-side {
+  position: sticky;
+  top: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-body {
+    grid-template-columns: 1fr;
+  }
+  .admin-nav {
+    display: flex;
+    gap: 0.3rem;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 0.5rem;
+  }
+  .admin-nav button {
+    width: auto;
+    white-space: nowrap;
+  }
+  .admin-nav .nav-group {
+    display: none;
+  }
+  .split,
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .admin-main {
+    padding: 1rem;
+  }
+}
+
+/* Compact inline editing rows for the admin results screen. */
+.editor-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.counter button {
+  min-height: 30px;
+  width: 30px;
+  padding: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.counter-value {
+  min-width: 3.1rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.counter-suffix {
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  margin-left: 0.15rem;
+}
+
+/* Rank movement in the standings preview. */
+.move {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.move.up {
+  color: var(--good);
+}
+.move.down {
+  color: var(--bad);
+}
+
+/* --- Schedule grid ------------------------------------------------------- */
+
+table.grid-table {
+  border-collapse: separate;
+  border-spacing: 3px;
+  width: 100%;
+}
+
+table.grid-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  text-align: left;
+  padding: 0.2rem 0.35rem;
+  white-space: nowrap;
+}
+
+table.grid-table th[scope='row'] {
+  text-transform: none;
+  font-size: 0.9rem;
+  color: var(--ink);
+  font-weight: 700;
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+}
+
+table.grid-table td {
+  vertical-align: top;
+  min-width: 11rem;
+  padding: 0;
+}
+
+.slot {
+  display: block;
+  width: 100%;
+  text-align: left;
+  min-height: 52px;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--brand);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  line-height: 1.25;
+}
+
+.slot:hover {
+  background: #f4f8fc;
+}
+
+.slot.chosen {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+/* A clash is red and must be fixed; a warning is amber and may be deliberate. */
+.slot.clash {
+  border-left-color: var(--bad);
+  background: #fdecea;
+}
+
+.slot.warn {
+  border-left-color: #d9a406;
+  background: #fff8e6;
+}
+
+.slot-teams {
+  display: block;
+  font-weight: 700;
+  font-size: 0.84rem;
+}
+
+.slot-meta {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}

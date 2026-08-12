@@ -9,6 +9,7 @@ import { teamRoutes } from './routes/teams.js';
 import { registrationRoutes } from './routes/registration.js';
 import { rosterRoutes } from './routes/roster.js';
 import { eventRoutes } from './routes/events.js';
+import { setupRoutes } from './routes/setup.js';
 import { scheduleRoutes } from './routes/schedule.js';
 import { refRoutes, refAssignmentRoutes } from './routes/ref.js';
 import { publicRoutes } from './routes/publicView.js';
@@ -103,6 +104,7 @@ export function createApp(config: Config, db: Db): Express {
   mount('/api/register', registrationRoutes(db));
   mount('/api/rosters', rosterRoutes(db));
   mount('/api/events', eventRoutes(db));
+  mount('/api/setup', setupRoutes(db));
   mount('/api/schedule', scheduleRoutes(db));
   mount('/api/ref', refRoutes(db));
   mount('/api/refs', refAssignmentRoutes(db));

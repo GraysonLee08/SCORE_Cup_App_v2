@@ -3,4 +3,5 @@ export * from './fixtures.js';
 export * from './standings.js';
 export * from './scheduling.js';
 export * from './resolve.js';
+export * from './conflicts.js';
 export * from './presets.js';

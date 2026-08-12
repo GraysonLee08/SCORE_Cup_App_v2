@@ -103,5 +103,41 @@ export function teamRoutes(db: Db): Router {
     res.json({ joinCode });
   });
 
+  /** A team dropping out is normal. Refuse if games already reference it --
+   *  removing it would leave fixtures pointing at nothing. */
+  router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+    const teamId = req.params.id;
+    if (!teamId) throw new HttpError(400, 'No team specified.', 'invalid_input');
+
+    const { rows: played } = await db.query<{ n: string }>(
+      `SELECT count(*) AS n FROM fixtures
+        WHERE (home_team_id = $1 OR away_team_id = $1) AND home_score IS NOT NULL`,
+      [teamId],
+    );
+    if (Number(played[0]!.n) > 0) {
+      throw new HttpError(
+        409,
+        `This team has ${played[0]!.n} played game(s). Removing it would delete those results.`,
+        'team_has_results',
+      );
+    }
+
+    const { rows } = await db.query<{ name: string }>(
+      'DELETE FROM teams WHERE id = $1 RETURNING name',
+      [teamId],
+    );
+    if (!rows[0]) throw new HttpError(404, 'No such team.', 'not_found');
+
+    await recordAudit(db, {
+      actorUserId: req.session.user!.id,
+      entityType: 'team',
+      entityId: teamId,
+      action: 'delete',
+      before: rows[0],
+    });
+
+    res.status(204).end();
+  });
+
   return router;
 }

@@ -42,8 +42,12 @@ async function assertCanScoreFixture(
   role: string,
   fixtureId: string,
 ): Promise<{ fieldId: string | null; divisionId: string }> {
-  const { rows } = await db.query<{ field_id: string | null; division_id: string }>(
-    `SELECT f.field_id, s.division_id
+  const { rows } = await db.query<{
+    field_id: string | null;
+    division_id: string;
+    referee_user_id: string | null;
+  }>(
+    `SELECT f.field_id, f.referee_user_id, s.division_id
        FROM fixtures f JOIN stages s ON s.id = f.stage_id
       WHERE f.id = $1`,
     [fixtureId],
@@ -56,8 +60,16 @@ async function assertCanScoreFixture(
   if (role !== 'ref') {
     throw new HttpError(403, 'Only referees can enter scores.', 'forbidden');
   }
-  if (!fixture.field_id || !(await refCanAccessField(db, userId, fixture.field_id))) {
-    throw new HttpError(403, 'That game is not on your field.', 'wrong_field');
+
+  // Named on the match, or covering the field it is played on. The union
+  // matters: if the named referee does not turn up, whoever is on that field
+  // can still record the score.
+  const namedOnMatch = fixture.referee_user_id === userId;
+  const coversField =
+    fixture.field_id !== null && (await refCanAccessField(db, userId, fixture.field_id));
+
+  if (!namedOnMatch && !coversField) {
+    throw new HttpError(403, 'That game is not yours to score.', 'wrong_field');
   }
 
   return { fieldId: fixture.field_id, divisionId: fixture.division_id };
@@ -81,7 +93,8 @@ export function refRoutes(db: Db): Router {
               f.home_ref AS "homeRef", f.away_ref AS "awayRef",
               s.name AS "stageName", d.name AS "divisionName",
               (SELECT count(*) FROM match_signoffs ms WHERE ms.fixture_id = f.id)::int
-                AS "signoffCount"
+                AS "signoffCount",
+              (f.referee_user_id = $2) AS "assignedToMe"
          FROM fixtures f
          JOIN stages s ON s.id = f.stage_id
          JOIN divisions d ON d.id = s.division_id
@@ -89,6 +102,7 @@ export function refRoutes(db: Db): Router {
          LEFT JOIN teams home ON home.id = f.home_team_id
          LEFT JOIN teams away ON away.id = f.away_team_id
         WHERE ($1::boolean = false
+               OR f.referee_user_id = $2
                OR f.field_id IN (SELECT field_id FROM ref_field_assignments WHERE user_id = $2))
         ORDER BY f.kickoff_at NULLS LAST, fl.sort_order`,
       [scopeToRef, user.id],

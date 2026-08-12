@@ -58,6 +58,7 @@ export interface PublicFixture {
   awayPenalties: number | null;
   homeCards: { yellow: number; red: number };
   awayCards: { yellow: number; red: number };
+  refereeName: string | null;
 }
 
 export interface StandingsRow {
@@ -183,6 +184,7 @@ export interface AdminEvent {
     minRestMinutes: number;
     timezone: string;
     status: string;
+    location: string | null;
   };
   fields: { id: string; name: string; sortOrder: number }[];
   divisions: AdminDivision[];
@@ -207,4 +209,14 @@ export interface Feasibility {
   availableMinutes: number;
   overByMinutes: number;
   waves: number;
+}
+
+export interface RosterPlayer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  isCaptain: boolean;
+  selfRegistered: boolean;
 }

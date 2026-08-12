@@ -1,7 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadConfig } from './config.js';
 import { createPool } from './db.js';
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
@@ -67,19 +66,4 @@ export async function migrate(connectionString: string): Promise<string[]> {
     lockClient.release();
     await db.end();
   }
-}
-
-// Allow `npm run migrate` as well as importing this from tests.
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))) {
-  const config = loadConfig();
-  migrate(config.DATABASE_URL)
-    .then((applied) => {
-      console.log(
-        applied.length ? `Applied: ${applied.join(', ')}` : 'Already up to date.',
-      );
-    })
-    .catch((error: Error) => {
-      console.error(error.message);
-      process.exit(1);
-    });
 }
