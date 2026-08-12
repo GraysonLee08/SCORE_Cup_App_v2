@@ -41,9 +41,9 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-scup}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-scup}
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
-      # Staging runs over plain HTTP until it has a certificate. A Secure
-      # cookie would be silently dropped, so sign-in would appear to work and
-      # every following request would 401.
+      # Must be false only while a stack is served over plain HTTP: a Secure
+      # cookie is silently never sent back, so sign-in appears to work and
+      # every following request returns 401. Both stacks now have TLS.
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
     ports:
       - '127.0.0.1:${API_PORT:-8083}:3002'

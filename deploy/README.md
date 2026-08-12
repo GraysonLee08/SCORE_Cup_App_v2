@@ -9,7 +9,7 @@ on staging works in production.
 | Directory | `/opt/scorescup/staging` | `/opt/scorescup/production` |
 | Web port (localhost) | 8081 | 8080 |
 | API port (localhost) | 8083 | 8082 |
-| Reached at | `http://<vps-ip>:8181` or `staging.scorescupchicago.games` | `https://scorescupchicago.games` |
+| Reached at | `https://staging.scorescupchicago.games` | `https://scorescupchicago.games` |
 
 Every container port binds to `127.0.0.1`. nginx on the host is the only way
 in — nothing is published to the internet directly.
@@ -46,11 +46,21 @@ ln -sf /etc/nginx/sites-available/scup-staging /etc/nginx/sites-enabled/scup-sta
 nginx -t && systemctl reload nginx
 ```
 
-Open the staging port in the firewall if one is active:
+Then get a certificate:
 
 ```bash
-ufw allow 8181/tcp
+certbot --nginx -d staging.scorescupchicago.games --agree-tos --redirect
 ```
+
+> **Do not re-run the `cp ... nginx-staging.conf` step afterwards.** Certbot
+> edits `/etc/nginx/sites-available/scup-staging` in place to add the TLS
+> block, and copying the template over it silently removes HTTPS. If you do
+> need to change the vhost, edit it on the server or re-run certbot after.
+
+Once TLS is in place, set `COOKIE_SECURE=true` in `.env` and restart the API.
+Session cookies marked `Secure` are never sent over plain HTTP, so on an
+HTTP-only stack sign-in appears to succeed and every later request returns
+401.
 
 ## Deploying
 
