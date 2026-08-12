@@ -201,8 +201,15 @@ export interface AdminUser {
   fieldIds: string[];
 }
 
+export interface ScheduleQuality {
+  backToBackCount: number;
+  averageRestMinutes: number;
+  minRestObserved: number;
+}
+
 export interface Feasibility {
   fits: boolean;
+  quality?: ScheduleQuality;
   summary: string;
   fixtureCount: number;
   fieldCount: number;

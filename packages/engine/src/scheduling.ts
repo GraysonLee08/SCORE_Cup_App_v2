@@ -21,6 +21,28 @@ export interface ScheduleInput {
   minRestMinutes: number;
   /** Minutes from the event start before this stage may begin. */
   startOffsetMinutes?: number;
+  /**
+   * Prefer the teams who have rested longest when filling each slot.
+   *
+   * `minRestMinutes` is a hard floor and an expensive one -- raising it above
+   * the changeover gap forces every team to sit out a whole round and can add
+   * over an hour. This is the soft version: among the fixtures that are legal
+   * right now, play the teams who have been waiting longest, so back-to-back
+   * games are avoided when there is any alternative and permitted when there
+   * is not. Costs nothing in wall-clock time.
+   *
+   * Defaults to true; set false to reproduce a strictly in-order schedule.
+   */
+  spreadTeams?: boolean;
+}
+
+export interface ScheduleQuality {
+  /** Teams sent straight back out in the next slot. Lower is kinder. */
+  backToBackCount: number;
+  /** Shortest actual gap any team got, in minutes. */
+  minRestObserved: number;
+  /** Mean gap between a team's games. */
+  averageRestMinutes: number;
 }
 
 export interface ScheduleResult {
@@ -37,6 +59,8 @@ export interface ScheduleResult {
   startMinutes: number;
   /** Offset at which the last game finishes. */
   endMinutes: number;
+  /** How kind the schedule is to teams, for reporting to an admin. */
+  quality: ScheduleQuality;
 }
 
 /** Actual playing time, excluding the changeover gap before the next game. */
@@ -91,7 +115,25 @@ export function scheduleFixtures(input: ScheduleInput): ScheduleResult {
   const remaining = [...input.fixtures];
   const scheduled: ScheduledFixture[] = [];
   const teamFreeAt = new Map<TeamId, number>();
+  const teamLastEnded = new Map<TeamId, number>();
   const fixtureEndsAt = new Map<FixtureId, number>();
+  const spreadTeams = input.spreadTeams ?? true;
+
+  /**
+   * How long the fresher of the two sides has been waiting. Larger means this
+   * fixture is more deserving of the slot.
+   */
+  const idleness = (fixture: Fixture, at: number): number => {
+    const teams = concreteTeams(fixture);
+    if (teams.length === 0) return Number.POSITIVE_INFINITY;
+    let worst = Number.POSITIVE_INFINITY;
+    for (const team of teams) {
+      const lastEnd = teamLastEnded.get(team);
+      // A team that has not played yet is maximally rested.
+      worst = Math.min(worst, lastEnd === undefined ? Number.POSITIVE_INFINITY : at - lastEnd);
+    }
+    return worst;
+  };
 
   let now = startMinutes;
   let waves = 0;
@@ -106,7 +148,13 @@ export function scheduleFixtures(input: ScheduleInput): ScheduleResult {
     const waveFixtures: Fixture[] = [];
     const teamsThisWave = new Set<TeamId>();
 
-    for (const fixture of remaining) {
+    // Rested teams first. Ties keep the original order, so the schedule stays
+    // deterministic and reproducible.
+    const candidates = spreadTeams
+      ? [...remaining].sort((a, b) => idleness(b, now) - idleness(a, now))
+      : remaining;
+
+    for (const fixture of candidates) {
       if (waveFixtures.length >= input.fields.length) break;
 
       const teams = concreteTeams(fixture);
@@ -153,6 +201,7 @@ export function scheduleFixtures(input: ScheduleInput): ScheduleResult {
 
       for (const team of concreteTeams(fixture)) {
         teamFreeAt.set(team, now + play + input.minRestMinutes);
+        teamLastEnded.set(team, now + play);
       }
 
       const at = remaining.indexOf(fixture);
@@ -167,7 +216,14 @@ export function scheduleFixtures(input: ScheduleInput): ScheduleResult {
     startMinutes,
   );
 
-  return { scheduled, waves, slotsElapsed, startMinutes, endMinutes };
+  return {
+    scheduled,
+    waves,
+    slotsElapsed,
+    startMinutes,
+    endMinutes,
+    quality: measureQuality(scheduled, play, slot),
+  };
 }
 
 export interface FeasibilityInput extends ScheduleInput {
@@ -226,4 +282,49 @@ export function formatDuration(minutes: number): string {
   if (hours === 0) return `${mins}m`;
   if (mins === 0) return `${hours}h`;
   return `${hours}h${String(mins).padStart(2, '0')}m`;
+}
+
+
+/**
+ * Report how much rest the schedule actually gives teams, so an admin can see
+ * the cost of a change rather than having to count games by hand.
+ */
+export function measureQuality(
+  scheduled: ScheduledFixture[],
+  playMinutes: number,
+  slotMinutes: number,
+): ScheduleQuality {
+  const byTeam = new Map<TeamId, number[]>();
+
+  for (const fixture of scheduled) {
+    for (const ref of [fixture.home, fixture.away]) {
+      if (ref.kind !== 'team') continue;
+      const kickoffs = byTeam.get(ref.teamId) ?? [];
+      kickoffs.push(fixture.kickoffOffsetMinutes);
+      byTeam.set(ref.teamId, kickoffs);
+    }
+  }
+
+  let backToBackCount = 0;
+  let minRestObserved = Number.POSITIVE_INFINITY;
+  let totalRest = 0;
+  let gaps = 0;
+
+  for (const kickoffs of byTeam.values()) {
+    const sorted = [...kickoffs].sort((a, b) => a - b);
+    for (let i = 1; i < sorted.length; i++) {
+      const rest = sorted[i]! - (sorted[i - 1]! + playMinutes);
+      totalRest += rest;
+      gaps += 1;
+      minRestObserved = Math.min(minRestObserved, rest);
+      // Consecutive slots: the team walks off and straight back on.
+      if (sorted[i]! - sorted[i - 1]! <= slotMinutes) backToBackCount += 1;
+    }
+  }
+
+  return {
+    backToBackCount,
+    minRestObserved: gaps === 0 ? 0 : minRestObserved,
+    averageRestMinutes: gaps === 0 ? 0 : Math.round(totalRest / gaps),
+  };
 }

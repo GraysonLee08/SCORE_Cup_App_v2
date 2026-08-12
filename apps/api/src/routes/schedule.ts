@@ -76,6 +76,7 @@ export function scheduleRoutes(db: Db): Router {
       ...result,
       perStage: build.perStage,
       totalMinutes: build.totalMinutes,
+      quality: build.quality,
     });
   });
 

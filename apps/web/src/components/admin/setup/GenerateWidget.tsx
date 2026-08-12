@@ -83,7 +83,42 @@ export default function GenerateWidget({
             )}
 
             {report && (
-              <div className={report.fits ? 'notice ok' : 'notice error'}>{report.summary}</div>
+              <>
+                <div className={report.fits ? 'notice ok' : 'notice error'}>
+                  {report.summary}
+                </div>
+
+                {/* The scheduler already prefers rested teams; this is what it
+                    managed, so the cost of a change is visible rather than
+                    something to count by hand. */}
+                {report.quality && (
+                  <dl className="kv" style={{ marginBottom: '1rem' }}>
+                    <div>
+                      <dt>Back-to-back games</dt>
+                      <dd>
+                        {report.quality.backToBackCount}
+                        {report.quality.backToBackCount === 0 && ' — nobody plays twice in a row'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Average rest</dt>
+                      <dd>{report.quality.averageRestMinutes} min</dd>
+                    </div>
+                    <div>
+                      <dt>Shortest rest</dt>
+                      <dd>{report.quality.minRestObserved} min</dd>
+                    </div>
+                  </dl>
+                )}
+
+                {report.quality && report.quality.backToBackCount > 0 && (
+                  <p className="hint">
+                    Teams are spread out as far as the day allows. To reduce this further you
+                    need more fields, fewer games each, or a longer window — raising the rest
+                    gap forces everyone to sit out a round and lengthens the day considerably.
+                  </p>
+                )}
+              </>
             )}
 
             <div className="row" style={{ maxWidth: '34rem' }}>

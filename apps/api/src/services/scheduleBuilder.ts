@@ -169,6 +169,8 @@ export interface BuildResult {
   scheduled: ScheduledFixture[];
   totalMinutes: number;
   perStage: { stageId: string; fixtures: number; waves: number; endMinutes: number }[];
+  /** How kind the schedule is to teams, aggregated across stages. */
+  quality: { backToBackCount: number; averageRestMinutes: number; minRestObserved: number };
 }
 
 /**
@@ -179,6 +181,7 @@ export interface BuildResult {
 export function buildSchedule(plan: DivisionPlan, gapBetweenStagesMinutes = 15): BuildResult {
   const scheduled: ScheduledFixture[] = [];
   const perStage: BuildResult['perStage'] = [];
+  const qualities: { backToBackCount: number; averageRestMinutes: number; minRestObserved: number }[] = [];
   let cursor = 0;
   let previousPoolIds: string[] = [];
 
@@ -194,6 +197,7 @@ export function buildSchedule(plan: DivisionPlan, gapBetweenStagesMinutes = 15):
     });
 
     scheduled.push(...result.scheduled);
+    qualities.push(result.quality);
     perStage.push({
       stageId: stage.id,
       fixtures: fixtures.length,
@@ -205,16 +209,33 @@ export function buildSchedule(plan: DivisionPlan, gapBetweenStagesMinutes = 15):
     if (stage.kind === 'pool') previousPoolIds = stage.pools.map((p) => p.id);
   }
 
+  // Pool play dominates; a knockout stage contributes few gaps, so a plain
+  // sum understates nothing that matters here.
+  const backToBackCount = qualities.reduce((n, q) => n + q.backToBackCount, 0);
+  const withGaps = qualities.filter((q) => q.averageRestMinutes > 0);
+
   return {
     scheduled,
     totalMinutes: Math.max(0, cursor - gapBetweenStagesMinutes),
     perStage,
+    quality: {
+      backToBackCount,
+      averageRestMinutes:
+        withGaps.length === 0
+          ? 0
+          : Math.round(
+              withGaps.reduce((n, q) => n + q.averageRestMinutes, 0) / withGaps.length,
+            ),
+      minRestObserved:
+        withGaps.length === 0 ? 0 : Math.min(...withGaps.map((q) => q.minRestObserved)),
+    },
   };
 }
 
 export interface DivisionFeasibility extends FeasibilityReport {
   divisionId: string;
   perStage: BuildResult['perStage'];
+  quality: BuildResult['quality'];
 }
 
 export function divisionFeasibility(plan: DivisionPlan): DivisionFeasibility {
@@ -252,6 +273,7 @@ export function divisionFeasibility(plan: DivisionPlan): DivisionFeasibility {
     fixtureCount,
     fieldCount: plan.fieldIds.length,
     perStage: build.perStage,
+    quality: build.quality,
     summary:
       overByMinutes === 0
         ? `${fixtureCount} games across ${plan.fieldIds.length} field(s) needs ` +
