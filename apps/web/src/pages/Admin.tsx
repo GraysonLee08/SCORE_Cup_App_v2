@@ -7,6 +7,7 @@ import TeamsPanel from '../components/admin/TeamsPanel.js';
 import PeoplePanel from '../components/admin/PeoplePanel.js';
 import AnnouncementsPanel from '../components/admin/AnnouncementsPanel.js';
 import AuditPanel from '../components/admin/AuditPanel.js';
+import AppHeader from '../components/AppHeader.js';
 
 type Tab = 'setup' | 'results' | 'teams' | 'people' | 'messages' | 'audit';
 
@@ -49,19 +50,7 @@ export default function Admin({
 
   return (
     <div className="app admin">
-      <header className="topbar">
-        <div>
-          <strong>Admin</strong>
-          <div className="who">{user.displayName}</div>
-        </div>
-        <button
-          className="ghost"
-          onClick={onSignOut}
-          style={{ color: '#fff', borderColor: 'rgba(255,255,255,.5)', background: 'transparent' }}
-        >
-          Sign out
-        </button>
-      </header>
+      <AppHeader user={user} title="Admin" subtitle={user.displayName} onSignOut={onSignOut} />
 
       <div className="content">
         {error && (

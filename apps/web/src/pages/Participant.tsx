@@ -10,6 +10,7 @@ import FixtureList from '../components/FixtureList.js';
 import StandingsTable from '../components/StandingsTable.js';
 import Bracket from '../components/Bracket.js';
 import ProfileForm from '../components/ProfileForm.js';
+import AppHeader from '../components/AppHeader.js';
 
 type Tab = 'team' | 'standings' | 'roster' | 'profile';
 
@@ -77,19 +78,12 @@ export default function Participant({
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div>
-          <strong>{me?.team.name ?? 'My team'}</strong>
-          <div className="who">{me?.division.name ?? user.displayName}</div>
-        </div>
-        <button
-          className="ghost"
-          onClick={onSignOut}
-          style={{ color: '#fff', borderColor: 'rgba(255,255,255,.5)', background: 'transparent' }}
-        >
-          Sign out
-        </button>
-      </header>
+      <AppHeader
+        user={user}
+        title={me?.team.name ?? 'My team'}
+        subtitle={me?.division.name ?? user.displayName}
+        onSignOut={onSignOut}
+      />
 
       <div className="content">
         {error && (

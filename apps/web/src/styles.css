@@ -1,11 +1,13 @@
 /*
- * Chicago SCORES palette. Sampled approximations -- swap these three values
- * once we have the exact brand hexes and everything downstream follows.
+ * Chicago SCORES palette, sampled from the organisation's own logo: the navy
+ * and red of the shield, with the pencil yellow reserved for focus rings so
+ * they stay visible against both.
  */
 :root {
-  --brand: #0b5fa5;
-  --brand-dark: #084a80;
-  --accent: #f5a623;
+  --brand: #16406e;
+  --brand-dark: #0e2c4d;
+  --accent: #e11b34;
+  --focus: #f5c518;
 
   --ink: #1a1d21;
   --ink-soft: #5c6670;
@@ -269,8 +271,9 @@ select {
 
 input:focus-visible,
 select:focus-visible,
-button:focus-visible {
-  outline: 3px solid var(--accent);
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -582,4 +585,91 @@ dl.kv dd {
 
 a {
   color: var(--brand);
+}
+
+
+/* --- Header --------------------------------------------------------------
+   The only route to signing in, so the action is always visible. */
+
+.topbar {
+  gap: 0.6rem;
+}
+
+.topbar .brand {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.topbar .brand img {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+
+.topbar-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topbar-title strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.topbar-link,
+.topbar-btn {
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  border-radius: 8px;
+  /* Comfortably tappable without making the header tall on a phone. */
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.7rem;
+}
+
+.topbar-link {
+  color: #fff;
+  opacity: 0.92;
+  border: 1px solid transparent;
+}
+
+.topbar-link:hover {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.topbar-btn {
+  background: #fff;
+  color: var(--brand);
+  border: 1px solid #fff;
+  cursor: pointer;
+}
+
+.topbar-btn:hover {
+  background: #eef2f6;
+}
+
+/* On a narrow phone the event name is the first thing to go -- the logo says
+   where you are, and the sign-in button must never wrap or be pushed off. */
+@media (max-width: 430px) {
+  .topbar-title .who {
+    display: none;
+  }
+  .topbar-link {
+    padding: 0 0.45rem;
+  }
 }

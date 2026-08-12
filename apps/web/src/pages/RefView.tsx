@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, flushQueue, newClientId, pendingCount, sendOrQueue } from '../api.js';
 import type { Card, Fixture, SessionUser } from '../types.js';
 import MatchCard from '../components/MatchCard.js';
+import AppHeader from '../components/AppHeader.js';
 
 export default function RefView({
   user,
@@ -113,15 +114,7 @@ export default function RefView({
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div>
-          <strong>Referee</strong>
-          <div className="who">{user.displayName}</div>
-        </div>
-        <button className="ghost" onClick={onSignOut} style={{ color: '#fff', borderColor: 'rgba(255,255,255,.5)', background: 'transparent' }}>
-          Sign out
-        </button>
-      </header>
+      <AppHeader user={user} title="Referee" subtitle={user.displayName} onSignOut={onSignOut} />
 
       <div className="content">
         {pending > 0 && (

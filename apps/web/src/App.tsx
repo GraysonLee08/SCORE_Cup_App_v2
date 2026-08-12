@@ -56,7 +56,7 @@ export default function App() {
   return (
     <Routes>
       {/* The public view is the front door. No account needed to follow the day. */}
-      <Route path="/" element={<Spectator />} />
+      <Route path="/" element={<Spectator user={user} />} />
       <Route path="/register" element={<Register />} />
       <Route
         path="/sign-in"

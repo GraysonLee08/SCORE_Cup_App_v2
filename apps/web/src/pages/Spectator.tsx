@@ -4,12 +4,14 @@ import type { PublicDivision, PublicEventResponse } from '../types.js';
 import StandingsTable from '../components/StandingsTable.js';
 import FixtureList from '../components/FixtureList.js';
 import Bracket from '../components/Bracket.js';
+import AppHeader from '../components/AppHeader.js';
+import type { SessionUser } from '../types.js';
 
 type Tab = 'now' | 'standings' | 'schedule' | 'bracket';
 
 const TEAM_KEY = 'scorescup.followed-team';
 
-export default function Spectator() {
+export default function Spectator({ user }: { user: SessionUser | null }) {
   const [event, setEvent] = useState<PublicEventResponse | null>(null);
   const [divisionId, setDivisionId] = useState<string | null>(null);
   const [division, setDivision] = useState<PublicDivision | null>(null);
@@ -80,12 +82,11 @@ export default function Spectator() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div>
-          <strong>{event?.event.name ?? 'SCORES Cup'}</strong>
-          <div className="who">{event?.event.season ?? 'Live scores'}</div>
-        </div>
-      </header>
+      <AppHeader
+        user={user}
+        title={event?.event.name ?? 'SCORES Cup'}
+        subtitle={event?.event.season ?? 'Live scores'}
+      />
 
       <div className="content">
         {error && (
