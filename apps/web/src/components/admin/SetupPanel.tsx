@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiFailure } from '../../api.js';
 import type { AdminDivision, AdminEvent, Feasibility } from '../../types.js';
+import EventSettings from './EventSettings.js';
 
 /**
  * The setup screen. Ordered the way the day is actually built: event, fields,
@@ -76,46 +77,7 @@ export default function SetupPanel({
         </div>
       )}
 
-      <section className="card">
-        <h2>The day</h2>
-        <dl className="kv">
-          <div>
-            <dt>Date</dt>
-            <dd>{data.event.eventDate}</dd>
-          </div>
-          <div>
-            <dt>Window</dt>
-            <dd>
-              {data.event.startTime}–{data.event.endTime}
-            </dd>
-          </div>
-          <div>
-            <dt>Rest between games</dt>
-            <dd>{data.event.minRestMinutes} min</dd>
-          </div>
-          <div>
-            <dt>Fields</dt>
-            <dd>{data.fields.length}</dd>
-          </div>
-        </dl>
-
-        {/* Above the changeover gap, teams must sit out alternate slots and
-            extra fields stop reducing the finish time. */}
-        {data.event.minRestMinutes > 5 && (
-          <div className="notice pending" style={{ marginTop: '.8rem' }}>
-            A rest gap above 5 minutes means teams cannot play back-to-back slots, which
-            lengthens the day considerably — and extra fields stop helping.
-          </div>
-        )}
-
-        <AddField eventId={data.event.id} onAdded={onChanged} busy={busy} />
-
-        <ul className="cards-list">
-          {data.fields.map((f) => (
-            <li key={f.id}>{f.name}</li>
-          ))}
-        </ul>
-      </section>
+      <EventSettings data={data} onChanged={onChanged} />
 
       <AddDivision eventId={data.event.id} fields={data.fields} onAdded={onChanged} busy={busy} />
 
@@ -356,38 +318,6 @@ function CreateEvent({ onCreated }: { onCreated: () => void }) {
         Create event
       </button>
     </section>
-  );
-}
-
-function AddField({
-  eventId,
-  onAdded,
-  busy,
-}: {
-  eventId: string;
-  onAdded: () => void;
-  busy: boolean;
-}) {
-  const [name, setName] = useState('');
-  return (
-    <div className="row" style={{ marginTop: '.8rem' }}>
-      <input
-        aria-label="New field name"
-        placeholder="Field name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <button
-        disabled={busy || !name.trim()}
-        onClick={async () => {
-          await api.post(`/api/events/${eventId}/fields`, { name: name.trim() });
-          setName('');
-          onAdded();
-        }}
-      >
-        Add field
-      </button>
-    </div>
   );
 }
 

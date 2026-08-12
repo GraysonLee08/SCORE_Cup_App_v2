@@ -251,5 +251,89 @@ export function eventRoutes(db: Db): Router {
     res.status(204).end();
   });
 
+  /** Event settings are editable after creation -- a day window or rest gap
+   *  frequently changes once the organisers firm up the plan. */
+  router.patch('/:eventId', ...admin, async (req, res) => {
+    const eventId = req.params.eventId;
+    const parsed = createEventSchema.partial().safeParse(req.body);
+    if (!eventId || !parsed.success) {
+      throw new HttpError(400, 'Check the values.', 'invalid_input');
+    }
+    const d = parsed.data;
+
+    const { rows: current } = await db.query<{ start_time: string; end_time: string }>(
+      'SELECT start_time, end_time FROM events WHERE id = $1',
+      [eventId],
+    );
+    if (!current[0]) throw new HttpError(404, 'No such event.', 'not_found');
+
+    const startTime = d.startTime ?? current[0].start_time;
+    const endTime = d.endTime ?? current[0].end_time;
+    if (endTime <= startTime) {
+      throw new HttpError(400, 'The end time must be after the start time.', 'invalid_window');
+    }
+
+    await db.query(
+      `UPDATE events
+          SET name = COALESCE($1, name),
+              season = COALESCE($2, season),
+              event_date = COALESCE($3::date, event_date),
+              start_time = COALESCE($4::time, start_time),
+              end_time = COALESCE($5::time, end_time),
+              min_rest_minutes = COALESCE($6, min_rest_minutes),
+              timezone = COALESCE($7, timezone)
+        WHERE id = $8`,
+      [
+        d.name ?? null, d.season ?? null, d.eventDate ?? null,
+        d.startTime ?? null, d.endTime ?? null,
+        d.minRestMinutes ?? null, d.timezone ?? null, eventId,
+      ],
+    );
+
+    await recordAudit(db, {
+      actorUserId: req.session.user!.id,
+      entityType: 'event', entityId: eventId, action: 'update', after: d,
+    });
+
+    res.status(204).end();
+  });
+
+  /** Removing a field would silently orphan any game scheduled on it, so
+   *  refuse while fixtures still reference it. */
+  router.delete('/fields/:fieldId', ...admin, async (req, res) => {
+    const fieldId = req.params.fieldId;
+    if (!fieldId) throw new HttpError(400, 'No field specified.', 'invalid_input');
+
+    const { rows } = await db.query<{ n: string }>(
+      'SELECT count(*) AS n FROM fixtures WHERE field_id = $1',
+      [fieldId],
+    );
+    if (Number(rows[0]!.n) > 0) {
+      throw new HttpError(
+        409,
+        `${rows[0]!.n} game(s) are scheduled on this field. Regenerate the schedule without it first.`,
+        'field_in_use',
+      );
+    }
+
+    const { rowCount } = await db.query('DELETE FROM fields WHERE id = $1', [fieldId]);
+    if (!rowCount) throw new HttpError(404, 'No such field.', 'not_found');
+    res.status(204).end();
+  });
+
+  router.delete('/divisions/:divisionId', ...admin, async (req, res) => {
+    const divisionId = req.params.divisionId;
+    if (!divisionId) throw new HttpError(400, 'No division specified.', 'invalid_input');
+
+    const { rowCount } = await db.query('DELETE FROM divisions WHERE id = $1', [divisionId]);
+    if (!rowCount) throw new HttpError(404, 'No such tournament.', 'not_found');
+
+    await recordAudit(db, {
+      actorUserId: req.session.user!.id,
+      entityType: 'division', entityId: divisionId, action: 'delete',
+    });
+    res.status(204).end();
+  });
+
   return router;
 }
