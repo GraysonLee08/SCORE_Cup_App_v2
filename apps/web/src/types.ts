@@ -105,6 +105,7 @@ export interface PublicEventResponse {
     startTime: string;
     endTime: string;
     timezone: string;
+    location: string | null;
   };
   divisions: { id: string; name: string }[];
   announcements: { id: string; title: string; message: string; createdAt: string }[];

@@ -18,8 +18,9 @@ export function publicRoutes(db: Db): Router {
     const { rows } = await db.query<{
       id: string; name: string; season: string | null;
       event_date: string; start_time: string; end_time: string; timezone: string;
+      location: string | null;
     }>(
-      `SELECT id, name, season, event_date, start_time, end_time, timezone
+      `SELECT id, name, season, event_date, start_time, end_time, timezone, location
          FROM events
         ORDER BY event_date DESC
         LIMIT 1`,
@@ -51,6 +52,7 @@ export function publicRoutes(db: Db): Router {
         startTime: event.start_time,
         endTime: event.end_time,
         timezone: event.timezone,
+        location: event.location,
       },
       divisions,
       announcements,

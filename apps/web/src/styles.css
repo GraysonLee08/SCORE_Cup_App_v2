@@ -577,11 +577,9 @@ dl.kv dd {
   border-top: 0;
 }
 
-/* The admin screens are used at a desk, so allow more width than the
-   field-facing views. */
-.app.admin {
-  max-width: 900px;
-}
+/* The admin screens are used at a desk and fill the window. Width is set on
+   .admin-shell below; deliberately not capped here, because a .app.admin rule
+   would outrank it on specificity and silently squeeze every admin view. */
 
 a {
   color: var(--brand);
@@ -990,4 +988,223 @@ table.grid-table td {
   display: block;
   font-size: 0.74rem;
   color: var(--ink-soft);
+}
+
+
+/* ==========================================================================
+   Admin, restyled toward the organisation's own site: white, airy, borderless.
+   Showing one widget at a time is what buys the room to breathe.
+   ========================================================================== */
+
+.admin-shell {
+  background: #fff;
+}
+
+.admin-body {
+  grid-template-columns: 248px 1fr;
+}
+
+.admin-nav {
+  background: #fbfcfd;
+  padding: 1.25rem 0.75rem;
+}
+
+.admin-nav .nav-parent {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  text-align: left;
+  min-height: 42px;
+  padding: 0 0.7rem;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--ink);
+  margin-bottom: 0.1rem;
+}
+
+.admin-nav .nav-parent:hover {
+  background: #eef2f6;
+}
+
+.admin-nav .nav-parent.open {
+  color: var(--brand);
+}
+
+.admin-nav .caret {
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  transition: transform 0.12s ease;
+}
+
+.admin-nav .nav-parent.open .caret {
+  transform: rotate(90deg);
+}
+
+.admin-nav .nav-children {
+  margin: 0 0 0.5rem 0.75rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--line);
+}
+
+.admin-nav .nav-children button {
+  min-height: 36px;
+  font-weight: 500;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.admin-nav .nav-children button.active {
+  background: transparent;
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.admin-nav .nav-children button.active::before {
+  content: '';
+  position: absolute;
+  left: -0.62rem;
+  width: 2px;
+  height: 1.15rem;
+  background: var(--accent);
+}
+
+.admin-nav .nav-children button {
+  position: relative;
+}
+
+.admin-main {
+  padding: 2.2rem 2.5rem 4rem;
+  background: #fff;
+}
+
+.admin-main > header {
+  margin-bottom: 1.8rem;
+  max-width: 60ch;
+}
+
+.admin-main > header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.35rem;
+}
+
+.admin-main > header p {
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+/* Borderless, roomy panels -- definition comes from whitespace, as on the
+   organisation's own site, rather than from hard edges. */
+.admin .card {
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 32, 52, 0.06), 0 6px 20px rgba(16, 32, 52, 0.05);
+  padding: 1.6rem 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin .card h2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.2rem;
+}
+
+/* Mixed case, not shouted -- their site uses no uppercase runs. */
+.admin .card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  margin: 1.6rem 0 0.6rem;
+}
+
+.admin label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  margin-bottom: 0.3rem;
+}
+
+.admin .hint {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0.3rem 0 0;
+}
+
+.admin .card > .hint:first-of-type {
+  margin-bottom: 1.1rem;
+}
+
+.admin input,
+.admin select,
+.admin textarea {
+  min-height: 42px;
+  border-radius: 8px;
+}
+
+.admin button {
+  min-height: 42px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.admin button.primary {
+  width: auto;
+  padding: 0 1.4rem;
+}
+
+.admin .field {
+  margin-bottom: 1.1rem;
+}
+
+.admin .grid-2,
+.admin .grid-3 {
+  gap: 1rem 1.25rem;
+}
+
+.admin table.standings th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  padding: 0.5rem 0.5rem;
+}
+
+.admin table.standings td {
+  padding: 0.55rem 0.5rem;
+}
+
+/* One widget at a time, so it can be generous without becoming a scroll. */
+.widget {
+  max-width: 1100px;
+}
+
+.widget.wide {
+  max-width: none;
+}
+
+@media (max-width: 900px) {
+  .admin-body {
+    grid-template-columns: 1fr;
+  }
+  .admin-main {
+    padding: 1.25rem 1rem 3rem;
+  }
+  .admin-main > header h1 {
+    font-size: 1.5rem;
+  }
+  .admin .card {
+    padding: 1.1rem 1.1rem;
+  }
 }

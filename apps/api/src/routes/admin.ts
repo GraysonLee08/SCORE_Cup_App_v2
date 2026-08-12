@@ -20,7 +20,8 @@ export function adminRoutes(db: Db): Router {
 
     const { rows: eventRows } = await db.query(
       `SELECT id, name, season, event_date AS "eventDate", start_time AS "startTime",
-              end_time AS "endTime", min_rest_minutes AS "minRestMinutes", timezone, status
+              end_time AS "endTime", min_rest_minutes AS "minRestMinutes", timezone,
+              status, location
          FROM events WHERE id = $1`,
       [eventId],
     );

@@ -82,7 +82,7 @@ export function eventRoutes(db: Db): Router {
     const { rows } = await db.query(
       `SELECT id, name, season, event_date AS "eventDate", start_time AS "startTime",
               end_time AS "endTime", min_rest_minutes AS "minRestMinutes",
-              timezone, status
+              timezone, status, location
          FROM events ORDER BY event_date DESC`,
     );
     res.json({ events: rows });

@@ -67,7 +67,7 @@ export default function TeamsPanel({
         </div>
       )}
 
-      <div className="split">
+      <div className="split widget wide">
         <section className="card">
           <h2>{division?.name ?? 'Teams'}</h2>
           <p className="hint">
@@ -83,7 +83,6 @@ export default function TeamsPanel({
                 <thead>
                   <tr>
                     <th scope="col">Team</th>
-                    <th scope="col">Pool</th>
                     <th scope="col">Join code</th>
                     <th scope="col" className="num">Players</th>
                     <th scope="col"></th>
@@ -91,7 +90,6 @@ export default function TeamsPanel({
                 </thead>
                 <tbody>
                   {division.teams.map((team) => {
-                    const pool = division.pools.find((p) => p.id === team.poolId);
                     return (
                       <tr key={team.id}>
                         <td>
@@ -105,7 +103,6 @@ export default function TeamsPanel({
                             {openTeam === team.id ? '▾' : '▸'} {team.name}
                           </button>
                         </td>
-                        <td>{pool?.name ?? '—'}</td>
                         <td>
                           <code className="joincode">{team.joinCode}</code>
                         </td>
