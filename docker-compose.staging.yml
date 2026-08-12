@@ -1,0 +1,71 @@
+# Staging stack. Production uses the same file with a different .env and ports,
+# so anything that works here works there.
+#
+# Every port is bound to 127.0.0.1: nginx on the host is the only way in.
+# The previous deployment published Postgres to 0.0.0.0.
+name: scup-staging
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-scup}
+      POSTGRES_USER: ${POSTGRES_USER:-scup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-scup} -d ${POSTGRES_DB:-scup}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    logging: &logging
+      driver: json-file
+      options:
+        # Unbounded container logs are what filled the disk last time.
+        max-size: '10m'
+        max-file: '3'
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgres://${POSTGRES_USER:-scup}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-scup}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      # Staging runs over plain HTTP until it has a certificate. A Secure
+      # cookie would be silently dropped, so sign-in would appear to work and
+      # every following request would 401.
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+    ports:
+      - '127.0.0.1:${API_PORT:-8083}:3002'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:3002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *logging
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - '127.0.0.1:${WEB_PORT:-8081}:80'
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  db-data:

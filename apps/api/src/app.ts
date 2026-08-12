@@ -75,7 +75,7 @@ export function createApp(config: Config, db: Db): Express {
       cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: config.isProduction,
+        secure: config.cookieSecure,
         maxAge: 12 * 60 * 60 * 1000, // a long tournament day, then sign in again
       },
     }),
