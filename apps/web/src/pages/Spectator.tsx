@@ -39,28 +39,47 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
 
   const now = useNow();
 
-  useEffect(() => {
-    api
-      .get<PublicEventResponse>('/api/public/event')
-      .then((res) => {
-        setEvent(res);
-        setDivisionId((current) => current ?? res.divisions[0]?.id ?? null);
-      })
-      .catch(() => setError('Could not load the tournament.'));
-  }, []);
-
+  /**
+   * One pass over the whole tournament: the event, then every division in it.
+   *
+   * The event is re-read on each pass rather than once at mount, so a division
+   * added or removed during the day appears without anyone reloading. And the
+   * divisions settle independently -- one of them failing must not blank a
+   * board that is being watched, so whatever did load is kept and the error
+   * only shows if nothing did.
+   */
   const loadAll = useCallback(async () => {
-    if (!event) return;
+    let current: PublicEventResponse;
     try {
-      const loaded = await Promise.all(
-        event.divisions.map((d) => api.get<PublicDivision>(`/api/public/divisions/${d.id}`)),
-      );
-      setDivisions(Object.fromEntries(loaded.map((d) => [d.id, d])));
-      setError(null);
+      current = await api.get<PublicEventResponse>('/api/public/event');
     } catch {
       setError('Could not refresh. Showing the last update.');
+      return;
     }
-  }, [event]);
+
+    setEvent(current);
+    setDivisionId((existing) =>
+      existing && current.divisions.some((d) => d.id === existing)
+        ? existing
+        : (current.divisions[0]?.id ?? null),
+    );
+
+    const settled = await Promise.allSettled(
+      current.divisions.map((d) => api.get<PublicDivision>(`/api/public/divisions/${d.id}`)),
+    );
+    const loaded = settled
+      .filter((r): r is PromiseFulfilledResult<PublicDivision> => r.status === 'fulfilled')
+      .map((r) => r.value);
+
+    if (loaded.length > 0) {
+      setDivisions(Object.fromEntries(loaded.map((d) => [d.id, d])));
+    }
+    setError(
+      loaded.length === current.divisions.length
+        ? null
+        : 'Could not refresh everything. Showing the last update.',
+    );
+  }, []);
 
   useEffect(() => {
     void loadAll();
