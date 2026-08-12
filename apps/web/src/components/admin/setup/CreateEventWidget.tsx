@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api, ApiFailure } from '../../../api.js';
 
-/** First-run: there is no event yet. */
+/** First run: no tournament exists yet. */
 export default function CreateEventWidget({ onCreated }: { onCreated: () => void }) {
   const [form, setForm] = useState({
     name: 'SCORES Cup',
@@ -17,12 +17,12 @@ export default function CreateEventWidget({ onCreated }: { onCreated: () => void
   return (
     <div className="widget">
       <section className="card" style={{ maxWidth: '40rem' }}>
-        <h2>Set up the tournament</h2>
+        <h2>Create the tournament</h2>
         <p className="hint">You can change any of this later.</p>
         {error && <div className="notice error">{error}</div>}
 
         <div className="field">
-          <label htmlFor="ce-name">Event name</label>
+          <label htmlFor="ce-name">Tournament name</label>
           <input
             id="ce-name"
             value={form.name}

@@ -3,10 +3,11 @@ import { api, ApiFailure } from '../../../api.js';
 import type { AdminDivision, AdminEvent } from '../../../types.js';
 
 /**
- * The tournaments running on the day. Each has its own teams, pools, bracket
- * and — optionally — its own fields, which is how two run side by side.
+ * Divisions: the separate competitions within the tournament. Each has its own
+ * teams, pools and bracket, and optionally its own fields -- which is how two
+ * run side by side.
  */
-export default function TournamentsWidget({
+export default function DivisionsWidget({
   data,
   onChanged,
 }: {
@@ -43,7 +44,7 @@ export default function TournamentsWidget({
       )}
 
       {data.divisions.map((division) => (
-        <TournamentCard
+        <DivisionCard
           key={division.id}
           division={division}
           data={data}
@@ -53,13 +54,13 @@ export default function TournamentsWidget({
       ))}
 
       <section className="card">
-        <h2>Add a tournament</h2>
+        <h2>Add a division</h2>
         <p className="hint">
-          A separate competition on the same day — Competitive and Community, for example.
+          A separate competition within this tournament — Competitive and Community, for example.
         </p>
         <div className="row" style={{ maxWidth: '32rem' }}>
           <input
-            aria-label="Tournament name"
+            aria-label="Division name"
             placeholder="e.g. Competitive"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -70,7 +71,7 @@ export default function TournamentsWidget({
             onClick={async () => {
               await run(
                 () => api.post(`/api/events/${data.event.id}/divisions`, { name: newName.trim() }),
-                'Tournament added.',
+                'Division added.',
               );
               setNewName('');
             }}
@@ -83,7 +84,7 @@ export default function TournamentsWidget({
   );
 }
 
-function TournamentCard({
+function DivisionCard({
   division,
   data,
   busy,
@@ -116,7 +117,7 @@ function TournamentCard({
 
       <div className="grid-2">
         <div className="field">
-          <label htmlFor={`tn-${division.id}`}>Tournament name</label>
+          <label htmlFor={`tn-${division.id}`}>Division name</label>
           <input
             id={`tn-${division.id}`}
             value={name}
@@ -158,8 +159,7 @@ function TournamentCard({
 
       <h3>Fields it uses</h3>
       <p className="hint" style={{ marginTop: 0, marginBottom: '.6rem' }}>
-        Tick none to allow every field. Pinning each tournament to its own is how two run at
-        once.
+        Tick none to allow every field. Pinning each division to its own is how two run at once.
       </p>
       <div>
         {data.fields.map((field) => (
@@ -235,11 +235,11 @@ function TournamentCard({
             if (!window.confirm(`Delete ${division.name} and everything in it?`)) return;
             void onRun(
               () => api.delete(`/api/events/divisions/${division.id}`),
-              'Tournament deleted.',
+              'Division deleted.',
             );
           }}
         >
-          Delete this tournament
+          Delete this division
         </button>
       </div>
     </section>

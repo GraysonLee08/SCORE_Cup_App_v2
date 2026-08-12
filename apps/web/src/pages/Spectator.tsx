@@ -97,7 +97,7 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
 
         {event && event.divisions.length > 1 && (
           <div className="field">
-            <label htmlFor="division">Tournament</label>
+            <label htmlFor="division">Division</label>
             <select
               id="division"
               value={divisionId ?? ''}

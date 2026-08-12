@@ -238,7 +238,7 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
 
       {data.divisions.length > 1 && (
         <div className="field" style={{ maxWidth: '20rem' }}>
-          <label htmlFor="r-division">Tournament</label>
+          <label htmlFor="r-division">Division</label>
           <select
             id="r-division"
             value={divisionId}
@@ -273,7 +273,7 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
           <h2>Games</h2>
           {!division && <p className="muted">Loading…</p>}
           {division?.fixtures.length === 0 && (
-            <p className="muted">No schedule yet — generate one on the Tournament setup tab.</p>
+            <p className="muted">No schedule yet — generate one under Setup → Generate schedule.</p>
           )}
 
           {division?.fixtures.map((fixture) => {
@@ -473,7 +473,7 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
 
             {!poolConfig && (
               <p className="muted">
-                Add pool play to this tournament to see standings.
+                Add pool play to this division to see standings.
               </p>
             )}
           </section>

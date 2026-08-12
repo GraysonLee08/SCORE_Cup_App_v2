@@ -13,7 +13,7 @@ interface Announcement {
 }
 
 /**
- * Messages. Scope narrows from everyone, to one tournament, to one team --
+ * Messages. Scope narrows from everyone, to one division, to one team --
  * a team-scoped message reaches that roster's participant view without
  * appearing on the public page.
  */
@@ -51,7 +51,7 @@ export default function AnnouncementsPanel({ data }: { data: AdminEvent }) {
             <option value="">Everyone (shows on the public page)</option>
             {data.divisions.map((d) => (
               <option key={d.id} value={`division:${d.id}`}>
-                {d.name} — everyone in this tournament
+                {d.name} — everyone in this division
               </option>
             ))}
             {allTeams.map((t) => (
@@ -110,7 +110,7 @@ export default function AnnouncementsPanel({ data }: { data: AdminEvent }) {
               <div style={{ display: 'flex', gap: '.5rem', alignItems: 'baseline' }}>
                 <strong style={{ flex: 1 }}>{a.title}</strong>
                 <span className="pill">
-                  {a.teamName ?? (a.divisionId ? 'One tournament' : 'Everyone')}
+                  {a.teamName ?? (a.divisionId ? 'One division' : 'Everyone')}
                 </span>
                 <button
                   className="ghost danger"

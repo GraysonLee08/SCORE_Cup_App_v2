@@ -50,8 +50,8 @@ export default function PoolsWidget({
     return (
       <div className="widget">
         <section className="card">
-          <h2>No tournaments yet</h2>
-          <p className="hint">Add one under Tournaments first.</p>
+          <h2>No divisions yet</h2>
+          <p className="hint">Add one under Divisions first.</p>
         </section>
       </div>
     );
@@ -69,7 +69,7 @@ export default function PoolsWidget({
 
       {data.divisions.length > 1 && (
         <div className="field" style={{ maxWidth: '22rem' }}>
-          <label htmlFor="p-division">Tournament</label>
+          <label htmlFor="p-division">Division</label>
           <select
             id="p-division"
             value={divisionId}
@@ -88,12 +88,12 @@ export default function PoolsWidget({
         <h2>Pools in {division.name}</h2>
         <p className="hint">
           A pool is a group of teams who play each other. Games are spread across whatever
-          fields this tournament has, so pools are not tied to a pitch.
+          fields this division has, so pools are not tied to a pitch.
         </p>
 
         {!poolStage ? (
           <p className="hint">
-            This tournament has no pool play yet — add it under Tournaments.
+            This division has no pool play yet — add it under Divisions.
           </p>
         ) : (
           <>

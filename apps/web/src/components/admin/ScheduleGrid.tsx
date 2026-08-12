@@ -115,7 +115,7 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
       <div className="row" style={{ alignItems: 'flex-end', marginBottom: '.6rem' }}>
         {data.divisions.length > 1 && (
           <div className="field" style={{ maxWidth: '18rem', marginBottom: 0 }}>
-            <label htmlFor="g-division">Tournament</label>
+            <label htmlFor="g-division">Division</label>
             <select
               id="g-division"
               value={divisionId}
@@ -170,7 +170,7 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
 
         {slots.length === 0 ? (
           <p className="muted">
-            Nothing scheduled yet — generate a schedule on the Tournament setup tab.
+            Nothing scheduled yet — generate one under Setup → Generate schedule.
           </p>
         ) : (
           <div className="table-scroll">

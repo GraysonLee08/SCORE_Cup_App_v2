@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, ApiFailure } from '../api.js';
 import type { AdminEvent, SessionUser } from '../types.js';
 import AppHeader from '../components/AppHeader.js';
-import DayWidget from '../components/admin/setup/DayWidget.js';
-import TournamentsWidget from '../components/admin/setup/TournamentsWidget.js';
+import TournamentWidget from '../components/admin/setup/TournamentWidget.js';
+import DivisionsWidget from '../components/admin/setup/DivisionsWidget.js';
 import PoolsWidget from '../components/admin/setup/PoolsWidget.js';
 import GenerateWidget from '../components/admin/setup/GenerateWidget.js';
 import CreateEventWidget from '../components/admin/setup/CreateEventWidget.js';
@@ -24,24 +24,28 @@ interface NavItem {
 /**
  * One widget per nav entry. Nothing is stacked, so each screen can be
  * generous without turning into a long scroll.
+ *
+ * The hierarchy the interface presents is Tournament -> Divisions -> Pools.
+ * The database calls the top level `events`; only the middle name matched
+ * already, so the mapping is: event = tournament, division = division.
  */
 const NAV: NavItem[] = [
   {
     key: 'setup',
-    label: 'Tournament setup',
-    blurb: 'Define the day and the tournaments running on it.',
+    label: 'Setup',
+    blurb: 'Tournament, divisions and pools.',
     children: [
-      { key: 'setup.day', label: 'The day', blurb: 'Date, venue, timings and fields — shared by every tournament.' },
-      { key: 'setup.tournaments', label: 'Tournaments', blurb: 'The competitions running on the day, and the fields each uses.' },
-      { key: 'setup.pools', label: 'Pools', blurb: 'How teams are grouped for pool play.' },
+      { key: 'setup.tournament', label: 'Tournament', blurb: 'Name, date, venue, timings and pitches. Every division inherits these.' },
+      { key: 'setup.divisions', label: 'Divisions', blurb: 'The separate competitions within the tournament, and the fields each uses.' },
+      { key: 'setup.pools', label: 'Pools', blurb: 'How each division groups its teams for pool play.' },
       { key: 'setup.generate', label: 'Generate schedule', blurb: 'Check the day fits, then build the fixtures.' },
     ],
   },
-  { key: 'teams', label: 'Teams & rosters', blurb: 'Teams, join codes, and who is on each roster.' },
+  { key: 'teams', label: 'Teams & rosters', blurb: 'Teams within a division, join codes, and who is on each roster.' },
   { key: 'people', label: 'User management', blurb: 'Referees, coaches and players — accounts and passwords.' },
   { key: 'schedule', label: 'Schedule grid', blurb: 'Every game by field and kickoff. Move anything; clashes are flagged as you go.' },
   { key: 'results', label: 'Results & standings', blurb: 'Correct any score or card, and see the effect before you save.' },
-  { key: 'messages', label: 'Messages', blurb: 'Post to everyone, one tournament, or a single team.' },
+  { key: 'messages', label: 'Messages', blurb: 'Post to everyone, one division, or a single team.' },
   { key: 'audit', label: 'History', blurb: 'Who changed what, and when.' },
 ];
 
@@ -64,7 +68,7 @@ export default function Admin({
   const [events, setEvents] = useState<{ id: string; name: string }[]>([]);
   const [eventId, setEventId] = useState<string | null>(null);
   const [data, setData] = useState<AdminEvent | null>(null);
-  const [active, setActive] = useState('setup.day');
+  const [active, setActive] = useState('setup.tournament');
   const [expanded, setExpanded] = useState<string[]>(['setup']);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,7 +78,7 @@ export default function Admin({
       setEvents(res.events);
       setEventId((current) => current ?? res.events[0]?.id ?? null);
     } catch {
-      setError('Could not load events.');
+      setError('Could not load the tournament.');
     }
   }, []);
 
@@ -88,7 +92,7 @@ export default function Admin({
       setData(await api.get<AdminEvent>(`/api/admin/events/${eventId}`));
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiFailure ? err.message : 'Could not load the event.');
+      setError(err instanceof ApiFailure ? err.message : 'Could not load the tournament.');
     }
   }, [eventId]);
 
@@ -170,7 +174,7 @@ export default function Admin({
 
           {events.length > 1 && (
             <div className="field" style={{ maxWidth: '22rem' }}>
-              <label htmlFor="event">Event</label>
+              <label htmlFor="event">Tournament</label>
               <select id="event" value={eventId ?? ''} onChange={(e) => setEventId(e.target.value)}>
                 {events.map((e) => (
                   <option key={e.id} value={e.id}>
@@ -194,9 +198,11 @@ export default function Admin({
 
           {data && (
             <>
-              {active === 'setup.day' && <DayWidget data={data} onChanged={reload} />}
-              {active === 'setup.tournaments' && (
-                <TournamentsWidget data={data} onChanged={reload} />
+              {active === 'setup.tournament' && (
+                <TournamentWidget data={data} onChanged={reload} />
+              )}
+              {active === 'setup.divisions' && (
+                <DivisionsWidget data={data} onChanged={reload} />
               )}
               {active === 'setup.pools' && <PoolsWidget data={data} onChanged={reload} />}
               {active === 'setup.generate' && <GenerateWidget data={data} onChanged={reload} />}

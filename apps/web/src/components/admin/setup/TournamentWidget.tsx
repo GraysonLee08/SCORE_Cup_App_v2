@@ -3,11 +3,13 @@ import { api, ApiFailure } from '../../../api.js';
 import type { AdminEvent } from '../../../types.js';
 
 /**
- * The day itself: what every tournament on this date shares. Fields are set by
- * count, because organisers think "we have four pitches", then named
- * individually below.
+ * The tournament itself: the date, venue, timings and pitches that every
+ * division shares.
+ *
+ * Note the database calls this an `event`; the interface calls it a tournament
+ * because that is what organisers call it. Divisions sit beneath it.
  */
-export default function DayWidget({
+export default function TournamentWidget({
   data,
   onChanged,
 }: {
@@ -52,12 +54,12 @@ export default function DayWidget({
       )}
 
       <section className="card">
-        <h2>Basics</h2>
-        <p className="hint">Shared by every tournament running on this date.</p>
+        <h2>Tournament</h2>
+        <p className="hint">The date, venue and timings. Every division inherits these.</p>
 
         <div className="grid-2">
           <div className="field">
-            <label htmlFor="d-name">Event name</label>
+            <label htmlFor="d-name">Tournament name</label>
             <input
               id="d-name"
               value={form.name}
@@ -130,7 +132,7 @@ export default function DayWidget({
       <section className="card">
         <h2>Fields</h2>
         <p className="hint">
-          The pitches you have. Each tournament is then given some or all of them.
+          The pitches you have. Each division is then given some or all of them.
         </p>
 
         <div className="field" style={{ maxWidth: '14rem' }}>
@@ -207,7 +209,7 @@ export default function DayWidget({
               )
             }
           >
-            {busy ? 'Saving…' : 'Save the day'}
+            {busy ? 'Saving…' : 'Save tournament'}
           </button>
         </div>
       </section>

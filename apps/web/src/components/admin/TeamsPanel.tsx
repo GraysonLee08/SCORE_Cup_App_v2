@@ -52,7 +52,7 @@ export default function TeamsPanel({
 
       {data.divisions.length > 1 && (
         <div className="field" style={{ maxWidth: '20rem' }}>
-          <label htmlFor="t-division">Tournament</label>
+          <label htmlFor="t-division">Division</label>
           <select
             id="t-division"
             value={divisionId}
@@ -123,7 +123,7 @@ export default function TeamsPanel({
                             className="ghost danger"
                             style={{ minHeight: '1.9rem', padding: '0 .45rem' }}
                             onClick={async () => {
-                              if (!window.confirm(`Remove ${team.name} from the tournament?`)) return;
+                              if (!window.confirm(`Remove ${team.name} from this division?`)) return;
                               try {
                                 await api.delete(`/api/teams/${team.id}`);
                                 setStatus({ ok: true, text: `${team.name} removed.` });

@@ -52,7 +52,7 @@ export default function GenerateWidget({
       {data.divisions.length === 0 && (
         <section className="card">
           <h2>Nothing to schedule yet</h2>
-          <p className="hint">Add a tournament and some teams first.</p>
+          <p className="hint">Add a division and some teams first.</p>
         </section>
       )}
 
