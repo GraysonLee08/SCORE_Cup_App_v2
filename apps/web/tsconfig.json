@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "types": ["vite/client"],
+    "moduleResolution": "Bundler"
+  },
+  // vite.config.ts is deliberately excluded: it is typed against Vite's own
+  // config types, which conflict with vitest's bundled copy in a workspace.
+  // Vite typechecks it itself at build time.
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

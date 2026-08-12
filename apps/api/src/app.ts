@@ -10,6 +10,7 @@ import { registrationRoutes } from './routes/registration.js';
 import { rosterRoutes } from './routes/roster.js';
 import { eventRoutes } from './routes/events.js';
 import { scheduleRoutes } from './routes/schedule.js';
+import { refRoutes, refAssignmentRoutes } from './routes/ref.js';
 
 /**
  * Wrap async route handlers so a rejected promise reaches the error handler
@@ -97,6 +98,8 @@ export function createApp(config: Config, db: Db): Express {
   mount('/api/rosters', rosterRoutes(db));
   mount('/api/events', eventRoutes(db));
   mount('/api/schedule', scheduleRoutes(db));
+  mount('/api/ref', refRoutes(db));
+  mount('/api/refs', refAssignmentRoutes(db));
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found.', code: 'not_found' });

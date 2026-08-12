@@ -63,3 +63,6 @@ Thumbs.db
 
 # Internal drafts with staff names — not for a public repo.
 docs/email-*.md
+
+# Local dev environment
+apps/api/.env
