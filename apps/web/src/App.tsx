@@ -5,6 +5,10 @@ import type { SessionUser } from './types.js';
 import Login from './pages/Login.js';
 import RefView from './pages/RefView.js';
 import Spectator from './pages/Spectator.js';
+import Participant from './pages/Participant.js';
+import Admin from './pages/Admin.js';
+import Register from './pages/Register.js';
+import ChangePassword from './pages/ChangePassword.js';
 
 export default function App() {
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -41,26 +45,41 @@ export default function App() {
     );
   }
 
+  // A temporary password may only reach the change-password screen.
+  if (user?.mustChangePassword) {
+    return <ChangePassword user={user} onDone={refresh} onSignOut={signOut} />;
+  }
+
+  const guard = (allowed: SessionUser['role'][], element: JSX.Element) =>
+    user && allowed.includes(user.role) ? element : <Navigate to="/sign-in" replace />;
+
   return (
     <Routes>
-      {/* The spectator view is the front door: public, no account needed. */}
+      {/* The public view is the front door. No account needed to follow the day. */}
       <Route path="/" element={<Spectator />} />
-      <Route path="/sign-in" element={user ? <Navigate to={homeFor(user)} replace /> : <Login onSignedIn={setUser} />} />
+      <Route path="/register" element={<Register />} />
       <Route
-        path="/ref"
-        element={
-          user?.role === 'ref' || user?.role === 'admin' ? (
-            <RefView user={user} onSignOut={signOut} />
-          ) : (
-            <Navigate to="/sign-in" replace />
-          )
-        }
+        path="/sign-in"
+        element={user ? <Navigate to={homeFor(user)} replace /> : <Login onSignedIn={setUser} />}
       />
+      <Route path="/ref" element={guard(['ref', 'admin'], <RefView user={user!} onSignOut={signOut} />)} />
+      <Route
+        path="/my-team"
+        element={guard(['participant', 'coach', 'admin'], <Participant user={user!} onSignOut={signOut} />)}
+      />
+      <Route path="/admin" element={guard(['admin'], <Admin user={user!} onSignOut={signOut} />)} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
 function homeFor(user: SessionUser): string {
-  return user.role === 'ref' || user.role === 'admin' ? '/ref' : '/';
+  switch (user.role) {
+    case 'admin':
+      return '/admin';
+    case 'ref':
+      return '/ref';
+    default:
+      return '/my-team';
+  }
 }

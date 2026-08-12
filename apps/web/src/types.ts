@@ -108,3 +108,103 @@ export interface PublicEventResponse {
   divisions: { id: string; name: string }[];
   announcements: { id: string; title: string; message: string; createdAt: string }[];
 }
+
+export interface MyTeam {
+  team: { id: string; name: string };
+  division: { id: string; name: string };
+  eventId: string;
+  isCoach: boolean;
+  teammates: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phone: string | null;
+    isCaptain: boolean;
+    registered: boolean;
+  }[];
+  messages: { id: string; title: string; message: string; createdAt: string }[];
+}
+
+export interface ParticipantProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  jerseySize: string | null;
+  genderIdentity: string | null;
+  dateOfBirth: string | null;
+  priorParticipation: boolean | null;
+  emergencyContactFirstName: string | null;
+  emergencyContactLastName: string | null;
+  emergencyContactPhone: string | null;
+  teamName: string;
+  teamId: string;
+}
+
+export interface AdminStage {
+  id: string;
+  kind: 'pool' | 'bracket';
+  name: string;
+  sequence: number;
+  config: unknown;
+}
+
+export interface AdminTeam {
+  id: string;
+  name: string;
+  poolId: string | null;
+  joinCode: string;
+  coachUserId: string | null;
+  playerCount: number;
+}
+
+export interface AdminDivision {
+  id: string;
+  name: string;
+  status: string;
+  sortOrder: number;
+  fieldIds: string[];
+  stages: AdminStage[];
+  pools: { id: string; name: string; stageId: string }[];
+  teams: AdminTeam[];
+  fixtureCount: number;
+}
+
+export interface AdminEvent {
+  event: {
+    id: string;
+    name: string;
+    season: string | null;
+    eventDate: string;
+    startTime: string;
+    endTime: string;
+    minRestMinutes: number;
+    timezone: string;
+    status: string;
+  };
+  fields: { id: string; name: string; sortOrder: number }[];
+  divisions: AdminDivision[];
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  displayName: string;
+  disabled: boolean;
+  mustChangePassword: boolean;
+  fieldIds: string[];
+}
+
+export interface Feasibility {
+  fits: boolean;
+  summary: string;
+  fixtureCount: number;
+  fieldCount: number;
+  requiredMinutes: number;
+  availableMinutes: number;
+  overByMinutes: number;
+  waves: number;
+}

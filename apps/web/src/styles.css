@@ -496,3 +496,90 @@ table.standings tr.highlight {
   color: var(--ink-soft);
   margin-left: 0.15rem;
 }
+
+/* --- Participant and admin ----------------------------------------------- */
+
+textarea {
+  font: inherit;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0.9rem 0.35rem 0;
+  font-weight: 500;
+  color: var(--ink);
+  text-transform: none;
+  font-size: 1rem;
+}
+
+.checkbox input {
+  width: auto;
+  min-height: auto;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+dl.kv {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.6rem;
+}
+
+dl.kv dt {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+dl.kv dd {
+  margin: 0.1rem 0 0;
+  font-weight: 700;
+}
+
+.joincode,
+.tempcode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  background: #eef2f6;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+}
+
+.tempcode {
+  display: inline-block;
+  font-size: 1.35rem;
+  padding: 0.4rem 0.8rem;
+  margin-top: 0.35rem;
+  user-select: all;
+}
+
+.person {
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.person:first-of-type {
+  border-top: 0;
+}
+
+/* The admin screens are used at a desk, so allow more width than the
+   field-facing views. */
+.app.admin {
+  max-width: 900px;
+}
+
+a {
+  color: var(--brand);
+}

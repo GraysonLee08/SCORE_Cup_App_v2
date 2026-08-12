@@ -12,6 +12,8 @@ import { eventRoutes } from './routes/events.js';
 import { scheduleRoutes } from './routes/schedule.js';
 import { refRoutes, refAssignmentRoutes } from './routes/ref.js';
 import { publicRoutes } from './routes/publicView.js';
+import { adminRoutes } from './routes/admin.js';
+import { participantRoutes } from './routes/participant.js';
 
 /**
  * Wrap async route handlers so a rejected promise reaches the error handler
@@ -104,6 +106,8 @@ export function createApp(config: Config, db: Db): Express {
   mount('/api/schedule', scheduleRoutes(db));
   mount('/api/ref', refRoutes(db));
   mount('/api/refs', refAssignmentRoutes(db));
+  mount('/api/admin', adminRoutes(db));
+  mount('/api/participant', participantRoutes(db));
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'Not found.', code: 'not_found' });
