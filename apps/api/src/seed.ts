@@ -3,7 +3,7 @@ import { createPool } from './db.js';
 import { migrate } from './migrate.js';
 import { hashPassword, generateJoinCode } from './auth/password.js';
 import { DEFAULT_BRACKET_CONFIG, DEFAULT_POOL_CONFIG } from './services/stageConfig.js';
-import { buildSchedule, loadDivisionPlan, persistSchedule } from './services/scheduleBuilder.js';
+import { buildEventSchedule, loadEventPlans, persistSchedule } from './services/scheduleBuilder.js';
 
 /**
  * Development seed: a complete, believable tournament in one command.
@@ -128,10 +128,14 @@ async function seed() {
         }
       }
 
-      const plan = await loadDivisionPlan(db, divisionId);
-      const build = buildSchedule(plan);
+    }
+
+    // Built as one event rather than division by division: fields belong to
+    // the venue, so whoever schedules second has to know what the first took.
+    const event = buildEventSchedule(await loadEventPlans(db, eventId));
+    for (const { plan, build } of event.perDivision) {
       const result = await persistSchedule(db, plan, build, { force: true });
-      console.log(`${divisionName}: ${result.inserted} fixtures scheduled`);
+      console.log(`${plan.divisionName}: ${result.inserted} fixtures scheduled`);
     }
 
     console.log('\nSeeded. Sign in with any of these (password: "scores cup 2026 demo"):');

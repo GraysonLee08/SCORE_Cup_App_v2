@@ -129,6 +129,52 @@ export default function TournamentWidget({
         </p>
       </section>
 
+      {/* A pitch hosts one game at a time. If two divisions run on the same
+          day this is the choice that decides how they share it. */}
+      <section className="card">
+        <h2>How divisions share the day</h2>
+        <div className="field">
+          <label htmlFor="d-seq">When more than one division is running</label>
+          <select
+            id="d-seq"
+            value={form.divisionSequencing}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                divisionSequencing: e.target.value as typeof f.divisionSequencing,
+              }))
+            }
+          >
+            <option value="separate_fields">Each division has its own pitches</option>
+            <option value="sequential">One division, then the next</option>
+            <option value="alternating">Divisions take turns on the same pitches</option>
+          </select>
+        </div>
+        <p className="hint">
+          {form.divisionSequencing === 'separate_fields' && (
+            <>
+              Divisions run side by side on pitches of their own — assign them under{' '}
+              <strong>Divisions</strong>. Fastest, and how the 2026 day is planned. Generating
+              will refuse if two divisions are sharing a pitch.
+            </>
+          )}
+          {form.divisionSequencing === 'sequential' && (
+            <>
+              One division plays out on every pitch, then the next starts. Each division&rsquo;s
+              block is short, so teams can arrive and leave in shifts — but the second division
+              finishes late.
+            </>
+          )}
+          {form.divisionSequencing === 'alternating' && (
+            <>
+              Divisions take turns: one at 9:00, the other at 9:35, and so on. Same finish time
+              as splitting the pitches, and teams get more rest, because their division is not
+              on the pitch in the slot between their games.
+            </>
+          )}
+        </p>
+      </section>
+
       <section className="card">
         <h2>Fields</h2>
         <p className="hint">
@@ -204,6 +250,7 @@ export default function TournamentWidget({
                     startTime: form.startTime,
                     endTime: form.endTime,
                     minRestMinutes: form.minRestMinutes,
+                    divisionSequencing: form.divisionSequencing,
                   }),
                 'Saved.',
               )
@@ -225,6 +272,7 @@ function fromEvent(data: AdminEvent) {
     startTime: data.event.startTime.slice(0, 5),
     endTime: data.event.endTime.slice(0, 5),
     minRestMinutes: data.event.minRestMinutes,
+    divisionSequencing: data.event.divisionSequencing ?? 'separate_fields',
   };
 }
 

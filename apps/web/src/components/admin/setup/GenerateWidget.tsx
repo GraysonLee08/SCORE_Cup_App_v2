@@ -7,6 +7,18 @@ import type { AdminDivision, AdminEvent, Feasibility } from '../../../types.js';
  * that will not fit is obvious before anyone commits to it -- and regenerating
  * over real results requires a deliberate confirmation.
  */
+interface EventGenerateResult {
+  sequencing: string;
+  notes: string[];
+  divisions: { divisionId: string; divisionName: string; inserted: number }[];
+}
+
+const SEQUENCING_LABEL: Record<AdminEvent['event']['divisionSequencing'], string> = {
+  separate_fields: 'Own pitches',
+  sequential: 'One after another',
+  alternating: 'Taking turns',
+};
+
 export default function GenerateWidget({
   data,
   onChanged,
@@ -53,6 +65,64 @@ export default function GenerateWidget({
         <section className="card">
           <h2>Nothing to schedule yet</h2>
           <p className="hint">Add a division and some teams first.</p>
+        </section>
+      )}
+
+      {/* A pitch hosts one game at a time, so with more than one division the
+          answer for each depends on what the others took. Only building them
+          together can get that right. */}
+      {data.divisions.length > 1 && (
+        <section className="card">
+          <div className="meta">
+            <h2 style={{ margin: 0, flex: 1 }}>Build the whole day</h2>
+            <span className="pill">{SEQUENCING_LABEL[data.event.divisionSequencing]}</span>
+          </div>
+          <p className="hint">
+            {data.divisions.length} divisions are sharing {data.fields.length} pitches. Build
+            them together so no pitch ends up with two games on it at once — generating one
+            division at a time can only fit around whatever is already there.
+          </p>
+
+          <button
+            className="primary"
+            style={{ maxWidth: '20rem' }}
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setStatus(null);
+              try {
+                const url = `/api/schedule/events/${data.event.id}/generate`;
+                let result;
+                try {
+                  result = await api.post<EventGenerateResult>(url);
+                } catch (error) {
+                  if (error instanceof ApiFailure && error.code === 'results_would_be_lost') {
+                    if (!window.confirm(`${error.message}\n\nOverwrite anyway?`)) return;
+                    result = await api.post<EventGenerateResult>(url, { force: true });
+                  } else {
+                    throw error;
+                  }
+                }
+                setStatus({
+                  ok: true,
+                  text: `Whole day built — ${result.divisions
+                    .map((d) => `${d.divisionName} ${d.inserted} games`)
+                    .join(', ')}.${result.notes.length ? ` ${result.notes.join(' ')}` : ''}`,
+                });
+                onChanged();
+                for (const division of data.divisions) await check(division);
+              } catch (error) {
+                setStatus({
+                  ok: false,
+                  text: error instanceof ApiFailure ? error.message : 'Could not build it.',
+                });
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Build the whole day
+          </button>
         </section>
       )}
 

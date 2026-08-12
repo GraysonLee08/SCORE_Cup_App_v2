@@ -3,8 +3,15 @@ import { detectConflicts, type ScheduleConflict, type ScheduleEntry } from '@sco
 import { api, ApiFailure } from '../../api.js';
 import type { AdminEvent, AdminUser, PublicDivision, PublicFixture } from '../../types.js';
 
+/** A game plus the division it belongs to, which the public payload omits. */
+type GridFixture = PublicFixture & { divisionId: string; divisionName: string };
+
 /**
  * The whole day as a grid: fields down the side, kickoff times across the top.
+ *
+ * Deliberately shows every division at once. A field hosts one game at a time
+ * no matter which tournament it belongs to, so a grid scoped to one division
+ * cannot see the clash that matters most -- two divisions on the same pitch.
  *
  * Every game can be re-pointed here -- its field, its time, either team, and
  * its referee. Conflicts are recomputed in the browser after every change
@@ -15,16 +22,21 @@ import type { AdminEvent, AdminUser, PublicDivision, PublicFixture } from '../..
  * clash is normal, and refusing the first move would make the grid unusable.
  */
 export default function ScheduleGrid({ data }: { data: AdminEvent }) {
-  const [divisionId, setDivisionId] = useState(data.divisions[0]?.id ?? '');
-  const [division, setDivision] = useState<PublicDivision | null>(null);
+  const [divisionFilter, setDivisionFilter] = useState('');
+  const [divisions, setDivisions] = useState<PublicDivision[]>([]);
   const [referees, setReferees] = useState<AdminUser[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
 
+  const divisionIds = data.divisions.map((d) => d.id).join(',');
+
   const load = useCallback(async () => {
-    if (!divisionId) return;
-    setDivision(await api.get<PublicDivision>(`/api/public/divisions/${divisionId}`));
-  }, [divisionId]);
+    const ids = divisionIds ? divisionIds.split(',') : [];
+    const loaded = await Promise.all(
+      ids.map((id) => api.get<PublicDivision>(`/api/public/divisions/${id}`)),
+    );
+    setDivisions(loaded);
+  }, [divisionIds]);
 
   useEffect(() => {
     void load();
@@ -38,7 +50,14 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
       .catch(() => setReferees([]));
   }, []);
 
-  const fixtures = division?.fixtures ?? [];
+  /** Every game at the venue, tagged with whose tournament it is. */
+  const fixtures = useMemo<GridFixture[]>(
+    () =>
+      divisions.flatMap((d) =>
+        d.fixtures.map((f) => ({ ...f, divisionId: d.id, divisionName: d.name })),
+      ),
+    [divisions],
+  );
 
   /** Distinct kickoff times, in order — the columns of the grid. */
   const slots = useMemo(() => {
@@ -48,21 +67,24 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
   }, [fixtures]);
 
   const teamNames = useMemo(
-    () => new Map((division?.teams ?? []).map((t) => [t.id, t.name])),
-    [division],
+    () => new Map(divisions.flatMap((d) => d.teams).map((t) => [t.id, t.name])),
+    [divisions],
   );
 
   const conflicts = useMemo(() => {
-    if (!division) return [];
+    if (divisions.length === 0) return [];
     const fieldIdByName = new Map(data.fields.map((f) => [f.name, f.id]));
 
     const entries: ScheduleEntry[] = fixtures.map((f) => ({
       id: f.id,
-      label: `${f.homeTeamName} v ${f.awayTeamName}`,
+      label: `${f.divisionName}: ${f.homeTeamName} v ${f.awayTeamName}`,
       fieldId: f.fieldName ? (fieldIdByName.get(f.fieldName) ?? f.fieldName) : null,
       startMinutes: f.kickoffAt ? Math.round(new Date(f.kickoffAt).getTime() / 60000) : null,
-      // Play time only. The changeover gap is handled by the rest check.
-      durationMinutes: 30,
+      // Play time only; the changeover gap is handled by the rest check. Taken
+      // from the stage's own timing, because a knockout half is shorter than a
+      // pool half and a guessed 30 would miss narrow overlaps.
+      durationMinutes:
+        f.halfMinutes != null ? f.halfMinutes * 2 + (f.halftimeMinutes ?? 0) : 30,
       homeTeamId: f.homeTeamId,
       awayTeamId: f.awayTeamId,
     }));
@@ -72,7 +94,7 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
       teamName: (id) => teamNames.get(id) ?? id,
       fieldName: (id) => data.fields.find((f) => f.id === id)?.name ?? id,
     });
-  }, [division, fixtures, data, teamNames]);
+  }, [divisions, fixtures, data, teamNames]);
 
   const conflictIds = useMemo(() => {
     const map = new Map<string, ScheduleConflict[]>();
@@ -103,6 +125,8 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
   const errors = conflicts.filter((c) => c.severity === 'error');
   const warnings = conflicts.filter((c) => c.severity === 'warning');
   const chosen = fixtures.find((f) => f.id === selected) ?? null;
+  const chosenDivision = divisions.find((d) => d.id === chosen?.divisionId) ?? null;
+  const showAll = divisionFilter === '';
 
   return (
     <>
@@ -115,12 +139,13 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
       <div className="row" style={{ alignItems: 'flex-end', marginBottom: '.6rem' }}>
         {data.divisions.length > 1 && (
           <div className="field" style={{ maxWidth: '18rem', marginBottom: 0 }}>
-            <label htmlFor="g-division">Division</label>
+            <label htmlFor="g-division">Highlight</label>
             <select
               id="g-division"
-              value={divisionId}
-              onChange={(e) => setDivisionId(e.target.value)}
+              value={divisionFilter}
+              onChange={(e) => setDivisionFilter(e.target.value)}
             >
+              <option value="">Every division</option>
               {data.divisions.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
@@ -164,8 +189,9 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
       <section className="card">
         <h2>Schedule</h2>
         <p className="hint">
-          Fields down the side, kickoff times across. Click a game to change its field, time,
-          teams or referee.
+          Fields down the side, kickoff times across, every division together — a pitch can
+          only host one game at a time, whichever tournament it belongs to. Click a game to
+          change its field, time, teams or referee.
         </p>
 
         {slots.length === 0 ? (
@@ -236,11 +262,11 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
         )}
       </section>
 
-      {chosen && (
+      {chosen && chosenDivision && (
         <EditFixture
           fixture={chosen}
           data={data}
-          division={division!}
+          division={chosenDivision}
           referees={referees}
           slots={slots}
           onPatch={patch}

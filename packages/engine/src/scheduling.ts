@@ -12,6 +12,19 @@ export class SchedulingError extends Error {
   override name = 'SchedulingError';
 }
 
+/**
+ * A field already spoken for, between two offsets on the day.
+ *
+ * A field is a physical thing owned by the venue, not by a tournament. When two
+ * divisions run at once they compete for the same grass, so whoever schedules
+ * second has to be told what the first one took.
+ */
+export interface FieldReservation {
+  fieldId: FieldId;
+  startMinutes: number;
+  endMinutes: number;
+}
+
 export interface ScheduleInput {
   fixtures: Fixture[];
   /** Fields this stage may use. A division pinned to 2 of 4 fields passes only those. */
@@ -34,6 +47,14 @@ export interface ScheduleInput {
    * Defaults to true; set false to reproduce a strictly in-order schedule.
    */
   spreadTeams?: boolean;
+  /**
+   * Fields already committed to something else -- another division's games,
+   * or slots deliberately held back so two tournaments can take turns.
+   *
+   * Without this, scheduling each division on its own puts both of them on
+   * Field 1 at 9:00, which is not a schedule anyone can play.
+   */
+  busy?: FieldReservation[];
 }
 
 export interface ScheduleQuality {
@@ -144,9 +165,34 @@ export function scheduleFixtures(input: ScheduleInput): ScheduleResult {
   // deadlock (e.g. a bracket cycle) from looping forever.
   const emptyWaveLimit = input.fixtures.length + 10;
 
+  const busy = input.busy ?? [];
+  /** Is this field free for a whole game starting now? */
+  const fieldFree = (fieldId: FieldId, at: number): boolean =>
+    !busy.some(
+      (r) => r.fieldId === fieldId && at < r.endMinutes && r.startMinutes < at + play,
+    );
+
   while (remaining.length > 0) {
     const waveFixtures: Fixture[] = [];
     const teamsThisWave = new Set<TeamId>();
+
+    // Only the fields actually free for this slot. When two divisions share a
+    // venue this is what stops the second one being scheduled on top of the
+    // first.
+    const openFields = input.fields.filter((f) => fieldFree(f, now));
+
+    if (openFields.length === 0) {
+      emptyWaves += 1;
+      slotsElapsed += 1;
+      if (emptyWaves > emptyWaveLimit) {
+        throw new SchedulingError(
+          `Could not schedule ${remaining.length} remaining fixture(s): every field is ` +
+            `taken by another division for the rest of the day.`,
+        );
+      }
+      now += slot;
+      continue;
+    }
 
     // Rested teams first. Ties keep the original order, so the schedule stays
     // deterministic and reproducible.
@@ -155,7 +201,7 @@ export function scheduleFixtures(input: ScheduleInput): ScheduleResult {
       : remaining;
 
     for (const fixture of candidates) {
-      if (waveFixtures.length >= input.fields.length) break;
+      if (waveFixtures.length >= openFields.length) break;
 
       const teams = concreteTeams(fixture);
       if (teams.some((t) => teamsThisWave.has(t))) continue;
@@ -191,7 +237,7 @@ export function scheduleFixtures(input: ScheduleInput): ScheduleResult {
     slotsElapsed += 1;
 
     waveFixtures.forEach((fixture, index) => {
-      const fieldId = input.fields[index];
+      const fieldId = openFields[index];
       if (fieldId === undefined) {
         throw new SchedulingError(`Field index ${index} out of range.`);
       }
@@ -224,6 +270,60 @@ export function scheduleFixtures(input: ScheduleInput): ScheduleResult {
     endMinutes,
     quality: measureQuality(scheduled, play, slot),
   };
+}
+
+/**
+ * Turn a finished schedule into reservations, so the next division to be
+ * scheduled knows which grass is already spoken for.
+ */
+export function reservationsFrom(
+  scheduled: ScheduledFixture[],
+  timing: MatchTiming,
+): FieldReservation[] {
+  const play = playMinutes(timing);
+  return scheduled.map((f) => ({
+    fieldId: f.fieldId,
+    startMinutes: f.kickoffOffsetMinutes,
+    // Reserve the changeover too. A field is not ready for the next game the
+    // instant the whistle goes.
+    endMinutes: f.kickoffOffsetMinutes + slotMinutes(timing),
+  }));
+}
+
+/**
+ * Hold back every slot that does not belong to this division, so divisions
+ * sharing a field take turns: Community at 9:00, Competitive at 9:35,
+ * Community at 10:10.
+ *
+ * Expressed as reservations rather than as a special case inside the scheduler,
+ * because "someone else has this field right now" is the same fact whether the
+ * someone is another division's game or a turn it has not taken yet.
+ */
+export function alternatingReservations(input: {
+  fields: FieldId[];
+  timing: MatchTiming;
+  /** Which turn in the rotation this division has, from 0. */
+  turn: number;
+  /** How many divisions are taking turns. */
+  turns: number;
+  /** How far ahead to reserve. */
+  horizonMinutes: number;
+  startOffsetMinutes?: number;
+}): FieldReservation[] {
+  const slot = slotMinutes(input.timing);
+  const start = input.startOffsetMinutes ?? 0;
+  const reservations: FieldReservation[] = [];
+  if (input.turns <= 1 || slot <= 0) return reservations;
+
+  const slots = Math.ceil(input.horizonMinutes / slot) + input.turns;
+  for (let i = 0; i < slots; i++) {
+    if (i % input.turns === input.turn % input.turns) continue;
+    const at = start + i * slot;
+    for (const fieldId of input.fields) {
+      reservations.push({ fieldId, startMinutes: at, endMinutes: at + slot });
+    }
+  }
+  return reservations;
 }
 
 export interface FeasibilityInput extends ScheduleInput {

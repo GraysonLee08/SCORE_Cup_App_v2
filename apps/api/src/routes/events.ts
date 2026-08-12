@@ -20,6 +20,10 @@ const createEventSchema = z.object({
   minRestMinutes: z.number().int().min(0).max(240).optional(),
   timezone: z.string().max(60).optional(),
   location: z.string().max(200).optional(),
+  /** How divisions share the pitches when they run on the same day. */
+  divisionSequencing: z
+    .enum(['separate_fields', 'sequential', 'alternating'])
+    .optional(),
 });
 
 const createDivisionSchema = z.object({
@@ -284,13 +288,14 @@ export function eventRoutes(db: Db): Router {
               end_time = COALESCE($5::time, end_time),
               min_rest_minutes = COALESCE($6, min_rest_minutes),
               timezone = COALESCE($7, timezone),
-              location = COALESCE($8, location)
-        WHERE id = $9`,
+              location = COALESCE($8, location),
+              division_sequencing = COALESCE($9, division_sequencing)
+        WHERE id = $10`,
       [
         d.name ?? null, d.season ?? null, d.eventDate ?? null,
         d.startTime ?? null, d.endTime ?? null,
         d.minRestMinutes ?? null, d.timezone ?? null,
-        d.location ?? null, eventId,
+        d.location ?? null, d.divisionSequencing ?? null, eventId,
       ],
     );
 

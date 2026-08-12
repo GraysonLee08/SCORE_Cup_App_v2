@@ -978,6 +978,18 @@ table.grid-table td {
   background: #fff8e6;
 }
 
+/* Another division's game. Faded rather than hidden -- it is still occupying
+   that pitch, and hiding it is what let two tournaments be booked onto the
+   same grass in the first place. */
+.slot.dim {
+  opacity: 0.45;
+}
+
+.slot.dim:hover,
+.slot.dim.chosen {
+  opacity: 1;
+}
+
 .slot-teams {
   display: block;
   font-weight: 700;

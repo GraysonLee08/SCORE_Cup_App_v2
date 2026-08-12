@@ -1,9 +1,12 @@
 import {
+  alternatingReservations,
   checkFeasibility,
   generateBracketFixtures,
   generatePoolFixtures,
+  reservationsFrom,
   scheduleFixtures,
   slotMinutes,
+  type FieldReservation,
   type Fixture,
   type FeasibilityReport,
   type ScheduledFixture,
@@ -12,14 +15,19 @@ import { withTransaction, type Db } from '../db.js';
 import { HttpError } from '../auth/middleware.js';
 import { stageConfigSchema, type StageConfigInput } from './stageConfig.js';
 
+/** How divisions share the venue. See migration 006. */
+export type DivisionSequencing = 'separate_fields' | 'sequential' | 'alternating';
+
 interface DivisionPlan {
   divisionId: string;
+  divisionName: string;
   eventId: string;
   eventDate: string;
   startTime: string;
   endTime: string;
   timezone: string;
   minRestMinutes: number;
+  sequencing: DivisionSequencing;
   fieldIds: string[];
   stages: StagePlan[];
 }
@@ -39,14 +47,17 @@ interface StagePlan {
  */
 export async function loadDivisionPlan(db: Db, divisionId: string): Promise<DivisionPlan> {
   const { rows: divisionRows } = await db.query<{
+    name: string;
     event_id: string;
     event_date: string;
     start_time: string;
     end_time: string;
     timezone: string;
     min_rest_minutes: number;
+    division_sequencing: DivisionSequencing;
   }>(
-    `SELECT d.event_id, e.event_date, e.start_time, e.end_time, e.timezone, e.min_rest_minutes
+    `SELECT d.name, d.event_id, e.event_date, e.start_time, e.end_time, e.timezone,
+            e.min_rest_minutes, e.division_sequencing
        FROM divisions d JOIN events e ON e.id = d.event_id
       WHERE d.id = $1`,
     [divisionId],
@@ -119,15 +130,73 @@ export async function loadDivisionPlan(db: Db, divisionId: string): Promise<Divi
 
   return {
     divisionId,
+    divisionName: division.name,
     eventId: division.event_id,
     eventDate: division.event_date,
     startTime: division.start_time,
     endTime: division.end_time,
     timezone: division.timezone,
     minRestMinutes: division.min_rest_minutes,
+    sequencing: division.division_sequencing,
     fieldIds: fieldRows.map((f) => f.id),
     stages,
   };
+}
+
+/** Every division in an event, in the order they are listed. */
+export async function loadEventPlans(db: Db, eventId: string): Promise<DivisionPlan[]> {
+  const { rows } = await db.query<{ id: string }>(
+    'SELECT id FROM divisions WHERE event_id = $1 ORDER BY sort_order, name',
+    [eventId],
+  );
+  if (rows.length === 0) {
+    throw new HttpError(400, 'This tournament has no divisions yet.', 'no_divisions');
+  }
+  return Promise.all(rows.map((d) => loadDivisionPlan(db, d.id)));
+}
+
+/**
+ * Fields already committed by games that are in the database but not part of
+ * this build -- i.e. every other division's fixtures.
+ *
+ * This is what makes generating one division at a time safe. Without it the
+ * second division is scheduled as though the venue were empty.
+ */
+export async function reservationsFromOtherDivisions(
+  db: Db,
+  eventId: string,
+  exceptDivisionIds: string[],
+): Promise<FieldReservation[]> {
+  const { rows } = await db.query<{
+    field_id: string;
+    offset_minutes: string;
+    slot_minutes: number;
+  }>(
+    `SELECT f.field_id,
+            EXTRACT(EPOCH FROM (f.kickoff_at - ((e.event_date + e.start_time) AT TIME ZONE e.timezone))) / 60
+              AS offset_minutes,
+            COALESCE(
+              (s.config -> 'timing' ->> 'halfMinutes')::int * 2
+                + (s.config -> 'timing' ->> 'halftimeMinutes')::int
+                + (s.config -> 'timing' ->> 'changeoverMinutes')::int,
+              35
+            ) AS slot_minutes
+       FROM fixtures f
+       JOIN stages s ON s.id = f.stage_id
+       JOIN divisions d ON d.id = s.division_id
+       JOIN events e ON e.id = d.event_id
+      WHERE d.event_id = $1
+        AND NOT (d.id = ANY($2::uuid[]))
+        AND f.field_id IS NOT NULL
+        AND f.kickoff_at IS NOT NULL`,
+    [eventId, exceptDivisionIds],
+  );
+
+  return rows.map((r) => ({
+    fieldId: r.field_id,
+    startMinutes: Number(r.offset_minutes),
+    endMinutes: Number(r.offset_minutes) + r.slot_minutes,
+  }));
 }
 
 /** Minutes between the event's start and end time. */
@@ -178,11 +247,23 @@ export interface BuildResult {
  * bracket cannot start before its pools have finished, so each stage begins
  * after the previous one ends plus a short gap for standings and seeding.
  */
-export function buildSchedule(plan: DivisionPlan, gapBetweenStagesMinutes = 15): BuildResult {
+export interface BuildOptions {
+  gapBetweenStagesMinutes?: number;
+  /** Fields another division has already taken, and turns held back for them. */
+  busy?: FieldReservation[];
+  /** Minutes into the day before this division may start at all. */
+  startOffsetMinutes?: number;
+}
+
+export function buildSchedule(plan: DivisionPlan, options: BuildOptions = {}): BuildResult {
+  const gapBetweenStagesMinutes = options.gapBetweenStagesMinutes ?? 15;
   const scheduled: ScheduledFixture[] = [];
   const perStage: BuildResult['perStage'] = [];
   const qualities: { backToBackCount: number; averageRestMinutes: number; minRestObserved: number }[] = [];
-  let cursor = 0;
+  // Reservations grow as we go: a later stage must avoid the fields this
+  // division's own earlier stages are still using, as well as other divisions'.
+  const busy: FieldReservation[] = [...(options.busy ?? [])];
+  let cursor = options.startOffsetMinutes ?? 0;
   let previousPoolIds: string[] = [];
 
   for (const stage of plan.stages) {
@@ -194,7 +275,10 @@ export function buildSchedule(plan: DivisionPlan, gapBetweenStagesMinutes = 15):
       timing: stage.config.timing,
       minRestMinutes: plan.minRestMinutes,
       startOffsetMinutes: cursor,
+      busy,
     });
+
+    busy.push(...reservationsFrom(result.scheduled, stage.config.timing));
 
     scheduled.push(...result.scheduled);
     qualities.push(result.quality);
@@ -229,6 +313,126 @@ export function buildSchedule(plan: DivisionPlan, gapBetweenStagesMinutes = 15):
       minRestObserved:
         withGaps.length === 0 ? 0 : Math.min(...withGaps.map((q) => q.minRestObserved)),
     },
+  };
+}
+
+/** Divisions that have at least one field in common with another division. */
+function sharedFieldPairs(plans: DivisionPlan[]): [DivisionPlan, DivisionPlan][] {
+  const pairs: [DivisionPlan, DivisionPlan][] = [];
+  for (let i = 0; i < plans.length; i++) {
+    for (let j = i + 1; j < plans.length; j++) {
+      const a = plans[i]!;
+      const b = plans[j]!;
+      if (a.fieldIds.some((f) => b.fieldIds.includes(f))) pairs.push([a, b]);
+    }
+  }
+  return pairs;
+}
+
+export interface EventBuild {
+  sequencing: DivisionSequencing;
+  perDivision: { plan: DivisionPlan; build: BuildResult }[];
+  /** Offset at which the last game of the day finishes. */
+  endMinutes: number;
+  /** Anything the admin should know about how the day was laid out. */
+  notes: string[];
+}
+
+/**
+ * Schedule every division in one pass, treating fields as what they are: a
+ * resource owned by the venue, not by a tournament.
+ *
+ * Scheduling divisions independently is what put two games on Field 1 at 9:00.
+ * Each division is still built by the same code as before; the difference is
+ * that each one is told what the previous ones already took.
+ */
+export function buildEventSchedule(plans: DivisionPlan[]): EventBuild {
+  const sequencing = plans[0]?.sequencing ?? 'separate_fields';
+  const overlaps = sharedFieldPairs(plans);
+  const notes: string[] = [];
+
+  if (sequencing === 'separate_fields' && overlaps.length > 0) {
+    const [a, b] = overlaps[0]!;
+    throw new HttpError(
+      400,
+      `${a.divisionName} and ${b.divisionName} are set to use their own pitches, but they ` +
+        `share at least one. A field can only host one game at a time. Either give each ` +
+        `division its own fields under Divisions, or change how divisions share the day to ` +
+        `"one after another" or "take turns".`,
+      'divisions_share_fields',
+    );
+  }
+
+  if (sequencing !== 'separate_fields' && overlaps.length === 0) {
+    notes.push(
+      'No two divisions share a pitch, so they run side by side regardless of this setting.',
+    );
+  }
+
+  const window = plans[0] ? windowMinutes(plans[0].startTime, plans[0].endTime) : 480;
+  const sharing = overlaps.length > 0;
+  const busy: FieldReservation[] = [];
+  const perDivision: EventBuild['perDivision'] = [];
+  let cursor = 0;
+
+  plans.forEach((plan, index) => {
+    const options: BuildOptions = { busy: [...busy] };
+
+    if (sharing && sequencing === 'sequential') {
+      options.startOffsetMinutes = cursor;
+    }
+
+    if (sharing && sequencing === 'alternating') {
+      const timing = plan.stages[0]?.config.timing;
+      if (timing) {
+        options.busy = [
+          ...busy,
+          ...alternatingReservations({
+            fields: plan.fieldIds,
+            timing,
+            turn: index,
+            turns: plans.length,
+            // Generously past the end of the day, so the rotation does not run
+            // out and quietly stop alternating.
+            horizonMinutes: window * 2,
+          }),
+        ];
+      }
+    }
+
+    const build = buildSchedule(plan, options);
+    perDivision.push({ plan, build });
+
+    for (const stage of plan.stages) {
+      busy.push(
+        ...reservationsFrom(
+          build.scheduled.filter((f) => f.stageId === stage.id),
+          stage.config.timing,
+        ),
+      );
+    }
+
+    // A short breather before the next division takes the pitches over.
+    cursor = Math.max(cursor, build.totalMinutes + 10);
+  });
+
+  if (sharing && sequencing === 'alternating') {
+    const slots = new Set(
+      plans.map((p) => (p.stages[0] ? slotMinutes(p.stages[0].config.timing) : 0)),
+    );
+    if (slots.size > 1) {
+      notes.push(
+        'These divisions have different match lengths, so their turns will not line up ' +
+          'neatly. Games still never overlap, but the grid will look ragged.',
+      );
+    }
+  }
+
+  return {
+    sequencing,
+    perDivision,
+    endMinutes: perDivision.reduce((latest, d) => Math.max(latest, d.build.totalMinutes), 0),
+    notes,
   };
 }
 

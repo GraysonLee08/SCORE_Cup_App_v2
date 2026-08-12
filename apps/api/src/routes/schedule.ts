@@ -5,10 +5,13 @@ import type { Db } from '../db.js';
 import { recordAudit } from '../auth/audit.js';
 import { HttpError, requireAuth, requireRole } from '../auth/middleware.js';
 import {
+  buildEventSchedule,
   buildSchedule,
   divisionFeasibility,
   loadDivisionPlan,
+  loadEventPlans,
   persistSchedule,
+  reservationsFromOtherDivisions,
 } from '../services/scheduleBuilder.js';
 
 /**
@@ -55,9 +58,14 @@ export function scheduleRoutes(db: Db): Router {
 
     const plan = await loadDivisionPlan(db, divisionId);
 
+    // Whatever the other divisions have already booked. Without this, building
+    // one division at a time schedules it as though the venue were empty --
+    // which is how two tournaments ended up on Field 1 at 9:00.
+    const busy = await reservationsFromOtherDivisions(db, plan.eventId, [divisionId]);
+
     let build;
     try {
-      build = buildSchedule(plan);
+      build = buildSchedule(plan, { busy });
     } catch (error) {
       asHttpError(error);
     }
@@ -78,6 +86,99 @@ export function scheduleRoutes(db: Db): Router {
       totalMinutes: build.totalMinutes,
       quality: build.quality,
     });
+  });
+
+  /**
+   * Build the whole day at once.
+   *
+   * The only way to lay out divisions that share pitches, because the answer
+   * for one depends on what the others took. Generating division by division
+   * can only ever be an approximation of this.
+   */
+  router.post('/events/:eventId/generate', ...admin, async (req, res) => {
+    const eventId = req.params.eventId;
+    if (!eventId) throw new HttpError(400, 'No tournament specified.', 'invalid_input');
+
+    const parsed = z.object({ force: z.boolean().optional() }).safeParse(req.body ?? {});
+    const force = parsed.success ? (parsed.data.force ?? false) : false;
+
+    const plans = await loadEventPlans(db, eventId);
+
+    let event;
+    try {
+      event = buildEventSchedule(plans);
+    } catch (error) {
+      asHttpError(error);
+    }
+
+    // Persist division by division so one failure -- a division with results
+    // already in it, say -- names itself rather than failing anonymously.
+    const results: { divisionId: string; divisionName: string; inserted: number; replaced: number }[] = [];
+    for (const { plan, build } of event.perDivision) {
+      const result = await persistSchedule(db, plan, build, { force });
+      results.push({
+        divisionId: plan.divisionId,
+        divisionName: plan.divisionName,
+        ...result,
+      });
+    }
+
+    await recordAudit(db, {
+      actorUserId: req.session.user!.id,
+      entityType: 'event',
+      entityId: eventId,
+      action: force ? 'generate_event_schedule_forced' : 'generate_event_schedule',
+      after: { sequencing: event.sequencing, divisions: results },
+    });
+
+    res.status(201).json({
+      sequencing: event.sequencing,
+      notes: event.notes,
+      endMinutes: event.endMinutes,
+      divisions: event.perDivision.map(({ plan, build }, i) => ({
+        divisionId: plan.divisionId,
+        divisionName: plan.divisionName,
+        inserted: results[i]?.inserted ?? 0,
+        replaced: results[i]?.replaced ?? 0,
+        totalMinutes: build.totalMinutes,
+        quality: build.quality,
+      })),
+    });
+  });
+
+  /** Every game at the venue, whichever division it belongs to. */
+  router.get('/events/:eventId/fixtures', requireAuth, async (req, res) => {
+    const eventId = req.params.eventId;
+    if (!eventId) throw new HttpError(400, 'No tournament specified.', 'invalid_input');
+
+    const { rows } = await db.query(
+      `SELECT f.id, f.round, f.kickoff_at AS "kickoffAt", f.status,
+              f.home_score AS "homeScore", f.away_score AS "awayScore",
+              fl.name AS "fieldName", fl.id AS "fieldId",
+              p.name AS "poolName", s.name AS "stageName",
+              d.id AS "divisionId", d.name AS "divisionName",
+              home.id AS "homeTeamId", home.name AS "homeTeamName",
+              away.id AS "awayTeamId", away.name AS "awayTeamName",
+              f.referee_user_id AS "refereeUserId", ref.display_name AS "refereeName",
+              COALESCE(
+                (s.config -> 'timing' ->> 'halfMinutes')::int * 2
+                  + (s.config -> 'timing' ->> 'halftimeMinutes')::int,
+                30
+              ) AS "durationMinutes"
+         FROM fixtures f
+         JOIN stages s ON s.id = f.stage_id
+         JOIN divisions d ON d.id = s.division_id
+         LEFT JOIN fields fl ON fl.id = f.field_id
+         LEFT JOIN pools p ON p.id = f.pool_id
+         LEFT JOIN teams home ON home.id = f.home_team_id
+         LEFT JOIN teams away ON away.id = f.away_team_id
+         LEFT JOIN users ref ON ref.id = f.referee_user_id
+        WHERE d.event_id = $1
+        ORDER BY f.kickoff_at, fl.sort_order, fl.name`,
+      [eventId],
+    );
+
+    res.json({ fixtures: rows });
   });
 
   /** The grid an admin actually looks at: field by kickoff. */

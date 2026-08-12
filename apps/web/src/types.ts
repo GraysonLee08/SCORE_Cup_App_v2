@@ -188,6 +188,7 @@ export interface AdminEvent {
     timezone: string;
     status: string;
     location: string | null;
+    divisionSequencing: 'separate_fields' | 'sequential' | 'alternating';
   };
   fields: { id: string; name: string; sortOrder: number }[];
   divisions: AdminDivision[];
