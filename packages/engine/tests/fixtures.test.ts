@@ -130,8 +130,8 @@ describe('generatePoolFixtures', () => {
 });
 
 describe('generateBracketFixtures', () => {
-  it('builds semis and a final for 2 pools with 2 advancing', () => {
-    const fixtures = generateBracketFixtures('ko', ['A', 'B'], 2);
+  it('builds semis and a final for a playoff of 4', () => {
+    const fixtures = generateBracketFixtures('ko', ['A', 'B'], 4);
 
     expect(fixtures).toHaveLength(3);
     expect(fixtures.filter((f) => f.round === 'Semi-final')).toHaveLength(2);
@@ -139,7 +139,7 @@ describe('generateBracketFixtures', () => {
   });
 
   it('keeps teams from the same pool apart in the first round', () => {
-    const fixtures = generateBracketFixtures('ko', ['A', 'B'], 2);
+    const fixtures = generateBracketFixtures('ko', ['A', 'B'], 4);
     const semis = fixtures.filter((f) => f.round === 'Semi-final');
 
     for (const semi of semis) {
@@ -151,7 +151,7 @@ describe('generateBracketFixtures', () => {
   });
 
   it('references earlier fixtures rather than teams in later rounds', () => {
-    const fixtures = generateBracketFixtures('ko', ['A', 'B'], 2);
+    const fixtures = generateBracketFixtures('ko', ['A', 'B'], 4);
     const final = fixtures.find((f) => f.round === 'Final');
 
     expect(final?.home.kind).toBe('fixtureWinner');
@@ -159,7 +159,7 @@ describe('generateBracketFixtures', () => {
   });
 
   it('adds a third-place game between the losing semi-finalists', () => {
-    const fixtures = generateBracketFixtures('ko', ['A', 'B'], 2, { thirdPlaceGame: true });
+    const fixtures = generateBracketFixtures('ko', ['A', 'B'], 4, { thirdPlaceGame: true });
     const third = fixtures.find((f) => f.round === 'Third-place game');
 
     expect(third).toBeDefined();
@@ -167,10 +167,13 @@ describe('generateBracketFixtures', () => {
     expect(third?.away.kind).toBe('fixtureLoser');
   });
 
-  it('rejects a bracket size that is not a power of two', () => {
-    // 3 pools x 2 advancing = 6 entrants, which needs byes.
-    expect(() => generateBracketFixtures('ko', ['A', 'B', 'C'], 2)).toThrow(
-      /power of two/,
-    );
+  it('pads a playoff that is not a power of two, rather than refusing it', () => {
+    // 6 qualifiers play a bracket of 8: two byes for the top seeds, so two
+    // first-round games instead of four, and 5 games in total.
+    const fixtures = generateBracketFixtures('ko', ['A', 'B', 'C'], 6);
+
+    expect(fixtures.filter((f) => f.round === 'Quarter-final')).toHaveLength(2);
+    expect(fixtures.filter((f) => f.round === 'Semi-final')).toHaveLength(2);
+    expect(fixtures).toHaveLength(5);
   });
 });

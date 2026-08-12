@@ -1220,3 +1220,21 @@ table.grid-table td {
     padding: 1.1rem 1.1rem;
   }
 }
+
+/* --- Playoffs setup ------------------------------------------------------ */
+
+.checkbox-row {
+  margin: 0.4rem 0 1rem;
+}
+
+/* The seed order, so "the top 2 sit out" can be checked by looking rather
+   than by trusting the sentence above it. */
+.seed-list {
+  margin: 0.4rem 0 0;
+  padding-left: 1.4rem;
+  font-size: 0.92rem;
+}
+
+.seed-list li {
+  padding: 0.15rem 0;
+}

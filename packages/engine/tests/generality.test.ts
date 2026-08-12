@@ -126,20 +126,14 @@ describe('pool generation is general across every team count', () => {
 });
 
 describe('bracket generation is general across every valid size', () => {
-  it('builds brackets of 2, 4, 8, 16 and 32 entrants', () => {
-    for (const { poolCount, advancePerPool } of [
-      { poolCount: 2, advancePerPool: 1 },
-      { poolCount: 2, advancePerPool: 2 },
-      { poolCount: 4, advancePerPool: 2 },
-      { poolCount: 4, advancePerPool: 4 },
-      { poolCount: 8, advancePerPool: 4 },
-    ]) {
-      const size = poolCount * advancePerPool;
-      const poolIds = Array.from({ length: poolCount }, (_, i) => `P${i}`);
-      const fixtures = generateBracketFixtures('ko', poolIds, advancePerPool);
+  it('builds a bracket for any number of qualifiers, not just powers of two', () => {
+    for (let qualifiers = 2; qualifiers <= 32; qualifiers++) {
+      const poolIds = ['P0', 'P1', 'P2', 'P3'];
+      const fixtures = generateBracketFixtures('ko', poolIds, qualifiers);
 
-      // A single-elimination bracket of N entrants has N-1 games.
-      expect(fixtures, `bracket of ${size}`).toHaveLength(size - 1);
+      // A single-elimination knockout of N teams always takes N-1 games to
+      // leave one standing, byes or not.
+      expect(fixtures, `playoff of ${qualifiers}`).toHaveLength(qualifiers - 1);
     }
   });
 });

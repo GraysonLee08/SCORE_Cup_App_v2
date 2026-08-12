@@ -105,7 +105,7 @@ describe('scheduleFixtures', () => {
   });
 
   it('never schedules a bracket game before the games feeding it', () => {
-    const bracket = generateBracketFixtures('ko', ['A', 'B'], 2);
+    const bracket = generateBracketFixtures('ko', ['A', 'B'], 4);
     const result = scheduleFixtures({
       fixtures: bracket,
       fields: fields(4),

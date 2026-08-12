@@ -41,6 +41,39 @@ export function resolveTeamRef(ref: TeamRef, ctx: ResolutionContext): ResolvedTe
         : { teamId: null, label: `${ordinal(ref.position)} in pool` };
     }
 
+    case 'bestOfPosition': {
+      const label =
+        ref.rank === 1
+          ? `Best ${ordinal(ref.position)} place`
+          : `${ordinal(ref.rank)}-best ${ordinal(ref.position)} place`;
+
+      // Every pool in the comparison has to be finished. Naming a wildcard
+      // while one pool is still playing would show a team that the next result
+      // could knock out.
+      if (!ref.poolIds.every((id) => ctx.poolComplete.has(id))) {
+        return { teamId: null, label };
+      }
+
+      const candidates = ref.poolIds
+        .map((id) => ctx.standingsByPool.get(id)?.[ref.position - 1])
+        .filter((row): row is StandingsRow => row !== undefined);
+
+      // Cross-pool order: points, then goal difference, then goals scored,
+      // then fewest conceded, then fewest cards. Teams level on all of it stay
+      // in pool order, which is arbitrary -- an admin can re-point the game.
+      const sorted = [...candidates].sort(
+        (a, b) =>
+          b.points - a.points ||
+          b.goalDifference - a.goalDifference ||
+          b.goalsFor - a.goalsFor ||
+          a.goalsAgainst - b.goalsAgainst ||
+          a.penaltyPoints - b.penaltyPoints,
+      );
+
+      const row = sorted[ref.rank - 1];
+      return row ? { teamId: row.teamId, label: '' } : { teamId: null, label };
+    }
+
     case 'fixtureWinner': {
       const outcome = ctx.outcomes.get(ref.fixtureId);
       return outcome?.winnerTeamId

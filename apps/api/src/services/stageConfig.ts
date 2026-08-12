@@ -43,9 +43,18 @@ export const poolStageConfigSchema = z.object({
   timing: matchTiming,
 });
 
+/**
+ * Note there is no `.refine()` insisting one of `qualifiers` and
+ * `advancePerPool` is present: a discriminated union cannot hold a refined
+ * object. The check lives in the schedule builder instead, where it can say
+ * which division and stage is at fault.
+ */
 export const bracketStageConfigSchema = z.object({
   kind: z.literal('bracket'),
-  advancePerPool: z.number().int().positive().max(16),
+  /** Total teams reaching the playoffs. Any number from 2 up; byes fill the gap. */
+  qualifiers: z.number().int().min(2).max(64).optional(),
+  /** Superseded by `qualifiers`; still read so stages saved earlier keep working. */
+  advancePerPool: z.number().int().positive().max(16).optional(),
   thirdPlaceGame: z.boolean(),
   drawResolution: z.literal('penalties'),
   timing: matchTiming,
@@ -73,7 +82,7 @@ export const DEFAULT_POOL_CONFIG: PoolStageConfigInput = {
 
 export const DEFAULT_BRACKET_CONFIG: BracketStageConfigInput = {
   kind: 'bracket',
-  advancePerPool: 2,
+  qualifiers: 4,
   thirdPlaceGame: false,
   drawResolution: 'penalties',
   timing: { halfMinutes: 12, halftimeMinutes: 3, changeoverMinutes: 5 },

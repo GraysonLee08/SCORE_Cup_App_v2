@@ -190,5 +190,55 @@ export function setupRoutes(db: Db): Router {
     res.json({ count: parsed.data.count });
   });
 
+  /**
+   * How many teams reach the playoffs, and whether third place is played for.
+   *
+   * A count that is not a power of two is fine -- the bracket pads up and the
+   * top seeds get a bye -- so the only limit here is the number of teams there
+   * are to qualify.
+   */
+  router.put('/divisions/:divisionId/playoffs', ...admin, async (req, res) => {
+    const divisionId = req.params.divisionId;
+    const parsed = z
+      .object({
+        qualifiers: z.number().int().min(2).max(64),
+        thirdPlaceGame: z.boolean().optional(),
+      })
+      .safeParse(req.body);
+    if (!divisionId || !parsed.success) {
+      throw new HttpError(400, 'A playoff size is required.', 'invalid_input');
+    }
+
+    const { rows: teamRows } = await db.query<{ n: string }>(
+      'SELECT count(*) AS n FROM teams WHERE division_id = $1',
+      [divisionId],
+    );
+    const teamCount = Number(teamRows[0]?.n ?? 0);
+    if (teamCount > 0 && parsed.data.qualifiers > teamCount) {
+      throw new HttpError(
+        400,
+        `This division has ${teamCount} teams, so ${parsed.data.qualifiers} cannot reach the playoffs.`,
+        'too_many_qualifiers',
+      );
+    }
+
+    // `advancePerPool` is removed rather than left behind, so there is never a
+    // stale second answer to the same question.
+    const { rowCount } = await db.query(
+      `UPDATE stages
+          SET config = (config - 'advancePerPool')
+                       || jsonb_build_object('qualifiers', $1::int)
+                       || CASE WHEN $2::boolean IS NULL THEN '{}'::jsonb
+                               ELSE jsonb_build_object('thirdPlaceGame', $2::boolean) END
+        WHERE division_id = $3 AND kind = 'bracket'`,
+      [parsed.data.qualifiers, parsed.data.thirdPlaceGame ?? null, divisionId],
+    );
+    if (!rowCount) {
+      throw new HttpError(400, 'This division has no playoff stage.', 'no_bracket_stage');
+    }
+
+    res.json({ qualifiers: parsed.data.qualifiers });
+  });
+
   return router;
 }

@@ -145,82 +145,98 @@ function makeFixture(
 /**
  * Generate a single-elimination bracket whose entrants are not yet known.
  *
- * Fixtures reference pool positions ("1st in Pool A") and earlier fixtures
- * ("winner of SF1"), so the whole bracket can be scheduled onto fields and
- * kickoff times before pool play has finished.
+ * Fixtures reference pool positions ("1st in Pool A"), wildcard places ("best
+ * 3rd place") and earlier fixtures ("winner of SF1"), so the whole bracket can
+ * be scheduled onto fields and kickoff times before pool play has finished.
+ *
+ * Any number of qualifiers from 2 upwards is accepted. When it is not a power
+ * of two the bracket is padded to the next one and the extra slots become
+ * byes, which fall to the top seeds -- 6 qualifiers play a bracket of 8, and
+ * seeds 1 and 2 sit out the first round.
  */
 export function generateBracketFixtures(
   stageId: StageId,
   poolIds: PoolId[],
-  advancePerPool: number,
+  qualifiers: number,
   options: { thirdPlaceGame?: boolean } = {},
 ): Fixture[] {
-  const size = poolIds.length * advancePerPool;
+  if (poolIds.length === 0) {
+    throw new FixtureGenerationError('A bracket needs at least one pool to seed from.');
+  }
 
-  if (size < 2) {
+  if (qualifiers < 2) {
     throw new FixtureGenerationError(
-      `A bracket needs at least 2 entrants, got ${size} ` +
-        `(${poolIds.length} pools x ${advancePerPool} advancing).`,
+      `A bracket needs at least 2 teams in the playoffs, got ${qualifiers}.`,
     );
   }
 
-  if ((size & (size - 1)) !== 0) {
-    throw new FixtureGenerationError(
-      `Bracket size must be a power of two, got ${size} ` +
-        `(${poolIds.length} pools x ${advancePerPool} advancing). ` +
-        `Byes are not supported yet -- adjust pool count or teams advancing.`,
-    );
-  }
-
-  const seeds = seedOrder(poolIds, advancePerPool);
+  const size = nextPowerOfTwo(qualifiers);
   const rounds = Math.log2(size);
+  const seeds = seedOrder(poolIds, qualifiers);
+
+  // Lay the seeds out in standard bracket order, so the two best teams can
+  // only meet in the final: 1 and 2 go to opposite ends, 3 and 4 to opposite
+  // halves from them, and so on. Slots beyond the qualifier count are byes.
+  const slots: (TeamRef | null)[] = bracketSlots(size).map((seed) =>
+    seed <= qualifiers ? (seeds[seed - 1] ?? null) : null,
+  );
+
   const fixtures: Fixture[] = [];
 
-  // First round pairs seed 1 v last, 2 v second-last, and so on.
-  let previousRound: FixtureId[] = [];
-  for (let i = 0; i < size / 2; i++) {
-    const home = seeds[i];
-    const away = seeds[size - 1 - i];
-    if (home === undefined || away === undefined) {
-      throw new FixtureGenerationError(`Bracket seeding failed at index ${i}.`);
+  /**
+   * Who comes out of each first-round pairing: the winner of a real game, or
+   * the team that had nobody to play.
+   */
+  let advancing: TeamRef[] = [];
+  let gameNumber = 0;
+
+  for (let i = 0; i < size; i += 2) {
+    const home = slots[i] ?? null;
+    const away = slots[i + 1] ?? null;
+
+    if (home && away) {
+      gameNumber += 1;
+      const id = `${stageId}:r1:${gameNumber}`;
+      fixtures.push({ id, stageId, home, away, round: roundName(rounds, 1) });
+      advancing.push({ kind: 'fixtureWinner', fixtureId: id });
+      continue;
     }
-    const id = `${stageId}:r1:${i + 1}`;
-    fixtures.push({
-      id,
-      stageId,
-      home,
-      away,
-      round: roundName(rounds, 1),
-    });
-    previousRound.push(id);
+
+    const solo = home ?? away;
+    if (!solo) {
+      // Two byes in one pairing would mean a whole branch with nobody in it.
+      // Cannot happen: padding to the *next* power of two leaves fewer byes
+      // than pairings, and standard seeding spreads them one per pairing.
+      throw new FixtureGenerationError(
+        `Bracket of ${size} for ${qualifiers} qualifiers left an empty pairing.`,
+      );
+    }
+    advancing.push(solo);
   }
 
-  // Subsequent rounds consume the winners of the round before.
+  // Later rounds consume whatever came out of the round before -- a winner, or
+  // a team that had a bye.
   for (let r = 2; r <= rounds; r++) {
-    const thisRound: FixtureId[] = [];
-    for (let i = 0; i < previousRound.length; i += 2) {
-      const a = previousRound[i];
-      const b = previousRound[i + 1];
-      if (a === undefined || b === undefined) {
+    const next: TeamRef[] = [];
+    for (let i = 0; i < advancing.length; i += 2) {
+      const home = advancing[i];
+      const away = advancing[i + 1];
+      if (home === undefined || away === undefined) {
         throw new FixtureGenerationError(`Bracket round ${r} pairing failed at index ${i}.`);
       }
       const id = `${stageId}:r${r}:${i / 2 + 1}`;
-      fixtures.push({
-        id,
-        stageId,
-        home: { kind: 'fixtureWinner', fixtureId: a },
-        away: { kind: 'fixtureWinner', fixtureId: b },
-        round: roundName(rounds, r),
-      });
-      thisRound.push(id);
+      fixtures.push({ id, stageId, home, away, round: roundName(rounds, r) });
+      next.push({ kind: 'fixtureWinner', fixtureId: id });
     }
-    previousRound = thisRound;
+    advancing = next;
   }
 
   if (options.thirdPlaceGame && rounds >= 2) {
     const semis = fixtures.filter((f) => f.round === roundName(rounds, rounds - 1));
     const a = semis[0];
     const b = semis[1];
+    // With a small enough bracket there may be only one semi-final, in which
+    // case third place is already settled and there is nothing to play for.
     if (a && b) {
       fixtures.push({
         id: `${stageId}:third-place`,
@@ -235,18 +251,62 @@ export function generateBracketFixtures(
   return fixtures;
 }
 
+/** Smallest power of two greater than or equal to n. */
+export function nextPowerOfTwo(n: number): number {
+  let size = 1;
+  while (size < n) size *= 2;
+  return size;
+}
+
+/** How many teams sit out the first round for a given playoff size. */
+export function byeCount(qualifiers: number): number {
+  return nextPowerOfTwo(qualifiers) - qualifiers;
+}
+
 /**
- * Seed entrants so that pool winners are spread across the bracket and, where
- * possible, teams from the same pool cannot meet before the final.
- * Order is all 1st places, then all 2nd places, and so on.
+ * Seed numbers in bracket-slot order.
+ *
+ * Built by repeatedly mirroring, which is the standard construction: [1,2]
+ * becomes [1,4,2,3], then [1,8,4,5,2,7,3,6]. Read as pairs it gives 1v8, 4v5,
+ * 2v7, 3v6 -- so seed 1 meets seed 4 in the semi and seed 2 only in the final.
  */
-function seedOrder(poolIds: PoolId[], advancePerPool: number): TeamRef[] {
+export function bracketSlots(size: number): number[] {
+  let order = [1, 2];
+  while (order.length < size) {
+    const total = order.length * 2;
+    const next: number[] = [];
+    for (const seed of order) {
+      next.push(seed, total + 1 - seed);
+    }
+    order = next;
+  }
+  return order;
+}
+
+/**
+ * Seed the qualifiers.
+ *
+ * Pool winners first, then all the runners-up, and so on -- so a pool winner
+ * always outranks a runner-up. When the number of qualifiers is not a whole
+ * multiple of the pool count the remainder are wildcards: the best teams
+ * across pools at the next position down.
+ */
+function seedOrder(poolIds: PoolId[], qualifiers: number): TeamRef[] {
+  const pools = poolIds.length;
+  const guaranteed = Math.floor(qualifiers / pools);
+  const wildcards = qualifiers % pools;
   const refs: TeamRef[] = [];
-  for (let position = 1; position <= advancePerPool; position++) {
+
+  for (let position = 1; position <= guaranteed; position++) {
     for (const poolId of poolIds) {
       refs.push({ kind: 'poolPosition', poolId, position });
     }
   }
+
+  for (let rank = 1; rank <= wildcards; rank++) {
+    refs.push({ kind: 'bestOfPosition', poolIds, position: guaranteed + 1, rank });
+  }
+
   return refs;
 }
 

@@ -5,6 +5,7 @@ import AppHeader from '../components/AppHeader.js';
 import TournamentWidget from '../components/admin/setup/TournamentWidget.js';
 import DivisionsWidget from '../components/admin/setup/DivisionsWidget.js';
 import PoolsWidget from '../components/admin/setup/PoolsWidget.js';
+import PlayoffsWidget from '../components/admin/setup/PlayoffsWidget.js';
 import GenerateWidget from '../components/admin/setup/GenerateWidget.js';
 import CreateEventWidget from '../components/admin/setup/CreateEventWidget.js';
 import ResultsPanel from '../components/admin/ResultsPanel.js';
@@ -34,13 +35,14 @@ const NAV: NavItem[] = [
   {
     key: 'setup',
     label: 'Tournament setup',
-    blurb: 'Tournament, divisions, pools, teams and players.',
+    blurb: 'Tournament, divisions, pools, teams, players and playoffs.',
     children: [
       { key: 'setup.tournament', label: 'Tournament', blurb: 'Name, date, venue, timings and pitches. Every division inherits these.' },
       { key: 'setup.divisions', label: 'Divisions', blurb: 'The separate competitions within the tournament, and the fields each uses.' },
       { key: 'setup.pools', label: 'Pools', blurb: 'How each division groups its teams for pool play.' },
       { key: 'setup.teams', label: 'Teams', blurb: 'The teams competing in a division, their pool and their join code.' },
       { key: 'setup.players', label: 'Players', blurb: 'Who is on each team’s roster.' },
+      { key: 'setup.playoffs', label: 'Playoffs', blurb: 'How many teams reach the knockout, and who gets a bye.' },
       { key: 'setup.generate', label: 'Generate schedule', blurb: 'Check the day fits, then build the fixtures.' },
     ],
   },
@@ -209,6 +211,7 @@ export default function Admin({
               {active === 'setup.pools' && <PoolsWidget data={data} onChanged={reload} />}
               {active === 'setup.teams' && <TeamsWidget data={data} onChanged={reload} />}
               {active === 'setup.players' && <PlayersWidget data={data} onChanged={reload} />}
+              {active === 'setup.playoffs' && <PlayoffsWidget data={data} onChanged={reload} />}
               {active === 'setup.generate' && <GenerateWidget data={data} onChanged={reload} />}
 
               {active === 'people' && <PeoplePanel data={data} />}

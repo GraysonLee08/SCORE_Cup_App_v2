@@ -21,6 +21,15 @@ export type PlayerId = string;
 export type TeamRef =
   | { kind: 'team'; teamId: TeamId }
   | { kind: 'poolPosition'; poolId: PoolId; position: number }
+  /**
+   * A wildcard: "the best 3rd-place team across these pools", and the second
+   * best, and so on.
+   *
+   * Needed whenever the number of teams reaching the playoffs is not a whole
+   * multiple of the number of pools -- 5 qualifiers from 2 pools means the top
+   * two of each, plus whichever third-placed team did better.
+   */
+  | { kind: 'bestOfPosition'; poolIds: PoolId[]; position: number; rank: number }
   | { kind: 'fixtureWinner'; fixtureId: FixtureId }
   | { kind: 'fixtureLoser'; fixtureId: FixtureId };
 
@@ -90,12 +99,39 @@ export interface PoolStageConfig {
 
 export interface BracketStageConfig {
   kind: 'bracket';
-  /** Teams qualifying from each pool of the preceding stage. */
-  advancePerPool: number;
+  /**
+   * How many teams reach the playoffs in total.
+   *
+   * Expressed as a total rather than per pool because that is the question an
+   * organiser is actually answering ("the top 6 go through"), and because it
+   * is the only form that can express a wildcard place.
+   *
+   * Any number from 2 upwards works. When it is not a power of two the bracket
+   * is padded up to the next one and the top seeds sit out the first round --
+   * 6 qualifiers play a bracket of 8 with 2 byes.
+   */
+  qualifiers: number;
+  /**
+   * Superseded by `qualifiers`, kept so stage configs written before it
+   * existed still load. Read through `qualifierCount()`, never directly.
+   */
+  advancePerPool?: number;
   thirdPlaceGame: boolean;
   /** 2026 goes straight to penalties with no extra time. */
   drawResolution: 'penalties';
   timing: MatchTiming;
+}
+
+/**
+ * How many teams this bracket takes, tolerating configs saved before
+ * `qualifiers` existed.
+ */
+export function qualifierCount(
+  config: { qualifiers?: number; advancePerPool?: number },
+  poolCount: number,
+): number {
+  if (config.qualifiers && config.qualifiers > 0) return config.qualifiers;
+  return (config.advancePerPool ?? 0) * poolCount;
 }
 
 export type StageConfig = PoolStageConfig | BracketStageConfig;

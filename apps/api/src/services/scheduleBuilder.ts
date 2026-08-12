@@ -3,6 +3,7 @@ import {
   checkFeasibility,
   generateBracketFixtures,
   generatePoolFixtures,
+  qualifierCount,
   reservationsFrom,
   scheduleFixtures,
   slotMinutes,
@@ -208,7 +209,12 @@ function windowMinutes(startTime: string, endTime: string): number {
   return toMinutes(endTime) - toMinutes(startTime);
 }
 
-function buildFixtures(stage: StagePlan, previousPoolIds: string[]): Fixture[] {
+function buildFixtures(
+  stage: StagePlan,
+  previousPoolIds: string[],
+  previousTeamCount: number,
+  smallestPreviousPool: number,
+): Fixture[] {
   if (stage.config.kind === 'pool') {
     const poolsWithTeams = stage.pools.filter((p) => p.teamIds.length > 0);
     if (poolsWithTeams.length === 0) {
@@ -229,7 +235,38 @@ function buildFixtures(stage: StagePlan, previousPoolIds: string[]): Fixture[] {
     );
   }
 
-  return generateBracketFixtures(stage.id, previousPoolIds, stage.config.advancePerPool, {
+  const qualifiers = qualifierCount(stage.config, previousPoolIds.length);
+
+  if (qualifiers < 2) {
+    throw new HttpError(
+      400,
+      'Set how many teams reach the playoffs before generating the schedule.',
+      'no_qualifiers',
+    );
+  }
+
+  if (qualifiers > previousTeamCount) {
+    throw new HttpError(
+      400,
+      `You have ${previousTeamCount} teams but ${qualifiers} set to reach the playoffs. ` +
+        `Lower the number of teams in the playoffs.`,
+      'too_many_qualifiers',
+    );
+  }
+
+  // Every pool has to be able to supply its share. 6 qualifiers from 2 pools
+  // means 3 from each, which a pool of 2 cannot do.
+  const guaranteedPerPool = Math.floor(qualifiers / previousPoolIds.length);
+  if (guaranteedPerPool > smallestPreviousPool) {
+    throw new HttpError(
+      400,
+      `${qualifiers} teams in the playoffs needs the top ${guaranteedPerPool} from every pool, ` +
+        `but the smallest pool has only ${smallestPreviousPool} team(s).`,
+      'pool_too_small',
+    );
+  }
+
+  return generateBracketFixtures(stage.id, previousPoolIds, qualifiers, {
     thirdPlaceGame: stage.config.thirdPlaceGame,
   });
 }
@@ -265,9 +302,16 @@ export function buildSchedule(plan: DivisionPlan, options: BuildOptions = {}): B
   const busy: FieldReservation[] = [...(options.busy ?? [])];
   let cursor = options.startOffsetMinutes ?? 0;
   let previousPoolIds: string[] = [];
+  let previousTeamCount = 0;
+  let smallestPreviousPool = 0;
 
   for (const stage of plan.stages) {
-    const fixtures = buildFixtures(stage, previousPoolIds);
+    const fixtures = buildFixtures(
+      stage,
+      previousPoolIds,
+      previousTeamCount,
+      smallestPreviousPool,
+    );
 
     const result = scheduleFixtures({
       fixtures,
@@ -290,7 +334,12 @@ export function buildSchedule(plan: DivisionPlan, options: BuildOptions = {}): B
     });
 
     cursor = result.endMinutes + gapBetweenStagesMinutes;
-    if (stage.kind === 'pool') previousPoolIds = stage.pools.map((p) => p.id);
+    if (stage.kind === 'pool') {
+      const withTeams = stage.pools.filter((p) => p.teamIds.length > 0);
+      previousPoolIds = withTeams.map((p) => p.id);
+      previousTeamCount = withTeams.reduce((n, p) => n + p.teamIds.length, 0);
+      smallestPreviousPool = Math.min(...withTeams.map((p) => p.teamIds.length));
+    }
   }
 
   // Pool play dominates; a knockout stage contributes few gaps, so a plain
