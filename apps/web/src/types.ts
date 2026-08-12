@@ -59,6 +59,8 @@ export interface PublicFixture {
   homeCards: { yellow: number; red: number };
   awayCards: { yellow: number; red: number };
   refereeName: string | null;
+  halfMinutes: number | null;
+  halftimeMinutes: number | null;
 }
 
 export interface StandingsRow {

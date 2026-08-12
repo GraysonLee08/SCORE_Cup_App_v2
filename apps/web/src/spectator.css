@@ -1,0 +1,643 @@
+/* --- Spectator board ------------------------------------------------------
+ *
+ * A dark, frosted dashboard. Everything here is scoped to `.spectator` so the
+ * referee, participant and admin views keep the light theme they were built
+ * for -- glass only reads well over a deep background, and a referee squinting
+ * at a phone in August sun needs the opposite of that.
+ *
+ * The palette is still the organisation's: the navy from the shield deepened
+ * into a backdrop, the red kept for anything live, and the pencil yellow left
+ * where it already was, on focus rings.
+ */
+
+.spectator {
+  --glass: rgba(255, 255, 255, 0.075);
+  --glass-strong: rgba(255, 255, 255, 0.13);
+  --glass-line: rgba(255, 255, 255, 0.155);
+  --on-glass: #ffffff;
+  --on-glass-soft: rgba(255, 255, 255, 0.66);
+}
+
+/* Beats `.app`'s 720px column on specificity, not on source order -- the
+   admin view already taught us not to rely on which rule comes last. */
+.app.spectator {
+  position: relative;
+  max-width: none;
+  min-height: 100vh;
+  padding: 0 0 1rem;
+  background: linear-gradient(163deg, #0d2542 0%, #071829 46%, #04101d 100%);
+  color: var(--on-glass);
+}
+
+.spectator .glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(52rem 30rem at 12% -8%, rgba(22, 64, 110, 0.75), transparent 70%),
+    radial-gradient(38rem 26rem at 96% 4%, rgba(225, 27, 52, 0.2), transparent 68%),
+    radial-gradient(34rem 24rem at 62% 108%, rgba(245, 197, 24, 0.09), transparent 70%);
+}
+
+.spectator > *:not(.glow) {
+  position: relative;
+  z-index: 1;
+}
+
+.spectator .topbar {
+  background: rgba(9, 27, 48, 0.62);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--glass-line);
+}
+
+/* --- the grid ------------------------------------------------------------ */
+
+.board {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'full' 'centre' 'left' 'right';
+  align-items: start;
+}
+
+.board-full {
+  grid-area: full;
+}
+.rail.left {
+  grid-area: left;
+}
+.rail.centre {
+  grid-area: centre;
+}
+.rail.right {
+  grid-area: right;
+}
+
+.rail {
+  min-width: 0;
+}
+.rail > * + * {
+  margin-top: 1rem;
+}
+
+@media (min-width: 880px) {
+  .board {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
+    grid-template-areas:
+      'full   full'
+      'centre right'
+      'left   right';
+  }
+}
+
+@media (min-width: 1280px) {
+  /* Fits one display: the page itself never scrolls, the rails scroll inside
+     themselves. Done with flex and a `1fr` row rather than by subtracting a
+     guessed header height -- the logo and the notice bar both change it. */
+  .app.spectator {
+    height: 100vh;
+    padding-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .board {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+    padding: 1.15rem 1.4rem 1.4rem;
+    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr) minmax(17rem, 21rem);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'full   full   full'
+      'left   centre right';
+  }
+
+  .rail {
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    padding-right: 2px;
+  }
+  .rail::-webkit-scrollbar {
+    width: 6px;
+  }
+  .rail::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+  }
+}
+
+/* --- the frosted panel --------------------------------------------------- */
+
+.spectator .glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Without blur the translucency just looks like washed-out text, so fall
+   back to something solid rather than something illegible. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .spectator .glass {
+    background: rgba(11, 32, 56, 0.9);
+  }
+}
+
+.spectator h1,
+.spectator h2,
+.spectator h3 {
+  color: var(--on-glass);
+}
+
+.spectator .glass h2 {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--on-glass-soft);
+  margin-bottom: 0.7rem;
+}
+
+.spectator .glass h3 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--on-glass-soft);
+  margin: 1.1rem 0 0.5rem;
+}
+
+.spectator .soft {
+  color: var(--on-glass-soft);
+}
+.spectator .tiny {
+  font-size: 0.78rem;
+}
+.spectator .muted {
+  color: var(--on-glass-soft);
+}
+
+.spectator .announce {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1.1rem;
+}
+
+/* --- tags ---------------------------------------------------------------- */
+
+.spectator .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-line);
+  color: var(--on-glass);
+  white-space: nowrap;
+}
+
+.spectator .tag.ghost {
+  background: transparent;
+  color: var(--on-glass-soft);
+  font-weight: 600;
+}
+
+.spectator .tag.live,
+.spectator .tag.accent {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+
+.spectator .tag.done {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: transparent;
+  color: #0b2038;
+}
+
+.spectator .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+  animation: pulse 1.9s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.72);
+  }
+}
+
+/* --- spotlight ----------------------------------------------------------- */
+
+.spectator .spotlight {
+  padding: 1.3rem 1.4rem 1.15rem;
+}
+
+.spectator .spotlight.is-live {
+  border-color: rgba(225, 27, 52, 0.45);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(225, 27, 52, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.spotlight-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.1rem;
+}
+
+.spotlight-score {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.spotlight-score .team {
+  min-width: 0;
+}
+.spotlight-score .team.right {
+  text-align: right;
+}
+.spotlight-score .team.right .pips {
+  justify-content: flex-end;
+}
+
+.spotlight-score .team-name {
+  font-size: 1.22rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.spotlight-score .pips {
+  display: flex;
+  gap: 3px;
+  margin-top: 0.4rem;
+}
+
+.spotlight-score .numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.spotlight-score .n {
+  font-size: clamp(2.6rem, 6vw, 4.1rem);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.spotlight-score .sep {
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--on-glass-soft);
+}
+
+.spotlight-clock {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--glass-line);
+  font-size: 0.86rem;
+}
+
+.spotlight-clock strong {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.spotlight-clock .ticking {
+  color: #ff8a9b;
+}
+
+.spectator .spotlight.empty {
+  text-align: center;
+  padding: 2.4rem 1.4rem;
+}
+
+.spotlight-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+}
+
+.spectator .chip-btn {
+  min-height: 36px;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-line);
+  color: var(--on-glass);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.spectator .chip-btn.active {
+  background: #fff;
+  border-color: #fff;
+  color: #0b2038;
+}
+
+.spectator .chip-btn .mini {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+/* --- field board --------------------------------------------------------- */
+
+.field-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.spectator .field-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  width: 100%;
+  min-height: 3.1rem;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  color: var(--on-glass);
+}
+
+.spectator .field-row:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.spectator .field-row.active {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.spectator .field-row.is-live .field-name {
+  color: #ff8a9b;
+}
+
+.spectator .field-row:disabled {
+  opacity: 0.45;
+}
+
+.field-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.field-teams {
+  font-size: 0.9rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.field-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.field-next {
+  grid-column: 1 / -1;
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+/* --- pulse --------------------------------------------------------------- */
+
+.spectator .progress {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.spectator .progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), #ff7a55);
+  transition: width 0.6s ease;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0.9rem 0 0.4rem;
+}
+
+.stat {
+  text-align: center;
+  padding: 0.55rem 0.2rem;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.stat strong {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.stat span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--on-glass-soft);
+}
+
+.pulse-line {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+/* --- segmented control --------------------------------------------------- */
+
+.segmented {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  margin-bottom: 0.4rem;
+}
+
+.spectator .seg {
+  flex: 1 1 0;
+  min-height: 38px;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--on-glass-soft);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.spectator .seg.active {
+  background: #fff;
+  color: #0b2038;
+  font-weight: 700;
+}
+
+/* --- reused components, re-dressed for the dark -------------------------- */
+
+/* StandingsTable and Bracket both render `.card`; inside a glass panel it
+   should be the panel, not a white box floating in one. */
+.spectator .glass .card {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.spectator .glass .card + .card {
+  margin-top: 1.2rem;
+}
+
+.spectator .meta {
+  color: var(--on-glass-soft);
+}
+
+.spectator .pill {
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-line);
+  color: var(--on-glass);
+}
+.spectator .pill.live {
+  background: var(--accent);
+  border-color: transparent;
+}
+.spectator .pill.done {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: transparent;
+  color: #0b2038;
+}
+
+.spectator .fixture {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.spectator .fixture-meta,
+.spectator .time-heading,
+.spectator label {
+  color: var(--on-glass-soft);
+}
+
+.spectator table.standings th,
+.spectator table.standings td {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+.spectator table.standings th {
+  color: var(--on-glass-soft);
+}
+.spectator table.standings tr.highlight {
+  background: rgba(245, 197, 24, 0.16);
+}
+.spectator .asterisk {
+  color: var(--on-glass-soft);
+}
+
+.spectator select {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--glass-line);
+  color: var(--on-glass);
+  min-height: 42px;
+}
+
+/* The native menu is drawn by the OS in its own colours, so the options have
+   to be legible there rather than here. */
+.spectator select option {
+  background: #0d2542;
+  color: #fff;
+}
+
+.spectator .field {
+  margin-bottom: 0.7rem;
+}
+
+.board-footer {
+  padding: 0.5rem 1.4rem 1.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+/* Blur is expensive and least legible exactly where phones are used -- in
+   daylight. Below tablet width the panels get more opaque and less blurred. */
+@media (max-width: 879px) {
+  .spectator .glass {
+    background: rgba(10, 30, 52, 0.82);
+    backdrop-filter: blur(12px) saturate(130%);
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    border-radius: 14px;
+  }
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .board {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spectator .dot {
+    animation: none;
+  }
+  .spectator .progress > span {
+    transition: none;
+  }
+}

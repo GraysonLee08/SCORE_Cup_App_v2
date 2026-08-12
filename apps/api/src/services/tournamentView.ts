@@ -10,7 +10,7 @@ import {
 } from '@scores-cup/engine';
 import type { Db } from '../db.js';
 import { HttpError } from '../auth/middleware.js';
-import { poolStageConfigSchema } from './stageConfig.js';
+import { poolStageConfigSchema, stageConfigSchema } from './stageConfig.js';
 
 /**
  * Read model for every public view. Standings and bracket entrants are
@@ -43,6 +43,13 @@ export interface PublicFixture {
   awayCards: { yellow: number; red: number };
   /** Name only -- who is refereeing is useful publicly; their account is not. */
   refereeName: string | null;
+  /**
+   * Half length and the interval, so a spectator's screen can run its own
+   * clock. Sent rather than computed here because the server's "now" is not
+   * the viewer's, and a ticking clock has to tick locally to feel live.
+   */
+  halfMinutes: number | null;
+  halftimeMinutes: number | null;
 }
 
 export interface PublicPoolTable {
@@ -135,10 +142,26 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
     [divisionId],
   );
 
-  const { rows: poolStageRows } = await db.query<{ id: string; config: unknown }>(
-    `SELECT id, config FROM stages WHERE division_id = $1 AND kind = 'pool' ORDER BY sequence`,
+  const { rows: allStageRows } = await db.query<{ id: string; config: unknown }>(
+    'SELECT id, config FROM stages WHERE division_id = $1 ORDER BY sequence',
     [divisionId],
   );
+
+  const poolStageRows = allStageRows.filter(
+    (s) => (s.config as { kind?: string } | null)?.kind === 'pool',
+  );
+
+  // A bracket half is usually shorter than a pool half, so timing is per
+  // stage rather than per event.
+  const stageTiming = new Map<string, { halfMinutes: number; halftimeMinutes: number }>();
+  for (const stage of allStageRows) {
+    const parsed = stageConfigSchema.safeParse(stage.config);
+    if (!parsed.success) continue;
+    stageTiming.set(stage.id, {
+      halfMinutes: parsed.data.timing.halfMinutes,
+      halftimeMinutes: parsed.data.timing.halftimeMinutes,
+    });
+  }
 
   // --- Standings, per pool -------------------------------------------------
 
@@ -263,6 +286,8 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
       homeCards: cardCount(f.id, f.home_team_id),
       awayCards: cardCount(f.id, f.away_team_id),
       refereeName: f.referee_name,
+      halfMinutes: stageTiming.get(f.stage_id)?.halfMinutes ?? null,
+      halftimeMinutes: stageTiming.get(f.stage_id)?.halftimeMinutes ?? null,
     };
   });
 
