@@ -11,6 +11,7 @@ import { rosterRoutes } from './routes/roster.js';
 import { eventRoutes } from './routes/events.js';
 import { scheduleRoutes } from './routes/schedule.js';
 import { refRoutes, refAssignmentRoutes } from './routes/ref.js';
+import { publicRoutes } from './routes/publicView.js';
 
 /**
  * Wrap async route handlers so a rejected promise reaches the error handler
@@ -91,6 +92,9 @@ export function createApp(config: Config, db: Db): Express {
     wrapAsyncRoutes(router);
     app.use(path, router);
   };
+
+  // Public first: these need no session at all.
+  mount('/api/public', publicRoutes(db));
 
   mount('/api/auth', authRoutes(db));
   mount('/api/teams', teamRoutes(db));

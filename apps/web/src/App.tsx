@@ -4,6 +4,7 @@ import { api, ApiFailure } from './api.js';
 import type { SessionUser } from './types.js';
 import Login from './pages/Login.js';
 import RefView from './pages/RefView.js';
+import Spectator from './pages/Spectator.js';
 
 export default function App() {
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -40,12 +41,26 @@ export default function App() {
     );
   }
 
-  if (!user) return <Login onSignedIn={setUser} />;
-
   return (
     <Routes>
-      <Route path="/ref" element={<RefView user={user} onSignOut={signOut} />} />
-      <Route path="*" element={<Navigate to="/ref" replace />} />
+      {/* The spectator view is the front door: public, no account needed. */}
+      <Route path="/" element={<Spectator />} />
+      <Route path="/sign-in" element={user ? <Navigate to={homeFor(user)} replace /> : <Login onSignedIn={setUser} />} />
+      <Route
+        path="/ref"
+        element={
+          user?.role === 'ref' || user?.role === 'admin' ? (
+            <RefView user={user} onSignOut={signOut} />
+          ) : (
+            <Navigate to="/sign-in" replace />
+          )
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
+}
+
+function homeFor(user: SessionUser): string {
+  return user.role === 'ref' || user.role === 'admin' ? '/ref' : '/';
 }

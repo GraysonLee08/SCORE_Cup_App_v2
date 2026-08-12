@@ -1,0 +1,270 @@
+import {
+  computeStandings,
+  decideOutcome,
+  resolveTeamRef,
+  type Card,
+  type ResolutionContext,
+  type Result,
+  type StandingsRow,
+  type TeamRef,
+} from '@scores-cup/engine';
+import type { Db } from '../db.js';
+import { HttpError } from '../auth/middleware.js';
+import { poolStageConfigSchema } from './stageConfig.js';
+
+/**
+ * Read model for every public view. Standings and bracket entrants are
+ * computed here on each read rather than stored, so a corrected score is
+ * reflected everywhere immediately with no second copy to go stale.
+ *
+ * Deliberately returns nothing that identifies a person: no rosters, no
+ * contact details, no card attributions.
+ */
+
+export interface PublicFixture {
+  id: string;
+  round: string | null;
+  kickoffAt: string | null;
+  status: string;
+  fieldName: string | null;
+  poolName: string | null;
+  stageName: string;
+  stageKind: 'pool' | 'bracket';
+  homeTeamId: string | null;
+  homeTeamName: string;
+  awayTeamId: string | null;
+  awayTeamName: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  homePenalties: number | null;
+  awayPenalties: number | null;
+  /** Cards per side, counts only. Who received them is not public. */
+  homeCards: { yellow: number; red: number };
+  awayCards: { yellow: number; red: number };
+}
+
+export interface PublicPoolTable {
+  poolId: string;
+  poolName: string;
+  complete: boolean;
+  rows: (StandingsRow & { teamName: string })[];
+}
+
+export interface PublicDivision {
+  id: string;
+  name: string;
+  pools: PublicPoolTable[];
+  fixtures: PublicFixture[];
+  teams: { id: string; name: string }[];
+}
+
+interface FixtureRow {
+  id: string;
+  stage_id: string;
+  stage_name: string;
+  stage_kind: 'pool' | 'bracket';
+  pool_id: string | null;
+  pool_name: string | null;
+  field_name: string | null;
+  kickoff_at: Date | null;
+  status: string;
+  home_ref: TeamRef;
+  away_ref: TeamRef;
+  home_team_id: string | null;
+  away_team_id: string | null;
+  home_team_name: string | null;
+  away_team_name: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  home_penalties: number | null;
+  away_penalties: number | null;
+  round: string | null;
+}
+
+export async function loadPublicDivision(db: Db, divisionId: string): Promise<PublicDivision> {
+  const { rows: divisionRows } = await db.query<{ id: string; name: string }>(
+    'SELECT id, name FROM divisions WHERE id = $1',
+    [divisionId],
+  );
+  const division = divisionRows[0];
+  if (!division) throw new HttpError(404, 'No such division.', 'not_found');
+
+  const { rows: teams } = await db.query<{ id: string; name: string; pool_id: string | null }>(
+    'SELECT id, name, pool_id FROM teams WHERE division_id = $1 ORDER BY name',
+    [divisionId],
+  );
+  const teamNames = new Map(teams.map((t) => [t.id, t.name]));
+
+  const { rows: fixtures } = await db.query<FixtureRow>(
+    `SELECT f.id, f.stage_id, s.name AS stage_name, s.kind AS stage_kind,
+            f.pool_id, p.name AS pool_name, fl.name AS field_name,
+            f.kickoff_at, f.status, f.home_ref, f.away_ref,
+            f.home_team_id, f.away_team_id,
+            home.name AS home_team_name, away.name AS away_team_name,
+            f.home_score, f.away_score, f.home_penalties, f.away_penalties, f.round
+       FROM fixtures f
+       JOIN stages s ON s.id = f.stage_id
+       LEFT JOIN pools p ON p.id = f.pool_id
+       LEFT JOIN fields fl ON fl.id = f.field_id
+       LEFT JOIN teams home ON home.id = f.home_team_id
+       LEFT JOIN teams away ON away.id = f.away_team_id
+      WHERE s.division_id = $1
+      ORDER BY f.kickoff_at NULLS LAST, fl.sort_order`,
+    [divisionId],
+  );
+
+  const { rows: cardRows } = await db.query<{
+    fixture_id: string; team_id: string; type: 'yellow' | 'red';
+  }>(
+    `SELECT c.fixture_id, c.team_id, c.type
+       FROM cards c JOIN fixtures f ON f.id = c.fixture_id
+       JOIN stages s ON s.id = f.stage_id
+      WHERE s.division_id = $1`,
+    [divisionId],
+  );
+
+  const { rows: adjustmentRows } = await db.query<{
+    team_id: string; points: number; reason: string;
+  }>(
+    'SELECT team_id, points, reason FROM standings_adjustments WHERE division_id = $1',
+    [divisionId],
+  );
+
+  const { rows: poolStageRows } = await db.query<{ id: string; config: unknown }>(
+    `SELECT id, config FROM stages WHERE division_id = $1 AND kind = 'pool' ORDER BY sequence`,
+    [divisionId],
+  );
+
+  // --- Standings, per pool -------------------------------------------------
+
+  const pools: PublicPoolTable[] = [];
+  const standingsByPool = new Map<string, StandingsRow[]>();
+  const poolComplete = new Set<string>();
+
+  const { rows: poolRows } = await db.query<{ id: string; name: string; stage_id: string }>(
+    `SELECT p.id, p.name, p.stage_id FROM pools p
+       JOIN stages s ON s.id = p.stage_id
+      WHERE s.division_id = $1
+      ORDER BY s.sequence, p.sort_order`,
+    [divisionId],
+  );
+
+  for (const pool of poolRows) {
+    const stage = poolStageRows.find((s) => s.id === pool.stage_id);
+    const parsed = poolStageConfigSchema.safeParse(stage?.config);
+    if (!parsed.success) continue;
+
+    const poolFixtures = fixtures.filter((f) => f.pool_id === pool.id);
+    const complete =
+      poolFixtures.length > 0 && poolFixtures.every((f) => f.home_score != null);
+    if (complete) poolComplete.add(pool.id);
+
+    const poolTeamIds = teams.filter((t) => t.pool_id === pool.id).map((t) => t.id);
+
+    const results: Result[] = poolFixtures
+      .filter((f) => f.home_score != null && f.home_team_id && f.away_team_id)
+      .map((f) => ({
+        fixtureId: f.id,
+        homeTeamId: f.home_team_id!,
+        awayTeamId: f.away_team_id!,
+        homeScore: f.home_score!,
+        awayScore: f.away_score!,
+      }));
+
+    const poolFixtureIds = new Set(poolFixtures.map((f) => f.id));
+    const cards: Card[] = cardRows
+      .filter((c) => poolFixtureIds.has(c.fixture_id))
+      .map((c) => ({ fixtureId: c.fixture_id, teamId: c.team_id, type: c.type }));
+
+    const table = computeStandings({
+      teamIds: poolTeamIds,
+      results,
+      cards,
+      adjustments: adjustmentRows
+        .filter((a) => poolTeamIds.includes(a.team_id))
+        .map((a) => ({ teamId: a.team_id, points: a.points, reason: a.reason })),
+      scoring: parsed.data.scoring,
+      penaltyPoints: parsed.data.penaltyPoints,
+      tiebreakers: parsed.data.tiebreakers,
+    });
+
+    standingsByPool.set(pool.id, table);
+    pools.push({
+      poolId: pool.id,
+      poolName: pool.name,
+      complete,
+      rows: table.map((r) => ({ ...r, teamName: teamNames.get(r.teamId) ?? 'Unknown' })),
+    });
+  }
+
+  // --- Resolve bracket entrants -------------------------------------------
+
+  const outcomes = new Map<string, { winnerTeamId: string | null; loserTeamId: string | null }>();
+  for (const f of fixtures) {
+    if (!f.home_team_id || !f.away_team_id) continue;
+    outcomes.set(
+      f.id,
+      decideOutcome({
+        homeTeamId: f.home_team_id,
+        awayTeamId: f.away_team_id,
+        homeScore: f.home_score,
+        awayScore: f.away_score,
+        homePenalties: f.home_penalties,
+        awayPenalties: f.away_penalties,
+      }),
+    );
+  }
+
+  const ctx: ResolutionContext = { standingsByPool, outcomes, poolComplete };
+
+  const cardCount = (fixtureId: string, teamId: string | null) => {
+    const counts = { yellow: 0, red: 0 };
+    if (!teamId) return counts;
+    for (const c of cardRows) {
+      if (c.fixture_id === fixtureId && c.team_id === teamId) counts[c.type] += 1;
+    }
+    return counts;
+  };
+
+  const publicFixtures: PublicFixture[] = fixtures.map((f) => {
+    const home = f.home_team_id
+      ? { teamId: f.home_team_id, label: '' }
+      : resolveTeamRef(f.home_ref, ctx);
+    const away = f.away_team_id
+      ? { teamId: f.away_team_id, label: '' }
+      : resolveTeamRef(f.away_ref, ctx);
+
+    return {
+      id: f.id,
+      round: f.round,
+      kickoffAt: f.kickoff_at ? f.kickoff_at.toISOString() : null,
+      status: f.status,
+      fieldName: f.field_name,
+      poolName: f.pool_name,
+      stageName: f.stage_name,
+      stageKind: f.stage_kind,
+      homeTeamId: home.teamId,
+      homeTeamName: home.teamId
+        ? (f.home_team_name ?? teamNames.get(home.teamId) ?? 'TBC')
+        : home.label,
+      awayTeamId: away.teamId,
+      awayTeamName: away.teamId
+        ? (f.away_team_name ?? teamNames.get(away.teamId) ?? 'TBC')
+        : away.label,
+      homeScore: f.home_score,
+      awayScore: f.away_score,
+      homePenalties: f.home_penalties,
+      awayPenalties: f.away_penalties,
+      homeCards: cardCount(f.id, f.home_team_id),
+      awayCards: cardCount(f.id, f.away_team_id),
+    };
+  });
+
+  return {
+    id: division.id,
+    name: division.name,
+    pools,
+    fixtures: publicFixtures,
+    teams: teams.map((t) => ({ id: t.id, name: t.name })),
+  };
+}

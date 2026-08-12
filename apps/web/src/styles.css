@@ -350,3 +350,149 @@ button:focus-visible {
   margin: 3rem auto;
   padding: 0 1rem;
 }
+
+/* --- Spectator ----------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.4rem 0 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab {
+  flex: 1 1 auto;
+  min-width: 5.5rem;
+  min-height: 42px;
+  background: #fff;
+  font-weight: 600;
+}
+
+.tab.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.time-heading {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  margin: 1.1rem 0 0.4rem;
+}
+
+.fixture {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.6rem;
+}
+
+.fixture-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.4rem;
+}
+
+.team-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+
+.team-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.team-name.pending {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.team-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 1.15rem;
+  min-width: 1.4rem;
+  text-align: right;
+}
+
+.team-line.winner .team-name,
+.team-line.winner .team-score {
+  font-weight: 800;
+}
+
+.pips {
+  display: inline-flex;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.pip {
+  width: 7px;
+  height: 11px;
+  border-radius: 1px;
+  display: inline-block;
+}
+
+.pip.yellow {
+  background: #f0c419;
+}
+.pip.red {
+  background: var(--bad);
+}
+
+/* Wide tables scroll inside their own container rather than the page. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table.standings {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+table.standings th,
+table.standings td {
+  padding: 0.45rem 0.4rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+table.standings th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+table.standings td.num,
+table.standings th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+table.standings td.strong {
+  font-weight: 800;
+}
+
+table.standings tr.highlight {
+  background: #eaf3fb;
+}
+
+.asterisk {
+  color: var(--ink-soft);
+  margin-left: 0.15rem;
+}

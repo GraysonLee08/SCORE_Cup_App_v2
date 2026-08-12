@@ -1,0 +1,79 @@
+import type { PublicPoolTable } from '../types.js';
+
+export default function StandingsTable({
+  pool,
+  highlightTeamId,
+}: {
+  pool: PublicPoolTable;
+  highlightTeamId?: string;
+}) {
+  const anyManual = pool.rows.some((r) => r.needsManualTiebreak);
+  const anyAdjustment = pool.rows.some((r) => r.adjustmentPoints !== 0);
+
+  return (
+    <section className="card">
+      <div className="meta">
+        <h2 style={{ margin: 0 }}>{pool.poolName}</h2>
+        {pool.complete ? (
+          <span className="pill done">Final</span>
+        ) : (
+          <span className="pill">In progress</span>
+        )}
+      </div>
+
+      <div className="table-scroll">
+        <table className="standings">
+          <thead>
+            <tr>
+              <th scope="col" className="num">#</th>
+              <th scope="col">Team</th>
+              <th scope="col" className="num">P</th>
+              <th scope="col" className="num">W</th>
+              <th scope="col" className="num">D</th>
+              <th scope="col" className="num">L</th>
+              <th scope="col" className="num">GF</th>
+              <th scope="col" className="num">GA</th>
+              <th scope="col" className="num">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pool.rows.map((row) => (
+              <tr
+                key={row.teamId}
+                className={row.teamId === highlightTeamId ? 'highlight' : undefined}
+              >
+                <td className="num">{row.rank}</td>
+                <td>
+                  {row.teamName}
+                  {row.needsManualTiebreak && <span className="asterisk" title="Tied">*</span>}
+                  {row.adjustmentPoints !== 0 && (
+                    <span className="asterisk" title="Points adjustment">†</span>
+                  )}
+                </td>
+                <td className="num">{row.played}</td>
+                <td className="num">{row.won}</td>
+                <td className="num">{row.drawn}</td>
+                <td className="num">{row.lost}</td>
+                <td className="num">{row.goalsFor}</td>
+                <td className="num">{row.goalsAgainst}</td>
+                <td className="num strong">{row.points}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Say why the order is what it is, rather than leaving people to guess. */}
+      {anyManual && (
+        <p className="muted" style={{ marginTop: '.6rem' }}>
+          * Level on every tiebreaker — separated by the tournament organisers.
+        </p>
+      )}
+      {anyAdjustment && (
+        <p className="muted" style={{ marginTop: '.2rem' }}>
+          † Includes a points adjustment made by the organisers.
+        </p>
+      )}
+    </section>
+  );
+}
