@@ -9,7 +9,8 @@
     "migrate": "tsx --env-file-if-exists=.env src/bin/migrate.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "seed": "tsx --env-file-if-exists=.env src/seed.ts"
+    "seed": "tsx --env-file-if-exists=.env src/seed.ts",
+    "create-admin": "tsx --env-file-if-exists=.env src/bin/create-admin.ts"
   },
   "dependencies": {
     "@scores-cup/engine": "*",

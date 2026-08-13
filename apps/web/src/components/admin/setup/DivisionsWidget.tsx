@@ -237,11 +237,30 @@ function DivisionCard({
           className="ghost danger"
           disabled={busy}
           onClick={() => {
-            if (!window.confirm(`Delete ${division.name} and everything in it?`)) return;
-            void onRun(
-              () => api.delete(`/api/events/divisions/${division.id}`),
-              'Division deleted.',
-            );
+            // Deliberately asks the server first rather than guessing. It comes
+            // back naming what would be lost, and the name has to be typed --
+            // this cascades through every team, game and result in the
+            // division, and there is nothing to undo it with.
+            void onRun(async () => {
+              const url = `/api/events/divisions/${division.id}`;
+              try {
+                await api.delete(url);
+                return;
+              } catch (error) {
+                if (!(error instanceof ApiFailure) || error.code !== 'division_not_empty') {
+                  throw error;
+                }
+                const typed = window.prompt(
+                  `${error.message}
+
+Type the division's name to confirm: ${division.name}`,
+                );
+                if (typed?.trim() !== division.name) {
+                  throw new ApiFailure(409, 'cancelled', 'Not deleted — the name did not match.');
+                }
+                await api.delete(url, { force: true });
+              }
+            }, 'Division deleted.');
           }}
         >
           Delete this division

@@ -44,6 +44,7 @@ function makeClient(app: Express) {
     get: (p: string) => send('GET', p),
     post: (p: string, b?: unknown) => send('POST', p, b),
     patch: (p: string, b?: unknown) => send('PATCH', p, b),
+    del: (p: string, b?: unknown) => send('DELETE', p, b),
   };
 }
 
@@ -278,5 +279,48 @@ suite('admin setup and schedule generation', () => {
       },
     });
     expect(res.status).toBe(400);
+  });
+
+  /**
+   * Deleting a division cascades through its stages, pools, teams, fixtures and
+   * every result attached to them. It is the one action that can lose the whole
+   * day, and it used to run on request with no server-side check whatsoever.
+   */
+  describe('deleting a division', () => {
+    it('refuses while it still holds anything, and says what', async () => {
+      const res = await client.del(`/api/events/divisions/${divisionId}`);
+
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe('division_not_empty');
+      expect(res.body.error).toMatch(/teams/);
+      expect(res.body.error).toMatch(/games/);
+    });
+
+    it('leaves everything in place when it refuses', async () => {
+      await client.del(`/api/events/divisions/${divisionId}`);
+
+      const { rows } = await db.query<{ n: string }>(
+        'SELECT count(*) AS n FROM teams WHERE division_id = $1',
+        [divisionId],
+      );
+      expect(Number(rows[0]!.n)).toBeGreaterThan(0);
+    });
+
+    it('goes ahead once it is explicitly confirmed', async () => {
+      const res = await client.del(`/api/events/divisions/${divisionId}`, { force: true });
+      expect(res.status).toBe(204);
+
+      const { rows } = await db.query<{ n: string }>(
+        'SELECT count(*) AS n FROM divisions WHERE id = $1',
+        [divisionId],
+      );
+      expect(Number(rows[0]!.n)).toBe(0);
+    });
+
+    it('deletes an empty division without ceremony', async () => {
+      const created = await client.post(`/api/events/${eventId}/divisions`, { name: 'Spare' });
+      const res = await client.del(`/api/events/divisions/${created.body.id}`);
+      expect(res.status).toBe(204);
+    });
   });
 });

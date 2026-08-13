@@ -355,16 +355,66 @@ export function eventRoutes(db: Db): Router {
     res.status(204).end();
   });
 
+  /**
+   * Delete a division and everything under it.
+   *
+   * The biggest destructive action in the system by a wide margin: the foreign
+   * keys cascade from the division through its stages, pools, teams, fixtures,
+   * results, cards and sign-offs. Every score of the day, gone, with nothing to
+   * restore from but a backup.
+   *
+   * It used to run on request with no server-side check at all -- a single
+   * browser confirm was the only thing between a misclick and the tournament.
+   * A division holding anything now has to be asked for twice, and the refusal
+   * says exactly what would be lost so the second answer is an informed one.
+   */
   router.delete('/divisions/:divisionId', ...admin, async (req, res) => {
     const divisionId = req.params.divisionId;
     if (!divisionId) throw new HttpError(400, 'No division specified.', 'invalid_input');
+
+    const force = z.object({ force: z.boolean().optional() }).safeParse(req.body ?? {});
+    const confirmed = force.success && force.data.force === true;
+
+    if (!confirmed) {
+      const { rows } = await db.query<{
+        name: string; teams: string; fixtures: string; results: string;
+      }>(
+        `SELECT d.name,
+                (SELECT count(*) FROM teams t WHERE t.division_id = d.id) AS teams,
+                (SELECT count(*) FROM fixtures f JOIN stages s ON s.id = f.stage_id
+                  WHERE s.division_id = d.id) AS fixtures,
+                (SELECT count(*) FROM fixtures f JOIN stages s ON s.id = f.stage_id
+                  WHERE s.division_id = d.id AND f.home_score IS NOT NULL) AS results
+           FROM divisions d WHERE d.id = $1`,
+        [divisionId],
+      );
+      const division = rows[0];
+      if (!division) throw new HttpError(404, 'No such tournament.', 'not_found');
+
+      const holds = [
+        Number(division.teams) > 0 ? `${division.teams} teams` : null,
+        Number(division.fixtures) > 0 ? `${division.fixtures} games` : null,
+        Number(division.results) > 0 ? `${division.results} results` : null,
+      ].filter(Boolean);
+
+      if (holds.length > 0) {
+        throw new HttpError(
+          409,
+          `${division.name} still holds ${holds.join(', ')}. Deleting it removes all of ` +
+            `that permanently, and there is no undo. Confirm you mean to.`,
+          'division_not_empty',
+        );
+      }
+    }
 
     const { rowCount } = await db.query('DELETE FROM divisions WHERE id = $1', [divisionId]);
     if (!rowCount) throw new HttpError(404, 'No such tournament.', 'not_found');
 
     await recordAudit(db, {
       actorUserId: req.session.user!.id,
-      entityType: 'division', entityId: divisionId, action: 'delete',
+      entityType: 'division',
+      entityId: divisionId,
+      action: confirmed ? 'delete_forced' : 'delete',
     });
     res.status(204).end();
   });
