@@ -24,8 +24,10 @@ does not go in at all.
 
 ## Status
 
-**Shipped to staging, 13 Aug** — commit `d58179c`, 165 tests passing
-(engine 88, API 69, web 8). Awaiting QA.
+**Shipped to staging, 13 Aug** — 169 tests passing (engine 88, API 73, web 8).
+Awaiting QA.
+
+- 2.3 Per-division start times, and card weighting set to 1 yellow / 2 red
 
 - 1.1 Nil-nil draws and clearing a result
 - 1.2 Unassigned row on the schedule grid
