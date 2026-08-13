@@ -25,8 +25,12 @@ export const JERSEYS = [
   'jpmorganchase-blue',
   'jpmorganchase-orange',
   'mazek-law',
+  'milliman',
+  'oncourse',
+  'plexus',
   'pwc',
   'wintrust',
+  'zebra',
 ] as const;
 
 export default function Jersey({
