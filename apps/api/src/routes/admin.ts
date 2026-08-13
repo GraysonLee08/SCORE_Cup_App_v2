@@ -71,11 +71,7 @@ export function adminRoutes(db: Db): Router {
   router.get('/users', ...admin, async (_req, res) => {
     const { rows } = await db.query(
       `SELECT u.id, u.email, u.role, u.display_name AS "displayName", u.disabled,
-              u.must_change_password AS "mustChangePassword",
-              COALESCE(
-                (SELECT json_agg(rfa.field_id) FROM ref_field_assignments rfa WHERE rfa.user_id = u.id),
-                '[]'::json
-              ) AS "fieldIds"
+              u.must_change_password AS "mustChangePassword"
          FROM users u ORDER BY u.role, u.display_name`,
     );
     res.json({ users: rows });

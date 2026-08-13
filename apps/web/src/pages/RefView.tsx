@@ -136,7 +136,7 @@ export default function RefView({
           <div className="card center">
             <h2>No games assigned</h2>
             <p className="muted">
-              You are not assigned to a field yet. Check with the tournament desk.
+              You have not been given any games yet. Check with the tournament desk.
             </p>
           </div>
         )}

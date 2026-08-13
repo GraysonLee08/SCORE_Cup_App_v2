@@ -20,7 +20,7 @@ async function seed() {
   try {
     for (const table of [
       'audit_log', 'match_signoffs', 'cards', 'fixtures', 'players',
-      'ref_field_assignments', 'teams', 'pools', 'stages', 'division_fields',
+      'teams', 'pools', 'stages', 'division_fields',
       'divisions', 'fields', 'announcements', 'rules_pages', 'events', 'users',
     ]) {
       await db.query(`DELETE FROM ${table}`);
@@ -56,16 +56,6 @@ async function seed() {
       );
       fieldIds.push(rows[0]!.id);
     }
-
-    // Referees cover two fields each, mirroring the real day.
-    await db.query(
-      'INSERT INTO ref_field_assignments (user_id, field_id) VALUES ($1,$2), ($1,$3)',
-      [users.ref1, fieldIds[0], fieldIds[1]],
-    );
-    await db.query(
-      'INSERT INTO ref_field_assignments (user_id, field_id) VALUES ($1,$2), ($1,$3)',
-      [users.ref2, fieldIds[2], fieldIds[3]],
-    );
 
     const divisionNames = ['Competitive', 'Community'] as const;
     for (const [index, divisionName] of divisionNames.entries()) {

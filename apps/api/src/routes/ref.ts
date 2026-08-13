@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import type { Db } from '../db.js';
 import { recordAudit } from '../auth/audit.js';
-import { HttpError, refCanAccessField, requireAuth } from '../auth/middleware.js';
+import { HttpError, requireAuth } from '../auth/middleware.js';
 
 const scoreSchema = z.object({
   homeScore: z.number().int().min(0).max(99),
@@ -32,9 +32,9 @@ const signoffSchema = z.object({
 });
 
 /**
- * A referee may only touch fixtures on a field they are assigned to. Checked
- * against the database on every request rather than read from the session, so
- * an admin reassigning a ref mid-day takes effect immediately.
+ * A referee may only touch a game they are named on. Checked against the
+ * database on every request rather than read from the session, so an admin
+ * reassigning a game mid-day takes effect immediately.
  */
 async function assertCanScoreFixture(
   db: Db,
@@ -61,15 +61,11 @@ async function assertCanScoreFixture(
     throw new HttpError(403, 'Only referees can enter scores.', 'forbidden');
   }
 
-  // Named on the match, or covering the field it is played on. The union
-  // matters: if the named referee does not turn up, whoever is on that field
-  // can still record the score.
-  const namedOnMatch = fixture.referee_user_id === userId;
-  const coversField =
-    fixture.field_id !== null && (await refCanAccessField(db, userId, fixture.field_id));
-
-  if (!namedOnMatch && !coversField) {
-    throw new HttpError(403, 'That game is not yours to score.', 'wrong_field');
+  // Named on the match, and nothing else. Referees are assigned game by game,
+  // so a game nobody is named on has no referee who can score it -- by design.
+  // The schedule grid counts those so they are dealt with before the day.
+  if (fixture.referee_user_id !== userId) {
+    throw new HttpError(403, 'That game is not yours to score.', 'not_your_game');
   }
 
   return { fieldId: fixture.field_id, divisionId: fixture.division_id };
@@ -78,7 +74,7 @@ async function assertCanScoreFixture(
 export function refRoutes(db: Db): Router {
   const router = Router();
 
-  /** Everything on this referee's fields, current game first. */
+  /** The games this referee is down for, current one first. */
   router.get('/my-fixtures', requireAuth, async (req, res) => {
     const user = req.session.user!;
 
@@ -101,9 +97,7 @@ export function refRoutes(db: Db): Router {
          LEFT JOIN fields fl ON fl.id = f.field_id
          LEFT JOIN teams home ON home.id = f.home_team_id
          LEFT JOIN teams away ON away.id = f.away_team_id
-        WHERE ($1::boolean = false
-               OR f.referee_user_id = $2
-               OR f.field_id IN (SELECT field_id FROM ref_field_assignments WHERE user_id = $2))
+        WHERE ($1::boolean = false OR f.referee_user_id = $2)
         ORDER BY f.kickoff_at NULLS LAST, fl.sort_order`,
       [scopeToRef, user.id],
     );
@@ -364,42 +358,6 @@ export function refRoutes(db: Db): Router {
     );
 
     res.status(201).json({ signoffCount: Number(counted[0]!.n) });
-  });
-
-  return router;
-}
-
-/** Admin: assign a referee to the fields they will cover. */
-export function refAssignmentRoutes(db: Db): Router {
-  const router = Router();
-
-  router.put('/:userId/fields', requireAuth, async (req, res) => {
-    if (req.session.user!.role !== 'admin') {
-      throw new HttpError(403, 'Only an admin can assign referees.', 'forbidden');
-    }
-    const userId = req.params.userId;
-    const parsed = z.object({ fieldIds: z.array(z.string().uuid()) }).safeParse(req.body);
-    if (!userId || !parsed.success) {
-      throw new HttpError(400, 'A list of field ids is required.', 'invalid_input');
-    }
-
-    await db.query('DELETE FROM ref_field_assignments WHERE user_id = $1', [userId]);
-    for (const fieldId of parsed.data.fieldIds) {
-      await db.query(
-        'INSERT INTO ref_field_assignments (user_id, field_id) VALUES ($1,$2)',
-        [userId, fieldId],
-      );
-    }
-
-    await recordAudit(db, {
-      actorUserId: req.session.user!.id,
-      entityType: 'user',
-      entityId: userId,
-      action: 'assign_fields',
-      after: parsed.data,
-    });
-
-    res.status(204).end();
   });
 
   return router;

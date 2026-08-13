@@ -110,48 +110,6 @@ export default function PeoplePanel({ data }: { data: AdminEvent }) {
         </button>
       </section>
 
-      <section className="card">
-        <h2>Referees</h2>
-        <p className="muted">
-          A referee only sees, and can only score, the fields ticked here. Changes take effect
-          immediately.
-        </p>
-
-        {users
-          .filter((u) => u.role === 'ref')
-          .map((refUser) => (
-            <div key={refUser.id} className="person">
-              <div>
-                <strong>{refUser.displayName}</strong>
-                <div className="muted">{refUser.email}</div>
-              </div>
-
-              <div className="field" style={{ marginBottom: 0 }}>
-                {data.fields.map((field) => (
-                  <label key={field.id} className="checkbox">
-                    <input
-                      type="checkbox"
-                      checked={refUser.fieldIds.includes(field.id)}
-                      onChange={async (e) => {
-                        const next = e.target.checked
-                          ? [...refUser.fieldIds, field.id]
-                          : refUser.fieldIds.filter((id) => id !== field.id);
-                        await api.put(`/api/refs/${refUser.id}/fields`, { fieldIds: next });
-                        setStatus(`${refUser.displayName}: fields updated.`);
-                        await load();
-                      }}
-                    />
-                    {field.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
-
-        {users.filter((u) => u.role === 'ref').length === 0 && (
-          <p className="muted">No referees added yet.</p>
-        )}
-      </section>
 
       <section className="card">
         <h2>Everyone</h2>

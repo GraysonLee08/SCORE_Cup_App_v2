@@ -432,11 +432,7 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
                       }
                     }}
                   >
-                    <option value="">
-                      {fixture.fieldName
-                        ? `Whoever covers ${fixture.fieldName}`
-                        : 'Unassigned'}
-                    </option>
+                    <option value="">Nobody yet</option>
                     {referees.map((r) => (
                       <option key={r.id} value={r.id}>
                         {r.displayName}

@@ -1319,9 +1319,9 @@ table.grid-table td {
   font-style: italic;
 }
 
-/* No referee named. Amber and dashed rather than filled: an unassigned game is
-   playable -- whoever covers the pitch can score it -- so this is a gap in the
-   rota, not a fault in the schedule.
+/* No referee named. Amber rather than red: the game is still playable and an
+   admin can always enter the result, but no referee can -- referees are named
+   game by game, so an empty one has nobody who can score it.
 
    Explicitly yields to a real clash. `.slot.clash` is defined earlier in this
    file, so without the :not() a missing referee would quietly override a

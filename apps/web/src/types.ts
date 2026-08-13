@@ -210,7 +210,6 @@ export interface AdminUser {
   displayName: string;
   disabled: boolean;
   mustChangePassword: boolean;
-  fieldIds: string[];
 }
 
 export interface ScheduleQuality {

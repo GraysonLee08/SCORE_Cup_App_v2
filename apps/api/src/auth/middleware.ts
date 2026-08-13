@@ -67,25 +67,6 @@ export function requirePasswordCurrent(
   next();
 }
 
-/**
- * A referee may only write to fixtures on a field they are assigned to.
- *
- * Checked against the database on every request rather than trusted from the
- * session, so reassigning a ref mid-day takes effect immediately and a stale
- * session cannot keep writing to the wrong field.
- */
-export async function refCanAccessField(
-  db: Db,
-  userId: string,
-  fieldId: string,
-): Promise<boolean> {
-  const { rowCount } = await db.query(
-    'SELECT 1 FROM ref_field_assignments WHERE user_id = $1 AND field_id = $2',
-    [userId, fieldId],
-  );
-  return (rowCount ?? 0) > 0;
-}
-
 /** Coaches may only touch their own team. */
 export async function coachOwnsTeam(
   db: Db,

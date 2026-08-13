@@ -66,7 +66,7 @@ suite('referee score entry', () => {
     await migrate(url!);
     db = createPool(url!);
     for (const t of ['audit_log', 'match_signoffs', 'cards', 'fixtures', 'players',
-                     'ref_field_assignments', 'teams', 'pools', 'stages',
+                     'teams', 'pools', 'stages',
                      'division_fields', 'divisions', 'fields', 'events', 'users']) {
       await db.query(`DELETE FROM ${t}`);
     }
@@ -93,12 +93,6 @@ suite('referee score entry', () => {
     const { rows: otherField } = await db.query<{ id: string }>(
       `INSERT INTO fields (event_id, name) VALUES ($1,'Field 2') RETURNING id`, [ev[0]!.id],
     );
-    // Assigned to Field 1 only.
-    await db.query(
-      'INSERT INTO ref_field_assignments (user_id, field_id) VALUES ($1,$2)',
-      [refRows[0]!.id, myField[0]!.id],
-    );
-
     const { rows: div } = await db.query<{ id: string }>(
       `INSERT INTO divisions (event_id, name) VALUES ($1,'D') RETURNING id`, [ev[0]!.id],
     );
@@ -113,11 +107,15 @@ suite('referee score entry', () => {
     homeTeamId = teams[0]!.id;
     awayTeamId = teams[1]!.id;
 
+    // Referees are named on games, so one game is this referee's and the other
+    // belongs to nobody -- which is what makes it off limits.
     for (const [fieldId, target] of [[myField[0]!.id, 'mine'], [otherField[0]!.id, 'other']] as const) {
       const { rows } = await db.query<{ id: string }>(
-        `INSERT INTO fixtures (stage_id, field_id, home_ref, away_ref, home_team_id, away_team_id, kickoff_at)
-         VALUES ($1,$2,'{}','{}',$3,$4, now()) RETURNING id`,
-        [stage[0]!.id, fieldId, homeTeamId, awayTeamId],
+        `INSERT INTO fixtures (stage_id, field_id, home_ref, away_ref, home_team_id, away_team_id,
+                               kickoff_at, referee_user_id)
+         VALUES ($1,$2,'{}','{}',$3,$4, now(), $5) RETURNING id`,
+        [stage[0]!.id, fieldId, homeTeamId, awayTeamId,
+         target === 'mine' ? refRows[0]!.id : null],
       );
       if (target === 'mine') myFixtureId = rows[0]!.id;
       else otherFixtureId = rows[0]!.id;
@@ -137,7 +135,7 @@ suite('referee score entry', () => {
     await db?.end();
   });
 
-  it('shows only fixtures on the referee’s assigned fields', async () => {
+  it('shows only the games the referee is named on', async () => {
     const res = await client.get('/api/ref/my-fixtures');
     expect(res.status).toBe(200);
     expect(res.body.fixtures).toHaveLength(1);
@@ -231,18 +229,18 @@ suite('referee score entry', () => {
     await client.del(`/api/ref/fixtures/${myFixtureId}/cards/${card.body.id}`);
   });
 
-  it('refuses to clear a result on another referee’s field', async () => {
+  it('refuses to clear a result on a game that is not theirs', async () => {
     const res = await client.del(`/api/ref/fixtures/${otherFixtureId}/score`);
     expect(res.status).toBe(403);
-    expect(res.body.code).toBe('wrong_field');
+    expect(res.body.code).toBe('not_your_game');
   });
 
-  it('refuses to write to another referee’s field', async () => {
+  it('refuses to write to a game that is not theirs', async () => {
     const score = await client.put(`/api/ref/fixtures/${otherFixtureId}/score`, {
       homeScore: 9, awayScore: 0,
     });
     expect(score.status).toBe(403);
-    expect(score.body.code).toBe('wrong_field');
+    expect(score.body.code).toBe('not_your_game');
 
     const card = await client.post(`/api/ref/fixtures/${otherFixtureId}/cards`, {
       teamId: homeTeamId, type: 'red',
