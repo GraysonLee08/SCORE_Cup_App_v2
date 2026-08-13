@@ -88,6 +88,8 @@ export interface PublicPoolTable {
   poolName: string;
   complete: boolean;
   rows: StandingsRow[];
+  /** What a card costs here, so the table can state the rule rather than guess it. */
+  penaltyPoints?: { yellow: number; red: number };
 }
 
 export interface PublicDivision {
@@ -169,6 +171,8 @@ export interface AdminDivision {
   name: string;
   status: string;
   sortOrder: number;
+  /** "13:30", or null to derive it from the event and the sequencing mode. */
+  startTime: string | null;
   fieldIds: string[];
   stages: AdminStage[];
   pools: { id: string; name: string; stageId: string }[];

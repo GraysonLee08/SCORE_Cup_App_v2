@@ -66,8 +66,9 @@ export interface ScoringRules {
  * Weight applied per card when computing the "penalty points" tiebreaker.
  *
  * The 2026 rules phrase this as "least number of cards", which reads as a flat
- * count, so both default to 1. Many tournaments weight a red more heavily --
- * hence configurable. See docs/OPEN-QUESTIONS.md.
+ * count. The tournament director has since specified the FIFA-style weighting
+ * instead -- a yellow counts 1, a red 2 -- so that is the 2026 default. Kept
+ * configurable because the flat reading is equally common.
  */
 export interface PenaltyPointWeights {
   yellow: number;

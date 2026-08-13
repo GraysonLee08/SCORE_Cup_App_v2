@@ -74,17 +74,59 @@ export function setupRoutes(db: Db): Router {
     res.status(204).end();
   });
 
-  /** Rename a tournament, or change which fields it may use. */
+  /** Rename a tournament, change its fields, or set when it starts. */
   router.patch('/divisions/:divisionId', ...admin, async (req, res) => {
     const divisionId = req.params.divisionId;
     const parsed = z
       .object({
         name: z.string().min(1).max(120).optional(),
         fieldIds: z.array(z.string().uuid()).optional(),
+        /** "13:30", or null to derive it from the event and sequencing mode. */
+        startTime: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/, 'Use HH:MM.')
+          .nullable()
+          .optional(),
       })
       .safeParse(req.body);
     if (!divisionId || !parsed.success) {
       throw new HttpError(400, 'Check the values.', 'invalid_input');
+    }
+
+    if (parsed.data.startTime !== undefined) {
+      // Before the event opens is not a start time, it is a typo -- and the
+      // engine measures everything from the event's start, so it cannot be
+      // expressed at all.
+      if (parsed.data.startTime !== null) {
+        const { rows } = await db.query<{ start_time: string; end_time: string }>(
+          `SELECT e.start_time, e.end_time
+             FROM divisions d JOIN events e ON e.id = d.event_id
+            WHERE d.id = $1`,
+          [divisionId],
+        );
+        const event = rows[0];
+        if (!event) throw new HttpError(404, 'No such division.', 'not_found');
+
+        if (parsed.data.startTime < event.start_time.slice(0, 5)) {
+          throw new HttpError(
+            400,
+            `The tournament opens at ${event.start_time.slice(0, 5)}, so this division cannot start at ${parsed.data.startTime}.`,
+            'starts_before_event',
+          );
+        }
+        if (parsed.data.startTime >= event.end_time.slice(0, 5)) {
+          throw new HttpError(
+            400,
+            `The tournament ends at ${event.end_time.slice(0, 5)}, so nothing can start at ${parsed.data.startTime}.`,
+            'starts_after_event',
+          );
+        }
+      }
+
+      await db.query('UPDATE divisions SET start_time = $1 WHERE id = $2', [
+        parsed.data.startTime,
+        divisionId,
+      ]);
     }
 
     if (parsed.data.name) {

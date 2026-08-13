@@ -29,6 +29,15 @@ export interface DivisionPlan {
   timezone: string;
   minRestMinutes: number;
   sequencing: DivisionSequencing;
+  /**
+   * Minutes past the event's start at which this division's first game must
+   * kick off, or null to derive it from the sequencing mode.
+   *
+   * A floor, not a promise: a pitch still hosts one game at a time, so a
+   * division whose pinned start collides with another's games is fitted in
+   * after them and the build says so.
+   */
+  startOffsetMinutes: number | null;
   fieldIds: string[];
   stages: StagePlan[];
 }
@@ -56,9 +65,11 @@ export async function loadDivisionPlan(db: Db, divisionId: string): Promise<Divi
     timezone: string;
     min_rest_minutes: number;
     division_sequencing: DivisionSequencing;
+    division_start_time: string | null;
   }>(
     `SELECT d.name, d.event_id, e.event_date, e.start_time, e.end_time, e.timezone,
-            e.min_rest_minutes, e.division_sequencing
+            e.min_rest_minutes, e.division_sequencing,
+            d.start_time AS division_start_time
        FROM divisions d JOIN events e ON e.id = d.event_id
       WHERE d.id = $1`,
     [divisionId],
@@ -139,6 +150,15 @@ export async function loadDivisionPlan(db: Db, divisionId: string): Promise<Divi
     timezone: division.timezone,
     minRestMinutes: division.min_rest_minutes,
     sequencing: division.division_sequencing,
+    // Stored as wall clock because that is what gets published to teams; the
+    // engine works in offsets, so convert once here.
+    startOffsetMinutes:
+      division.division_start_time === null
+        ? null
+        : Math.max(
+            0,
+            windowMinutes(division.start_time, division.division_start_time),
+          ),
     fieldIds: fieldRows.map((f) => f.id),
     stages,
   };
@@ -198,6 +218,17 @@ export async function reservationsFromOtherDivisions(
     startMinutes: Number(r.offset_minutes),
     endMinutes: Number(r.offset_minutes) + r.slot_minutes,
   }));
+}
+
+/** Wall-clock time this many minutes after the event's start, for messages. */
+function clockAt(startTime: string, offsetMinutes: number): string {
+  const [h = '0', m = '0'] = startTime.split(':');
+  const total = Number(h) * 60 + Number(m) + offsetMinutes;
+  const hour = Math.floor(total / 60) % 24;
+  const minute = total % 60;
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const display = hour % 12 === 0 ? 12 : hour % 12;
+  return `${display}:${String(minute).padStart(2, '0')} ${suffix}`;
 }
 
 /** Minutes between the event's start and end time. */
@@ -436,7 +467,12 @@ export function buildEventSchedule(plans: DivisionPlan[]): EventBuild {
   plans.forEach((plan, index) => {
     const options: BuildOptions = { busy: [...busy] };
 
-    if (sharing && sequencing === 'sequential') {
+    // An explicit start beats a derived one. A division told to begin at 1:30
+    // was told that before any schedule existed, so the schedule bends to it
+    // rather than the other way round.
+    if (plan.startOffsetMinutes !== null) {
+      options.startOffsetMinutes = plan.startOffsetMinutes;
+    } else if (sharing && sequencing === 'sequential') {
       options.startOffsetMinutes = cursor;
     }
 
@@ -460,6 +496,24 @@ export function buildEventSchedule(plans: DivisionPlan[]): EventBuild {
 
     const build = buildSchedule(plan, options);
     perDivision.push({ plan, build });
+
+    // A pinned start is a floor, not a guarantee -- the pitches may still be
+    // occupied. Say so rather than let a division quietly begin late against a
+    // time that has already been sent to teams.
+    if (plan.startOffsetMinutes !== null && build.scheduled.length > 0) {
+      const firstKickoff = Math.min(
+        ...build.scheduled.map((f) => f.kickoffOffsetMinutes),
+      );
+      if (firstKickoff > plan.startOffsetMinutes) {
+        notes.push(
+          `${plan.divisionName} was set to start at ` +
+            `${clockAt(plan.startTime, plan.startOffsetMinutes)}, but no pitch is free ` +
+            `until ${clockAt(plan.startTime, firstKickoff)} — the division before it is ` +
+            `still playing. Give it its own pitches, shorten the earlier division, or ` +
+            `move this start time.`,
+        );
+      }
+    }
 
     for (const stage of plan.stages) {
       busy.push(
@@ -501,7 +555,14 @@ export interface DivisionFeasibility extends FeasibilityReport {
 }
 
 export function divisionFeasibility(plan: DivisionPlan): DivisionFeasibility {
-  const build = buildSchedule(plan);
+  // A division that starts at 1:30 has less of the day left than one starting
+  // at 9:00, so "does it fit" has to be asked from its own start.
+  const build = buildSchedule(
+    plan,
+    plan.startOffsetMinutes === null
+      ? {}
+      : { startOffsetMinutes: plan.startOffsetMinutes },
+  );
   const available = windowMinutes(plan.startTime, plan.endTime);
 
   // Re-express the whole division as one feasibility question. Stage-level

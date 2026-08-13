@@ -1,5 +1,23 @@
 import type { PublicPoolTable } from '../types.js';
 
+/**
+ * State the weighting rather than assume it. The number is on public display
+ * and it decides who goes through, so an explanation that disagrees with the
+ * configuration would be worse than none at all.
+ */
+function cardRule(weights: PublicPoolTable['penaltyPoints']): string {
+  if (!weights) return 'Cards counts against a team.';
+  const part = (n: number, colour: string) =>
+    `a ${colour} counts ${n}${n === 1 ? '' : ''}`;
+  return weights.yellow === weights.red
+    ? `Every card counts ${weights.yellow}.`
+    : `${capitalise(part(weights.yellow, 'yellow'))}, ${part(weights.red, 'red')}.`;
+}
+
+function capitalise(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 export default function StandingsTable({
   pool,
   highlightTeamId,
@@ -73,8 +91,8 @@ export default function StandingsTable({
 
       {/* Say why the order is what it is, rather than leaving people to guess. */}
       <p className="muted" style={{ marginTop: '.6rem' }}>
-        Cards counts towards separating teams level on points — fewer is better. Hover or tap
-        the number for the yellow and red breakdown.
+        {cardRule(pool.penaltyPoints)} Used to separate teams level on points — fewer is
+        better. Hover or tap a number for the yellow and red breakdown.
       </p>
       {anyManual && (
         <p className="muted" style={{ marginTop: '.6rem' }}>

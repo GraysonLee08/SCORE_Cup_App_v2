@@ -66,6 +66,13 @@ export default function TimingWidget({
         </div>
       )}
 
+      <DivisionStart
+        key={`${division.id}:${division.startTime ?? ''}`}
+        division={division}
+        eventStartTime={data.event.startTime}
+        onChanged={onChanged}
+      />
+
       {division.stages.length === 0 && (
         <section className="card">
           <h2>{division.name} has no rounds yet</h2>
@@ -80,13 +87,129 @@ export default function TimingWidget({
             key={stage.id}
             stage={stage}
             division={division}
-            eventStartTime={data.event.startTime}
+            eventStartTime={division.startTime ?? data.event.startTime}
             isFirst={index === 0}
             onChanged={onChanged}
           />
         ))}
     </div>
   );
+}
+
+/**
+ * When this division's first game kicks off.
+ *
+ * Left blank, the schedule works it out -- which is right for a single
+ * tournament, and was the only option until now. Set, it is honoured: a
+ * division whose 1:30 start has already gone out to teams is not a
+ * consequence of how the morning ran, it is a commitment.
+ *
+ * It does not license a double booking. A pitch still hosts one game at a
+ * time, so two divisions whose times overlap get fitted around each other and
+ * the build reports it if this division had to wait for grass.
+ */
+function DivisionStart({
+  division,
+  eventStartTime,
+  onChanged,
+}: {
+  division: AdminDivision;
+  eventStartTime: string;
+  onChanged: () => void;
+}) {
+  const [pinned, setPinned] = useState(division.startTime !== null);
+  const [time, setTime] = useState(division.startTime ?? eventStartTime);
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const dirty = pinned !== (division.startTime !== null) || (pinned && time !== division.startTime);
+
+  return (
+    <section className="card">
+      <div className="meta">
+        <h2 style={{ margin: 0, flex: 1 }}>{division.name} starts</h2>
+        <span className="pill">
+          {division.startTime ? `${to12Hour(division.startTime)}` : 'Worked out for you'}
+        </span>
+      </div>
+
+      {status && (
+        <div className={status.ok ? 'notice ok' : 'notice error'} role="status">
+          {status.text}
+        </div>
+      )}
+
+      <div className="checkbox-row">
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={pinned}
+            onChange={(e) => setPinned(e.target.checked)}
+          />
+          Start this division at a set time
+        </label>
+      </div>
+
+      {pinned ? (
+        <div className="field" style={{ maxWidth: '12rem' }}>
+          <label htmlFor={`start-${division.id}`}>First kickoff</label>
+          <input
+            id={`start-${division.id}`}
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
+        </div>
+      ) : (
+        <p className="hint">
+          The schedule decides — the tournament opens at {to12Hour(eventStartTime)}, and with
+          more than one division the later ones follow on once the pitches are free.
+        </p>
+      )}
+
+      {pinned && (
+        <p className="hint">
+          Games will not start before {to12Hour(time)}. If another division is still playing
+          on the pitches at that point, this one waits for them and the build will tell you —
+          a pitch can only host one game at a time.
+        </p>
+      )}
+
+      <button
+        className="primary"
+        style={{ maxWidth: '16rem' }}
+        disabled={busy || !dirty}
+        onClick={async () => {
+          setBusy(true);
+          setStatus(null);
+          try {
+            await api.patch(`/api/setup/divisions/${division.id}`, {
+              startTime: pinned ? time : null,
+            });
+            setStatus({ ok: true, text: 'Saved. Rebuild the schedule to apply it.' });
+            onChanged();
+          } catch (error) {
+            setStatus({
+              ok: false,
+              text: error instanceof ApiFailure ? error.message : 'Could not save it.',
+            });
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? 'Saving…' : dirty ? 'Save start time' : 'Saved'}
+      </button>
+    </section>
+  );
+}
+
+function to12Hour(time: string): string {
+  const [h = '0', m = '00'] = time.split(':');
+  const hour = globalThis.Number(h);
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const display = hour % 12 === 0 ? 12 : hour % 12;
+  return `${display}:${m} ${suffix}`;
 }
 
 function StageTiming({

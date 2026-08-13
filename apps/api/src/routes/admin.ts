@@ -35,6 +35,7 @@ export function adminRoutes(db: Db): Router {
 
     const { rows: divisions } = await db.query(
       `SELECT d.id, d.name, d.status, d.sort_order AS "sortOrder",
+              to_char(d.start_time, 'HH24:MI') AS "startTime",
               COALESCE(
                 (SELECT json_agg(df.field_id) FROM division_fields df WHERE df.division_id = d.id),
                 '[]'::json

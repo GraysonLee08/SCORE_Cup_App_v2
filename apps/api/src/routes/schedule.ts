@@ -65,7 +65,14 @@ export function scheduleRoutes(db: Db): Router {
 
     let build;
     try {
-      build = buildSchedule(plan, { busy });
+      build = buildSchedule(plan, {
+        busy,
+        // A division with its own start time keeps it however it is built, so
+        // generating one division does not quietly move it to the morning.
+        ...(plan.startOffsetMinutes === null
+          ? {}
+          : { startOffsetMinutes: plan.startOffsetMinutes }),
+      });
     } catch (error) {
       asHttpError(error);
     }

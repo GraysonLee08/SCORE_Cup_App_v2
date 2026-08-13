@@ -79,7 +79,8 @@ export const DEFAULT_POOL_CONFIG: PoolStageConfigInput = {
   poolCount: 2,
   gamesPerTeam: 3,
   scoring: { win: 3, draw: 1, loss: 0, shutoutWinBonus: 1 },
-  penaltyPoints: { yellow: 1, red: 1 },
+  /** A yellow counts 1, a red 2 -- the FIFA-style weighting, per the director. */
+  penaltyPoints: { yellow: 1, red: 2 },
   tiebreakers: ['headToHead', 'goalsFor', 'goalsAgainst', 'penaltyPoints', 'manual'],
   timing: { halfMinutes: 14, halftimeMinutes: 2, changeoverMinutes: 5 },
 };

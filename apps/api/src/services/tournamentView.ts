@@ -57,6 +57,12 @@ export interface PublicPoolTable {
   poolName: string;
   complete: boolean;
   rows: (StandingsRow & { teamName: string })[];
+  /**
+   * What a card costs in this pool. Sent so the standings can state the rule
+   * rather than assert a weighting the config might not use -- the number is
+   * on public display, so the explanation beside it has to be the real one.
+   */
+  penaltyPoints: { yellow: number; red: number };
 }
 
 export interface PublicDivision {
@@ -222,6 +228,7 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
       poolName: pool.name,
       complete,
       rows: table.map((r) => ({ ...r, teamName: teamNames.get(r.teamId) ?? 'Unknown' })),
+      penaltyPoints: parsed.data.penaltyPoints,
     });
   }
 
