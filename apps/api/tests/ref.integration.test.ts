@@ -44,6 +44,7 @@ function makeClient(app: Express) {
     get: (p: string) => send('GET', p),
     post: (p: string, b?: unknown) => send('POST', p, b),
     put: (p: string, b?: unknown) => send('PUT', p, b),
+    del: (p: string) => send('DELETE', p),
     async loginAs(email: string, password: string) {
       cookie = '';
       return send('POST', '/api/auth/login', { email, password });
@@ -153,6 +154,87 @@ suite('referee score entry', () => {
       'SELECT home_score FROM fixtures WHERE id = $1', [myFixtureId],
     );
     expect(rows[0]!.home_score).toBe(3);
+  });
+
+  /**
+   * A nil-nil draw is a played game worth a point to each side. It has to be
+   * storable as 0, distinct from "not entered", or the standings lose a game
+   * that was actually played.
+   */
+  it('records a nil-nil draw as a played game, not as nothing', async () => {
+    const res = await client.put(`/api/ref/fixtures/${myFixtureId}/score`, {
+      homeScore: 0, awayScore: 0, status: 'complete',
+    });
+    expect(res.status).toBe(200);
+
+    const { rows } = await db.query<{ home_score: number | null; status: string }>(
+      'SELECT home_score, away_score, status FROM fixtures WHERE id = $1', [myFixtureId],
+    );
+    expect(rows[0]!.home_score).toBe(0);
+    expect(rows[0]!.home_score).not.toBeNull();
+    expect(rows[0]!.status).toBe('complete');
+  });
+
+  it('clears a result back to not yet played', async () => {
+    await client.put(`/api/ref/fixtures/${myFixtureId}/score`, {
+      homeScore: 4, awayScore: 2, status: 'complete',
+    });
+
+    const res = await client.del(`/api/ref/fixtures/${myFixtureId}/score`);
+    expect(res.status).toBe(200);
+
+    const { rows } = await db.query<{
+      home_score: number | null; away_score: number | null; status: string;
+    }>('SELECT home_score, away_score, status FROM fixtures WHERE id = $1', [myFixtureId]);
+    expect(rows[0]!.home_score).toBeNull();
+    expect(rows[0]!.away_score).toBeNull();
+    expect(rows[0]!.status).toBe('scheduled');
+  });
+
+  /** A captain signed for a score that no longer exists. */
+  it('drops the captains’ sign-offs when a result is cleared', async () => {
+    await client.put(`/api/ref/fixtures/${myFixtureId}/score`, {
+      homeScore: 2, awayScore: 1, status: 'complete',
+    });
+    const signoff = await client.post(`/api/ref/fixtures/${myFixtureId}/signoff`, {
+      teamId: homeTeamId, captainName: 'A Captain',
+    });
+    expect(signoff.status).toBe(201);
+
+    const res = await client.del(`/api/ref/fixtures/${myFixtureId}/score`);
+    expect(res.body.signoffsRemoved).toBe(1);
+
+    const { rows } = await db.query<{ n: string }>(
+      'SELECT count(*) AS n FROM match_signoffs WHERE fixture_id = $1', [myFixtureId],
+    );
+    expect(Number(rows[0]!.n)).toBe(0);
+  });
+
+  /** Cards were shown regardless of the score, so clearing must not bin them. */
+  it('keeps cards when a result is cleared', async () => {
+    await client.put(`/api/ref/fixtures/${myFixtureId}/score`, {
+      homeScore: 1, awayScore: 1, status: 'complete',
+    });
+    const card = await client.post(`/api/ref/fixtures/${myFixtureId}/cards`, {
+      teamId: homeTeamId, type: 'yellow', clientId: 'clear-keeps-cards-0001',
+    });
+
+    await client.del(`/api/ref/fixtures/${myFixtureId}/score`);
+
+    const { rows } = await db.query<{ n: string }>(
+      'SELECT count(*) AS n FROM cards WHERE fixture_id = $1', [myFixtureId],
+    );
+    expect(Number(rows[0]!.n)).toBe(1);
+
+    // Later tests in this suite share the fixture and count its cards, so put
+    // the disciplinary record back as it was found.
+    await client.del(`/api/ref/fixtures/${myFixtureId}/cards/${card.body.id}`);
+  });
+
+  it('refuses to clear a result on another referee’s field', async () => {
+    const res = await client.del(`/api/ref/fixtures/${otherFixtureId}/score`);
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('wrong_field');
   });
 
   it('refuses to write to another referee’s field', async () => {

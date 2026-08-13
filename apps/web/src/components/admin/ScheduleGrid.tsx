@@ -128,6 +128,19 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
   const chosenDivision = divisions.find((d) => d.id === chosen?.divisionId) ?? null;
   const showAll = divisionFilter === '';
 
+  /**
+   * Games with nowhere to be drawn.
+   *
+   * The grid is a cell per (field, time), so a game missing either matches no
+   * cell and vanishes -- with no way to select it again and put it back. They
+   * get their own row instead: nothing can be lost if there is always
+   * somewhere for it to sit.
+   */
+  const unassigned = useMemo(
+    () => fixtures.filter((f) => !f.fieldName || !f.kickoffAt),
+    [fixtures],
+  );
+
   return (
     <>
       {status && !status.ok && (
@@ -231,10 +244,13 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
                               : issues.length > 0
                                 ? 'warn'
                                 : '';
+                            const dimmed = !showAll && f.divisionId !== divisionFilter;
                             return (
                               <button
                                 key={f.id}
-                                className={`slot ${worst} ${selected === f.id ? 'chosen' : ''}`}
+                                className={`slot ${worst} ${selected === f.id ? 'chosen' : ''}${
+                                  dimmed ? ' dim' : ''
+                                }`}
                                 onClick={() => setSelected(selected === f.id ? null : f.id)}
                                 title={issues.map((c) => c.message).join('\n')}
                               >
@@ -256,6 +272,35 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
                     })}
                   </tr>
                 ))}
+
+                {unassigned.length > 0 && (
+                  <tr className="unassigned-row">
+                    <th scope="row">
+                      Unassigned
+                      <span className="pill" style={{ background: 'var(--bad)', color: '#fff' }}>
+                        {unassigned.length}
+                      </span>
+                    </th>
+                    <td colSpan={Math.max(1, slots.length)}>
+                      {unassigned.map((f) => (
+                        <button
+                          key={f.id}
+                          className={`slot warn ${selected === f.id ? 'chosen' : ''}`}
+                          onClick={() => setSelected(selected === f.id ? null : f.id)}
+                        >
+                          <span className="slot-teams">
+                            {f.homeTeamName} v {f.awayTeamName}
+                          </span>
+                          <span className="slot-meta">
+                            {f.divisionName}
+                            {!f.fieldName && ' · no pitch'}
+                            {!f.kickoffAt && ' · no time'}
+                          </span>
+                        </button>
+                      ))}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

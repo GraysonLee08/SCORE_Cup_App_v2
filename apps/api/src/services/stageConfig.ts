@@ -41,6 +41,8 @@ export const poolStageConfigSchema = z.object({
   penaltyPoints: penaltyPointWeights,
   tiebreakers: z.array(tiebreaker).min(1),
   timing: matchTiming,
+  /** Minutes after the previous stage ends. Ignored on a division's first stage. */
+  gapBeforeMinutes: z.number().int().min(0).max(480).optional(),
 });
 
 /**
@@ -58,6 +60,8 @@ export const bracketStageConfigSchema = z.object({
   thirdPlaceGame: z.boolean(),
   drawResolution: z.literal('penalties'),
   timing: matchTiming,
+  /** Minutes after the previous stage ends. Ignored on a division's first stage. */
+  gapBeforeMinutes: z.number().int().min(0).max(480).optional(),
 });
 
 export const stageConfigSchema = z.discriminatedUnion('kind', [

@@ -33,6 +33,9 @@ export default function StandingsTable({
               <th scope="col" className="num">L</th>
               <th scope="col" className="num">GF</th>
               <th scope="col" className="num">GA</th>
+              <th scope="col" className="num" title="Card points — fewer is better">
+                Cards
+              </th>
               <th scope="col" className="num">Pts</th>
             </tr>
           </thead>
@@ -55,7 +58,12 @@ export default function StandingsTable({
                 <td className="num">{row.drawn}</td>
                 <td className="num">{row.lost}</td>
                 <td className="num">{row.goalsFor}</td>
-                <td className="num">{row.goalsAgainst}</td>
+                <td
+                  className="num"
+                  title={`${row.yellowCards} yellow, ${row.redCards} red`}
+                >
+                  {row.penaltyPoints}
+                </td>
                 <td className="num strong">{row.points}</td>
               </tr>
             ))}
@@ -64,6 +72,10 @@ export default function StandingsTable({
       </div>
 
       {/* Say why the order is what it is, rather than leaving people to guess. */}
+      <p className="muted" style={{ marginTop: '.6rem' }}>
+        Cards counts towards separating teams level on points — fewer is better. Hover or tap
+        the number for the yellow and red breakdown.
+      </p>
       {anyManual && (
         <p className="muted" style={{ marginTop: '.6rem' }}>
           * Level on every tiebreaker — separated by the tournament organisers.

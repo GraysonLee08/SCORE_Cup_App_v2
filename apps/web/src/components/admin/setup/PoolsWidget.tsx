@@ -151,7 +151,17 @@ export default function PoolsWidget({
             return (
               <section className="card" key={pool.id}>
                 <div className="meta">
-                  <h2 style={{ margin: 0, flex: 1 }}>{pool.name}</h2>
+                  <PoolName
+                    key={`${pool.id}:${pool.name}`}
+                    poolId={pool.id}
+                    name={pool.name}
+                    onRename={(next) =>
+                      run(
+                        () => api.patch(`/api/setup/pools/${pool.id}`, { name: next }),
+                        `Renamed to ${next}.`,
+                      )
+                    }
+                  />
                   <span className="pill">{members.length}</span>
                 </div>
 
@@ -189,5 +199,47 @@ export default function PoolsWidget({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Pool names are public -- they head the standings and label the playoff
+ * games ("Poet 1st v Athlete 2nd") -- so they need to be whatever the
+ * tournament actually calls them, not Pool A and Pool B.
+ *
+ * Saves on blur or Enter rather than behind a button: this is a text field
+ * with one obvious meaning, and a Save button next to it would be noise.
+ */
+function PoolName({
+  poolId,
+  name,
+  onRename,
+}: {
+  poolId: string;
+  name: string;
+  onRename: (next: string) => void;
+}) {
+  const [value, setValue] = useState(name);
+
+  const commit = () => {
+    const next = value.trim();
+    if (!next || next === name) return setValue(name);
+    onRename(next);
+  };
+
+  return (
+    <input
+      id={`pool-name-${poolId}`}
+      aria-label={`Name of ${name}`}
+      className="inline-title"
+      value={value}
+      style={{ flex: 1, minWidth: 0 }}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+        if (e.key === 'Escape') setValue(name);
+      }}
+    />
   );
 }

@@ -172,6 +172,37 @@ export function setupRoutes(db: Db): Router {
     res.json({ count: parsed.data.count });
   });
 
+  /**
+   * Rename a pool.
+   *
+   * Auto-named Pool A/B on creation, but the names are public -- they appear on
+   * the schedule, the standings and the playoff labels -- so they need to match
+   * whatever the tournament actually calls them.
+   */
+  router.patch('/pools/:poolId', ...admin, async (req, res) => {
+    const poolId = req.params.poolId;
+    const parsed = z.object({ name: z.string().min(1).max(80) }).safeParse(req.body);
+    if (!poolId || !parsed.success) {
+      throw new HttpError(400, 'A pool name is required.', 'invalid_input');
+    }
+
+    const { rowCount } = await db.query('UPDATE pools SET name = $1 WHERE id = $2', [
+      parsed.data.name.trim(),
+      poolId,
+    ]);
+    if (!rowCount) throw new HttpError(404, 'No such pool.', 'not_found');
+
+    await recordAudit(db, {
+      actorUserId: req.session.user!.id,
+      entityType: 'pool',
+      entityId: poolId,
+      action: 'rename',
+      after: { name: parsed.data.name.trim() },
+    });
+
+    res.status(204).end();
+  });
+
   /** Games each team plays in pool play. Drives fixture generation. */
   router.put('/divisions/:divisionId/games-per-team', ...admin, async (req, res) => {
     const divisionId = req.params.divisionId;
@@ -188,6 +219,61 @@ export function setupRoutes(db: Db): Router {
     if (!rowCount) throw new HttpError(400, 'This tournament has no pool stage.', 'no_stage');
 
     res.json({ count: parsed.data.count });
+  });
+
+  /**
+   * How long a game takes, and how long the pitch sits empty afterwards.
+   *
+   * All of this already drove the schedule; none of it could be changed
+   * without editing the database by hand, which meant the length of a game was
+   * effectively fixed. Changing it does not move existing games -- the schedule
+   * has to be rebuilt for it to take effect, and the caller is told so.
+   */
+  router.put('/stages/:stageId/timing', ...admin, async (req, res) => {
+    const stageId = req.params.stageId;
+    const parsed = z
+      .object({
+        halfMinutes: z.number().int().min(1).max(90),
+        halftimeMinutes: z.number().int().min(0).max(60),
+        changeoverMinutes: z.number().int().min(0).max(120),
+        gapBeforeMinutes: z.number().int().min(0).max(480).optional(),
+      })
+      .safeParse(req.body);
+    if (!stageId || !parsed.success) {
+      throw new HttpError(400, 'Check the timings.', 'invalid_input');
+    }
+    const d = parsed.data;
+
+    const { rowCount } = await db.query(
+      `UPDATE stages
+          SET config = config
+                       || jsonb_build_object('timing', $1::jsonb)
+                       || CASE WHEN $2::int IS NULL THEN '{}'::jsonb
+                               ELSE jsonb_build_object('gapBeforeMinutes', $2::int) END
+        WHERE id = $3`,
+      [
+        JSON.stringify({
+          halfMinutes: d.halfMinutes,
+          halftimeMinutes: d.halftimeMinutes,
+          changeoverMinutes: d.changeoverMinutes,
+        }),
+        d.gapBeforeMinutes ?? null,
+        stageId,
+      ],
+    );
+    if (!rowCount) throw new HttpError(404, 'No such stage.', 'not_found');
+
+    await recordAudit(db, {
+      actorUserId: req.session.user!.id,
+      entityType: 'stage',
+      entityId: stageId,
+      action: 'set_timing',
+      after: d,
+    });
+
+    res.json({
+      slotMinutes: d.halfMinutes * 2 + d.halftimeMinutes + d.changeoverMinutes,
+    });
   });
 
   /**

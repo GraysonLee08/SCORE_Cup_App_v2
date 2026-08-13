@@ -19,7 +19,7 @@ import { stageConfigSchema, type StageConfigInput } from './stageConfig.js';
 /** How divisions share the venue. See migration 006. */
 export type DivisionSequencing = 'separate_fields' | 'sequential' | 'alternating';
 
-interface DivisionPlan {
+export interface DivisionPlan {
   divisionId: string;
   divisionName: string;
   eventId: string;
@@ -33,7 +33,7 @@ interface DivisionPlan {
   stages: StagePlan[];
 }
 
-interface StagePlan {
+export interface StagePlan {
   id: string;
   kind: 'pool' | 'bracket';
   sequence: number;
@@ -304,8 +304,16 @@ export function buildSchedule(plan: DivisionPlan, options: BuildOptions = {}): B
   let previousPoolIds: string[] = [];
   let previousTeamCount = 0;
   let smallestPreviousPool = 0;
+  let previousEnd: number | null = null;
 
   for (const stage of plan.stages) {
+    // The gap belongs to the stage being delayed, not to the one that just
+    // finished -- a division that wants 20 minutes before its playoffs is
+    // describing the playoffs, and says so on that stage.
+    if (previousEnd !== null) {
+      cursor = previousEnd + (stage.config.gapBeforeMinutes ?? gapBetweenStagesMinutes);
+    }
+
     const fixtures = buildFixtures(
       stage,
       previousPoolIds,
@@ -333,7 +341,8 @@ export function buildSchedule(plan: DivisionPlan, options: BuildOptions = {}): B
       endMinutes: result.endMinutes,
     });
 
-    cursor = result.endMinutes + gapBetweenStagesMinutes;
+    previousEnd = result.endMinutes;
+    cursor = result.endMinutes;
     if (stage.kind === 'pool') {
       const withTeams = stage.pools.filter((p) => p.teamIds.length > 0);
       previousPoolIds = withTeams.map((p) => p.id);
@@ -349,7 +358,7 @@ export function buildSchedule(plan: DivisionPlan, options: BuildOptions = {}): B
 
   return {
     scheduled,
-    totalMinutes: Math.max(0, cursor - gapBetweenStagesMinutes),
+    totalMinutes: Math.max(0, cursor),
     perStage,
     quality: {
       backToBackCount,

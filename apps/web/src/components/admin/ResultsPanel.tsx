@@ -3,9 +3,16 @@ import { computeStandings, type Card as EngineCard, type Result } from '@scores-
 import { api, ApiFailure } from '../../api.js';
 import type { AdminEvent, AdminUser, Card, PublicDivision, PublicFixture } from '../../types.js';
 
+/**
+ * Scores are nullable here on purpose.
+ *
+ * `null` means nobody has entered a result; `0` means they entered nil. Folding
+ * those together makes a real 0-0 draw impossible to save -- it looks identical
+ * to an untouched game -- and makes an untouched game look scored.
+ */
 interface PendingEdit {
-  homeScore: number;
-  awayScore: number;
+  homeScore: number | null;
+  awayScore: number | null;
   homeYellow: number;
   homeRed: number;
   awayYellow: number;
@@ -29,6 +36,7 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [referees, setReferees] = useState<AdminUser[]>([]);
+  const [scoreFilter, setScoreFilter] = useState<'all' | 'unscored' | 'scored'>('all');
 
   const load = useCallback(async () => {
     if (!divisionId) return;
@@ -137,8 +145,8 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
           : {
               ...p,
               [fixture.id]: {
-                homeScore: fixture.homeScore ?? 0,
-                awayScore: fixture.awayScore ?? 0,
+                homeScore: fixture.homeScore,
+                awayScore: fixture.awayScore,
                 homeYellow: fixture.homeCards.yellow,
                 homeRed: fixture.homeCards.red,
                 awayYellow: fixture.awayCards.yellow,
@@ -186,8 +194,8 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
     const e = pending[id]!;
     if (!f) return false;
     return (
-      e.homeScore !== (f.homeScore ?? 0) ||
-      e.awayScore !== (f.awayScore ?? 0) ||
+      e.homeScore !== f.homeScore ||
+      e.awayScore !== f.awayScore ||
       e.homeYellow !== f.homeCards.yellow ||
       e.homeRed !== f.homeCards.red ||
       e.awayYellow !== f.awayCards.yellow ||
@@ -195,19 +203,65 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
     );
   });
 
+  /**
+   * Filtering by scored/unscored answers "what is still outstanding" at the
+   * scores table, which late in the day is the only question being asked.
+   * A game being edited stays visible whatever the filter says, so the list
+   * cannot shift out from under someone mid-edit.
+   */
+  const visibleFixtures = useMemo(() => {
+    if (!division) return [];
+    if (scoreFilter === 'all') return division.fixtures;
+    return division.fixtures.filter((f) => {
+      if (pending[f.id]) return true;
+      return scoreFilter === 'scored' ? f.homeScore !== null : f.homeScore === null;
+    });
+  }, [division, scoreFilter, pending]);
+
+  /** One side entered and the other blank -- not a result, and not a clear. */
+  const incompleteIds = changedIds.filter((id) => {
+    const e = pending[id]!;
+    return (e.homeScore === null) !== (e.awayScore === null);
+  });
+
   async function saveAll() {
     if (!division) return;
+
+    // Clearing destroys a result, so it is confirmed here rather than at the
+    // counter -- this is the point of no return, not the button press.
+    const clearing = changedIds.filter((id) => {
+      const f = division.fixtures.find((x) => x.id === id)!;
+      return pending[id]!.homeScore === null && f.homeScore !== null;
+    });
+    if (clearing.length > 0) {
+      const names = clearing
+        .map((id) => {
+          const f = division.fixtures.find((x) => x.id === id)!;
+          return `${f.homeTeamName} ${f.homeScore}–${f.awayScore} ${f.awayTeamName}`;
+        })
+        .join('\n');
+      const ok = window.confirm(
+        `This clears ${clearing.length} result${clearing.length === 1 ? '' : 's'} back to ` +
+          `not yet played:\n\n${names}\n\nThe standings will drop the game. Cards are kept.`,
+      );
+      if (!ok) return;
+    }
+
     setSaving(true);
     setStatus(null);
     try {
       for (const id of changedIds) {
         const fixture = division.fixtures.find((f) => f.id === id)!;
         const edit = pending[id]!;
-        await api.put(`/api/ref/fixtures/${id}/score`, {
-          homeScore: edit.homeScore,
-          awayScore: edit.awayScore,
-          status: 'complete',
-        });
+        if (edit.homeScore === null && edit.awayScore === null) {
+          await api.delete(`/api/ref/fixtures/${id}/score`);
+        } else {
+          await api.put(`/api/ref/fixtures/${id}/score`, {
+            homeScore: edit.homeScore,
+            awayScore: edit.awayScore,
+            status: 'complete',
+          });
+        }
         await reconcileCards(fixture, edit);
       }
       setStatus({
@@ -236,33 +290,62 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
         </div>
       )}
 
-      {data.divisions.length > 1 && (
-        <div className="field" style={{ maxWidth: '20rem' }}>
-          <label htmlFor="r-division">Division</label>
+      <div className="row" style={{ alignItems: 'flex-end' }}>
+        {data.divisions.length > 1 && (
+          <div className="field" style={{ maxWidth: '20rem', marginBottom: 0 }}>
+            <label htmlFor="r-division">Division</label>
+            <select
+              id="r-division"
+              value={divisionId}
+              onChange={(e) => setDivisionId(e.target.value)}
+            >
+              {data.divisions.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="field" style={{ maxWidth: '14rem', marginBottom: 0 }}>
+          <label htmlFor="r-filter">Show</label>
           <select
-            id="r-division"
-            value={divisionId}
-            onChange={(e) => setDivisionId(e.target.value)}
+            id="r-filter"
+            value={scoreFilter}
+            onChange={(e) => setScoreFilter(e.target.value as typeof scoreFilter)}
           >
-            {data.divisions.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
+            <option value="all">All games</option>
+            <option value="unscored">Not yet scored</option>
+            <option value="scored">Scored</option>
           </select>
         </div>
-      )}
+
+        {division && (
+          <span className="pill" style={{ marginBottom: '.4rem' }}>
+            {division.fixtures.filter((f) => f.homeScore === null).length} still to score
+          </span>
+        )}
+      </div>
 
       {changedIds.length > 0 && (
         <div className="notice pending" style={{ display: 'flex', alignItems: 'center', gap: '.8rem' }}>
           <span style={{ flex: 1 }}>
             <strong>{changedIds.length}</strong> unsaved change
-            {changedIds.length === 1 ? '' : 's'}. The table on the right shows the effect.
+            {changedIds.length === 1 ? '' : 's'}.{' '}
+            {incompleteIds.length > 0
+              ? `${incompleteIds.length} ${incompleteIds.length === 1 ? 'game has' : 'games have'} a score on one side only — fill in both, or clear both.`
+              : 'The table on the right shows the effect.'}
           </span>
           <button onClick={() => setPending({})} disabled={saving}>
             Discard
           </button>
-          <button className="primary" style={{ width: 'auto' }} onClick={() => void saveAll()} disabled={saving}>
+          <button
+            className="primary"
+            style={{ width: 'auto' }}
+            onClick={() => void saveAll()}
+            disabled={saving || incompleteIds.length > 0}
+          >
             {saving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
@@ -276,13 +359,23 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
             <p className="muted">No schedule yet — generate one under Setup → Generate schedule.</p>
           )}
 
-          {division?.fixtures.map((fixture) => {
+          {visibleFixtures.length === 0 && division && division.fixtures.length > 0 && (
+            <p className="muted">
+              No {scoreFilter === 'scored' ? 'scored' : 'unscored'} games.
+            </p>
+          )}
+
+          {visibleFixtures.map((fixture) => {
             const edit = pending[fixture.id];
             const isOpen = openFixture === fixture.id;
             const changed = changedIds.includes(fixture.id);
 
             return (
-              <div className="fixture" key={fixture.id} style={changed ? { borderColor: 'var(--accent)' } : undefined}>
+              <div
+                className={`fixture${(edit ? edit.homeScore : fixture.homeScore) === null ? ' unscored' : ''}`}
+                key={fixture.id}
+                style={changed ? { borderColor: 'var(--accent)' } : undefined}
+              >
                 <div className="fixture-meta">
                   {fixture.kickoffAt && (
                     <span>
@@ -301,13 +394,13 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
                 <div className="team-line">
                   <span className="team-name">{fixture.homeTeamName}</span>
                   <span className="team-score">
-                    {edit ? edit.homeScore : (fixture.homeScore ?? '–')}
+                    {(edit ? edit.homeScore : fixture.homeScore) ?? '–'}
                   </span>
                 </div>
                 <div className="team-line">
                   <span className="team-name">{fixture.awayTeamName}</span>
                   <span className="team-score">
-                    {edit ? edit.awayScore : (fixture.awayScore ?? '–')}
+                    {(edit ? edit.awayScore : fixture.awayScore) ?? '–'}
                   </span>
                 </div>
 
@@ -383,6 +476,7 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
                             }))
                           }
                           suffix="goals"
+                          allowEmpty
                         />
                         <Counter
                           label={`${label} yellow cards`}
@@ -392,7 +486,7 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
                               ...p,
                               [fixture.id]: {
                                 ...p[fixture.id]!,
-                                [side === 'home' ? 'homeYellow' : 'awayYellow']: v,
+                                [side === 'home' ? 'homeYellow' : 'awayYellow']: v ?? 0,
                               },
                             }))
                           }
@@ -406,7 +500,7 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
                               ...p,
                               [fixture.id]: {
                                 ...p[fixture.id]!,
-                                [side === 'home' ? 'homeRed' : 'awayRed']: v,
+                                [side === 'home' ? 'homeRed' : 'awayRed']: v ?? 0,
                               },
                             }))
                           }
@@ -442,6 +536,9 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
                         <th scope="col" className="num">P</th>
                         <th scope="col" className="num">GF</th>
                         <th scope="col" className="num">GA</th>
+                        <th scope="col" className="num" title="Card points — fewer is better">
+                          Cards
+                        </th>
                         <th scope="col" className="num">Pts</th>
                       </tr>
                     </thead>
@@ -460,7 +557,12 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
                             </td>
                             <td className="num">{row.played}</td>
                             <td className="num">{row.goalsFor}</td>
-                            <td className="num">{row.goalsAgainst}</td>
+                            <td
+                              className="num"
+                              title={`${row.yellowCards} yellow, ${row.redCards} red`}
+                            >
+                              {row.penaltyPoints}
+                            </td>
                             <td className="num strong">{row.points}</td>
                           </tr>
                         );
@@ -485,27 +587,45 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
   );
 }
 
+/**
+ * With `allowEmpty`, counting below nil returns to "–" rather than sticking at
+ * 0. That is what makes an accidental edit undoable in the same gesture that
+ * caused it, and it is why goals are nullable and cards are not: a game can be
+ * unplayed, but a played game cannot have an unknown number of yellows.
+ */
 function Counter({
   label,
   value,
   onChange,
   suffix,
+  allowEmpty = false,
 }: {
   label: string;
-  value: number;
-  onChange: (v: number) => void;
+  value: number | null;
+  onChange: (v: number | null) => void;
   suffix: string;
+  allowEmpty?: boolean;
 }) {
+  const decrement = () => {
+    if (value === null) return;
+    if (value === 0) return onChange(allowEmpty ? null : 0);
+    onChange(value - 1);
+  };
+
   return (
-    <span className="counter">
-      <button aria-label={`Fewer ${label}`} onClick={() => onChange(Math.max(0, value - 1))}>
+    <span className={`counter${value === null ? ' empty' : ''}`}>
+      <button
+        aria-label={value === 0 && allowEmpty ? `Clear ${label}` : `Fewer ${label}`}
+        onClick={decrement}
+        disabled={value === null}
+      >
         −
       </button>
       <span className="counter-value">
-        {value}
+        {value ?? '–'}
         <span className="counter-suffix">{suffix}</span>
       </span>
-      <button aria-label={`More ${label}`} onClick={() => onChange(value + 1)}>
+      <button aria-label={`More ${label}`} onClick={() => onChange((value ?? -1) + 1)}>
         +
       </button>
     </span>

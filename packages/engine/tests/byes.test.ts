@@ -6,8 +6,8 @@ import {
   nextPowerOfTwo,
   FixtureGenerationError,
 } from '../src/fixtures.js';
-import { resolveTeamRef } from '../src/resolve.js';
-import type { ResolutionContext, StandingsRow, TeamRef } from '../src/types.js';
+import { resolveTeamRef, type ResolutionContext } from '../src/resolve.js';
+import type { StandingsRow, TeamRef } from '../src/types.js';
 
 /**
  * Playoffs of any size.

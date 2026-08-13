@@ -95,6 +95,12 @@ export interface PoolStageConfig {
   penaltyPoints: PenaltyPointWeights;
   tiebreakers: Tiebreaker[];
   timing: MatchTiming;
+  /**
+   * Minutes between the previous stage's last whistle and this stage's first
+   * kickoff. Ignored on the first stage of a division, which has nothing to
+   * follow. See {@link BracketStageConfig.gapBeforeMinutes}.
+   */
+  gapBeforeMinutes?: number;
 }
 
 export interface BracketStageConfig {
@@ -120,6 +126,15 @@ export interface BracketStageConfig {
   /** 2026 goes straight to penalties with no extra time. */
   drawResolution: 'penalties';
   timing: MatchTiming;
+  /**
+   * Minutes between the last pool game and the first playoff game.
+   *
+   * Not compute time -- standings resolve the moment the last result lands.
+   * It is human time: learning you qualified, walking to another pitch, and
+   * restarting a team that has been sitting down. It is the tightest
+   * transition of the day, so it is set per division rather than assumed.
+   */
+  gapBeforeMinutes?: number;
 }
 
 /**

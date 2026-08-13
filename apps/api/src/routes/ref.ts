@@ -193,6 +193,57 @@ export function refRoutes(db: Db): Router {
     res.json({ ok: true });
   });
 
+  /**
+   * Put a game back to having no result at all.
+   *
+   * Distinct from saving 0-0: a nil-nil draw is a played game worth a point to
+   * each side, and "nobody has entered this yet" is not. Without this there is
+   * no way back from a mistyped score, and the standings inherit it.
+   *
+   * Sign-offs go with it -- a captain signed for a score that no longer
+   * exists. Cards deliberately stay: they were shown regardless of the score,
+   * and quietly binning a red card is a bigger loss than an extra step to
+   * remove one.
+   */
+  router.delete('/fixtures/:id/score', requireAuth, async (req, res) => {
+    const fixtureId = req.params.id;
+    if (!fixtureId) throw new HttpError(400, 'No game specified.', 'invalid_input');
+
+    const user = req.session.user!;
+    await assertCanScoreFixture(db, user.id, user.role, fixtureId);
+
+    const { rows: before } = await db.query<{
+      home_score: number | null;
+      away_score: number | null;
+      status: string;
+    }>('SELECT home_score, away_score, status FROM fixtures WHERE id = $1', [fixtureId]);
+
+    await db.query(
+      `UPDATE fixtures
+          SET home_score = NULL, away_score = NULL,
+              home_penalties = NULL, away_penalties = NULL,
+              status = 'scheduled', updated_at = now()
+        WHERE id = $1`,
+      [fixtureId],
+    );
+
+    const { rowCount: signoffsRemoved } = await db.query(
+      'DELETE FROM match_signoffs WHERE fixture_id = $1',
+      [fixtureId],
+    );
+
+    await recordAudit(db, {
+      actorUserId: user.id,
+      entityType: 'fixture',
+      entityId: fixtureId,
+      action: 'clear_score',
+      before: before[0],
+      after: { cleared: true, signoffsRemoved },
+    });
+
+    res.json({ ok: true, signoffsRemoved: signoffsRemoved ?? 0 });
+  });
+
   router.post('/fixtures/:id/cards', requireAuth, async (req, res) => {
     const fixtureId = req.params.id;
     if (!fixtureId) throw new HttpError(400, 'No game specified.', 'invalid_input');

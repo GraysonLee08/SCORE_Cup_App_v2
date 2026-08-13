@@ -1238,3 +1238,69 @@ table.grid-table td {
 .seed-list li {
   padding: 0.15rem 0;
 }
+
+/* ---- unentered results -------------------------------------------------- */
+
+/* A game nobody has scored yet. Muted rather than hidden, because "what is
+   still outstanding" is the question being asked at the scores table all
+   afternoon, and the answer has to be visible without clicking. */
+.fixture.unscored {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 6px,
+    rgba(92, 102, 112, 0.05) 6px,
+    rgba(92, 102, 112, 0.05) 12px
+  );
+}
+
+.fixture.unscored .team-score {
+  color: var(--ink-soft);
+  opacity: 0.6;
+}
+
+/* "–" is a real state, not a zero. It has to look different from 0 at a
+   glance, or a nil-nil draw and an unplayed game are indistinguishable. */
+.counter.empty .counter-value {
+  color: var(--ink-soft);
+}
+
+.counter button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- games with nowhere to be drawn ------------------------------------- */
+
+.unassigned-row th {
+  color: var(--bad);
+}
+
+.unassigned-row td {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* An editable heading. Reads as the title it replaces until focused, so the
+   pool name does not look like a form field on a page that is mostly display. */
+.inline-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.15rem 0.35rem;
+  margin: 0;
+  min-height: auto;
+}
+
+.inline-title:hover {
+  border-color: var(--line);
+}
+
+.inline-title:focus {
+  background: var(--surface);
+  border-color: var(--accent, var(--focus));
+}
