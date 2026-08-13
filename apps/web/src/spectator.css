@@ -296,14 +296,19 @@
   gap: 0.9rem;
 }
 
+/* Kit, name and cards share one centre line on both sides. The kit used to be
+   centred by auto margins while the name took a left or right text-align, so
+   the two were never on the same axis as each other. */
 .spotlight-score .team {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
-.spotlight-score .team.right {
-  text-align: right;
-}
-.spotlight-score .team.right .pips {
-  justify-content: flex-end;
+
+.spotlight-score .team .pips {
+  justify-content: center;
 }
 
 /* The featured match is the one thing read from across a room or at arm's
@@ -734,7 +739,3 @@
   margin: 0 auto 0.6rem;
 }
 
-.spectator .spotlight .team.right .jersey {
-  margin-left: auto;
-  margin-right: 0;
-}

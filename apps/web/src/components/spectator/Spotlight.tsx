@@ -66,7 +66,7 @@ export default function Spotlight({
           <span className="n">{played ? fixture.awayScore : '–'}</span>
         </div>
 
-        <div className="team right">
+        <div className="team">
           <Jersey jersey={fixture.awayJersey} teamName={fixture.awayTeamName} />
           <div className="team-name">{fixture.awayTeamName}</div>
           <Pips counts={fixture.awayCards} />
