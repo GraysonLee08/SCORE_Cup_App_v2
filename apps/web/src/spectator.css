@@ -92,7 +92,7 @@
 
 @media (min-width: 880px) {
   .board {
-    grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
+    grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);
     grid-template-areas:
       'full   full'
       'centre follow'
@@ -118,7 +118,10 @@
     min-height: 0;
     align-items: stretch;
     padding: 1.15rem 1.4rem 1.4rem;
-    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr) minmax(17rem, 21rem);
+    /* The right column carries the standings, which grew a Cards column. Wide
+       enough that the tiebreaker the table exists to explain is not the thing
+       that scrolls out of sight. */
+    grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr) minmax(19rem, 25rem);
     /* "Following" takes its natural height at the top of the right column; the
        tables below it get the remaining `1fr` and scroll inside themselves, so
        the page still never scrolls. */
@@ -400,11 +403,19 @@
   gap: 0.5rem;
 }
 
+/* Stacked, always.
+
+   This was three columns with a media query to stack it on a phone, which was
+   the wrong test: the rail is about 300px wide on a *desktop*, so the columns
+   collapsed there and the query never fired. Team names ended up one letter
+   per line. What constrains this row is the rail it sits in, not the window,
+   and the stack reads fine at every width -- so there is no reason to have
+   two layouts. */
 .spectator .field-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.5rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
   width: 100%;
   min-height: 3.1rem;
   padding: 0.6rem 0.75rem;
@@ -440,11 +451,17 @@
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  white-space: nowrap;
+  /* Wraps rather than overflowing: "JPMorganChase Field" does not fit on one
+     line in a 300px rail, and a long sponsor name is not a reason to break the
+     row. */
+  overflow-wrap: anywhere;
+  opacity: 0.75;
 }
 
 .field-teams {
-  font-size: 0.9rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -457,7 +474,6 @@
 }
 
 .field-next {
-  grid-column: 1 / -1;
   font-size: 0.76rem;
   overflow-wrap: anywhere;
 }
@@ -646,31 +662,6 @@
 
 /* Blur is expensive and least legible exactly where phones are used -- in
    daylight. Below tablet width the panels get more opaque and less blurred. */
-/* On a phone the three-column row cannot hold a long field name, a pair of
-   team names and a score. "JPMorganChase" alone eats the width, and the teams
-   -- the thing anyone is actually looking for -- get squeezed to nothing.
-   Field and score keep the top line; the teams take their own beneath. */
-@media (max-width: 640px) {
-  .spectator .field-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'name  score'
-      'teams teams';
-    row-gap: 0.3rem;
-  }
-  .field-name {
-    grid-area: name;
-    white-space: normal;
-  }
-  .field-score {
-    grid-area: score;
-  }
-  .field-teams {
-    grid-area: teams;
-    font-size: 0.95rem;
-  }
-}
-
 @media (max-width: 879px) {
   .spectator .glass {
     background: rgba(10, 30, 52, 0.82);
@@ -694,4 +685,31 @@
   .spectator .progress > span {
     transition: none;
   }
+}
+
+/* ---- standings inside a rail ------------------------------------------- */
+
+/* Nine numeric columns beside a team name is a lot for a side panel, and the
+   Cards column made it one too many. Rather than let it scroll sideways --
+   which hides exactly the tiebreaker column that was just added -- the numbers
+   are tightened and the rail is given more room. */
+.spectator .table-panel table.standings {
+  font-size: 0.86rem;
+}
+
+.spectator .table-panel table.standings th,
+.spectator .table-panel table.standings td {
+  padding: 0.4rem 0.22rem;
+}
+
+/* The team name is the only column allowed to take the slack. */
+.spectator .table-panel table.standings td:nth-child(2) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 5.5rem;
+}
+
+.spectator .table-panel table.standings th:first-child,
+.spectator .table-panel table.standings td:first-child {
+  padding-left: 0;
 }

@@ -1304,3 +1304,17 @@ table.grid-table td {
   background: var(--surface);
   border-color: var(--accent, var(--focus));
 }
+
+/* Referee named on every slot. A blank rota entry is the thing an organiser is
+   hunting for, so it is shown as words rather than as absence. */
+.slot-ref {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  margin-top: 0.15rem;
+}
+
+.slot-ref.none {
+  color: var(--warn);
+  font-style: italic;
+}
