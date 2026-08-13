@@ -24,9 +24,10 @@ does not go in at all.
 
 ## Status
 
-**Shipped to staging, 13 Aug** — 169 tests passing (engine 88, API 73, web 8).
+**Shipped to staging, 13 Aug** — 177 tests passing (engine 88, API 81, web 8).
 Awaiting QA.
 
+- 2.2 Delay control — push a round and everything after it, event-wide
 - 2.3 Per-division start times, and card weighting set to 1 yellow / 2 red
 
 - 1.1 Nil-nil draws and clearing a result

@@ -199,6 +199,8 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
         </div>
       )}
 
+      <DelayControl fixtures={fixtures} data={data} onApplied={load} />
+
       <section className="card">
         <h2>Schedule</h2>
         <p className="hint">
@@ -319,6 +321,214 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
         />
       )}
     </>
+  );
+}
+
+/**
+ * Push the rest of the day back when it is running late.
+ *
+ * The alternative is re-typing a kickoff time onto every remaining game, which
+ * nobody is going to do accurately while it is raining. One number moves
+ * everything from a chosen round onwards and keeps the gaps that were designed
+ * into the day.
+ *
+ * The preview is the point. "17 games move and the last kickoff becomes
+ * 5:35 PM" is the decision being made -- whether to absorb the delay or
+ * shorten the halves instead -- and it has to be visible before the button,
+ * not after.
+ */
+function DelayControl({
+  fixtures,
+  data,
+  onApplied,
+}: {
+  fixtures: GridFixture[];
+  data: AdminEvent;
+  onApplied: () => Promise<void>;
+}) {
+  const [minutes, setMinutes] = useState(10);
+  const [from, setFrom] = useState<string>('');
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
+
+  /** Rounds that still have something to play. A finished round cannot move. */
+  const rounds = useMemo(() => {
+    const times = new Set<string>();
+    for (const f of fixtures) {
+      if (f.kickoffAt && f.status === 'scheduled') times.add(f.kickoffAt);
+    }
+    return [...times].sort();
+  }, [fixtures]);
+
+  const chosen = from || rounds[0] || '';
+
+  const moving = fixtures.filter(
+    (f) => f.kickoffAt && chosen && f.kickoffAt >= chosen && f.status === 'scheduled',
+  );
+  const staying = fixtures.filter(
+    (f) => f.kickoffAt && chosen && f.kickoffAt >= chosen && f.status !== 'scheduled',
+  );
+
+  const lastKickoff = moving.reduce<string | null>(
+    (latest, f) => (latest === null || f.kickoffAt! > latest ? f.kickoffAt! : latest),
+    null,
+  );
+  const newLast = lastKickoff ? new Date(new Date(lastKickoff).getTime() + minutes * 60_000) : null;
+  const eventEnd = new Date(`${data.event.eventDate}T${data.event.endTime}`);
+  const overruns = newLast !== null && newLast.getTime() > eventEnd.getTime();
+
+  if (rounds.length === 0) return null;
+
+  return (
+    <section className="card">
+      <div className="meta">
+        <h2 style={{ margin: 0, flex: 1 }}>Running late?</h2>
+        <span className="pill">{rounds.length} rounds still to play</span>
+      </div>
+
+      {status && (
+        <div className={status.ok ? 'notice ok' : 'notice error'} role="status">
+          {status.text}
+        </div>
+      )}
+
+      <p className="hint">
+        Move a round and everything after it by the same amount, across both divisions —
+        pitches are shared, so half a day cannot move on its own. Games already played or
+        under way stay where they are.
+      </p>
+
+      <div className="row" style={{ alignItems: 'flex-end' }}>
+        <div className="field" style={{ maxWidth: '14rem', marginBottom: 0 }}>
+          <label htmlFor="delay-from">From this round on</label>
+          <select id="delay-from" value={chosen} onChange={(e) => setFrom(e.target.value)}>
+            {rounds.map((r) => (
+              <option key={r} value={r}>
+                {new Date(r).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="field" style={{ maxWidth: '9rem', marginBottom: 0 }}>
+          <label htmlFor="delay-mins">Minutes</label>
+          <input
+            id="delay-mins"
+            type="number"
+            step={5}
+            min={-240}
+            max={240}
+            value={minutes}
+            onChange={(e) => setMinutes(globalThis.Number(e.target.value) || 0)}
+          />
+        </div>
+
+        {[5, 10, 15].map((m) => (
+          <button
+            key={m}
+            className="ghost"
+            style={{ minHeight: '2.2rem', marginBottom: '.15rem' }}
+            onClick={() => setMinutes(m)}
+          >
+            +{m}
+          </button>
+        ))}
+      </div>
+
+      <dl className="kv" style={{ marginTop: '.8rem' }}>
+        <div>
+          <dt>Games moving</dt>
+          <dd>
+            {moving.length}
+            {staying.length > 0 &&
+              ` — ${staying.length} already played or under way, and stay put`}
+          </dd>
+        </div>
+        <div>
+          <dt>Last kickoff becomes</dt>
+          <dd>
+            {newLast
+              ? newLast.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+              : '—'}
+            {lastKickoff && (
+              <span className="muted">
+                {' '}
+                (was{' '}
+                {new Date(lastKickoff).toLocaleTimeString([], {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+                )
+              </span>
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      {overruns && (
+        <div className="notice error">
+          That pushes the last kickoff past{' '}
+          {eventEnd.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}, when the
+          tournament is meant to finish. Shortening the halves under Setup → Timings and
+          rebuilding buys the time back across the whole day instead.
+        </div>
+      )}
+
+      <button
+        className="primary"
+        style={{ maxWidth: '20rem' }}
+        disabled={busy || minutes === 0 || moving.length === 0}
+        onClick={async () => {
+          const when = new Date(chosen).toLocaleTimeString([], {
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+          const verb = minutes > 0 ? `back ${minutes}` : `forward ${-minutes}`;
+          if (
+            !window.confirm(
+              `Move ${moving.length} game${moving.length === 1 ? '' : 's'} ${verb} minutes, ` +
+                `from ${when} onwards?\n\nEveryone watching sees the new times immediately.`,
+            )
+          ) {
+            return;
+          }
+
+          setBusy(true);
+          setStatus(null);
+          try {
+            const result = await api.post<{
+              moved: number;
+              overrunsEndTime: boolean;
+            }>(`/api/schedule/events/${data.event.id}/delay`, {
+              fromKickoffAt: chosen,
+              minutes,
+            });
+            setFrom('');
+            await onApplied();
+            setStatus({
+              ok: !result.overrunsEndTime,
+              text: result.overrunsEndTime
+                ? `Moved ${result.moved} games, but the day now runs past its finish time.`
+                : `Moved ${result.moved} game${result.moved === 1 ? '' : 's'}. ` +
+                  `To undo it, run the same round with ${-minutes}.`,
+            });
+          } catch (error) {
+            setStatus({
+              ok: false,
+              text: error instanceof ApiFailure ? error.message : 'Could not move the games.',
+            });
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy
+          ? 'Moving…'
+          : minutes >= 0
+            ? `Push ${moving.length} games back ${minutes} min`
+            : `Pull ${moving.length} games forward ${-minutes} min`}
+      </button>
+    </section>
   );
 }
 

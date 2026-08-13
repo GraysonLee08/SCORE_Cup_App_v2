@@ -257,6 +257,132 @@ export function scheduleRoutes(db: Db): Router {
   });
 
   /**
+   * Push the rest of the day back, from one round onwards.
+   *
+   * The only time control that belongs on the day itself. Lightning, a long
+   * injury, a first round that overran -- one number, and everything after it
+   * shifts by the same amount, so the gaps that were designed into the day are
+   * preserved rather than re-typed game by game.
+   *
+   * Three things it must not do:
+   *
+   *  - Move a game that has already been played. Its kickoff time is a record
+   *    of when it actually happened, not a plan.
+   *  - Move a game that is under way. It has already started.
+   *  - Stop at a division boundary. Divisions share pitches, so a delay that
+   *    moved only one of them would create the exact double-booking the
+   *    scheduler exists to prevent.
+   *
+   * Negative minutes pull the day forward again, which is how you undo this
+   * when the rain stops sooner than feared.
+   */
+  router.post('/events/:eventId/delay', ...admin, async (req, res) => {
+    const eventId = req.params.eventId;
+    const parsed = z
+      .object({
+        /** Everything kicking off at or after this moment moves. */
+        fromKickoffAt: z.string().datetime(),
+        minutes: z.number().int().min(-240).max(240),
+      })
+      .safeParse(req.body);
+    if (!eventId || !parsed.success) {
+      throw new HttpError(400, 'Check the delay.', 'invalid_input');
+    }
+    const { fromKickoffAt, minutes } = parsed.data;
+
+    if (minutes === 0) {
+      throw new HttpError(400, 'That would not move anything.', 'no_change');
+    }
+
+    const { rows: eventRows } = await db.query<{
+      start_time: string;
+      end_time: string;
+      event_date: string;
+      timezone: string;
+    }>(
+      'SELECT start_time, end_time, event_date, timezone FROM events WHERE id = $1',
+      [eventId],
+    );
+    if (!eventRows[0]) throw new HttpError(404, 'No such tournament.', 'not_found');
+
+    // Pulling the day forward must not push a game before the tournament opens.
+    // Everything downstream measures from that instant, so an earlier kickoff
+    // is not a schedule, it is a negative offset.
+    if (minutes < 0) {
+      const { rows: earliest } = await db.query<{ too_early: string }>(
+        `SELECT count(*) AS too_early
+           FROM fixtures f
+           JOIN stages s ON s.id = f.stage_id
+           JOIN divisions d ON d.id = s.division_id
+           JOIN events e ON e.id = d.event_id
+          WHERE d.event_id = $1
+            AND f.status = 'scheduled'
+            AND f.kickoff_at >= $2
+            AND f.kickoff_at + ($3 || ' minutes')::interval
+                < ((e.event_date + e.start_time) AT TIME ZONE e.timezone)`,
+        [eventId, fromKickoffAt, String(minutes)],
+      );
+      if (Number(earliest[0]?.too_early ?? 0) > 0) {
+        throw new HttpError(
+          400,
+          `That would start games before the tournament opens at ${eventRows[0].start_time.slice(0, 5)}.`,
+          'before_event_start',
+        );
+      }
+    }
+
+    const { rows: moved } = await db.query<{ id: string }>(
+      `UPDATE fixtures f
+          SET kickoff_at = f.kickoff_at + ($3 || ' minutes')::interval,
+              updated_at = now()
+         FROM stages s
+         JOIN divisions d ON d.id = s.division_id
+        WHERE s.id = f.stage_id
+          AND d.event_id = $1
+          AND f.kickoff_at >= $2
+          AND f.kickoff_at IS NOT NULL
+          AND f.status = 'scheduled'
+        RETURNING f.id`,
+      [eventId, fromKickoffAt, String(minutes)],
+    );
+
+    if (moved.length === 0) {
+      throw new HttpError(
+        400,
+        'Nothing from that time onwards is still to be played.',
+        'nothing_to_move',
+      );
+    }
+
+    const { rows: after } = await db.query<{ last_kickoff: string | null; overruns: boolean }>(
+      `SELECT max(f.kickoff_at) AS last_kickoff,
+              max(f.kickoff_at) > ((e.event_date + e.end_time) AT TIME ZONE e.timezone)
+                AS overruns
+         FROM fixtures f
+         JOIN stages s ON s.id = f.stage_id
+         JOIN divisions d ON d.id = s.division_id
+         JOIN events e ON e.id = d.event_id
+        WHERE d.event_id = $1 AND f.kickoff_at IS NOT NULL
+        GROUP BY e.event_date, e.end_time, e.timezone`,
+      [eventId],
+    );
+
+    await recordAudit(db, {
+      actorUserId: req.session.user!.id,
+      entityType: 'event',
+      entityId: eventId,
+      action: minutes > 0 ? 'delay_schedule' : 'advance_schedule',
+      after: { fromKickoffAt, minutes, moved: moved.length },
+    });
+
+    res.json({
+      moved: moved.length,
+      lastKickoffAt: after[0]?.last_kickoff ?? null,
+      overrunsEndTime: after[0]?.overruns ?? false,
+    });
+  });
+
+  /**
    * Move or re-point a single game: its field, kickoff, or either team.
    *
    * Deliberately permissive. Conflicts are surfaced to the admin rather than
