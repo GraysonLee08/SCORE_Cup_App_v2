@@ -557,6 +557,7 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
                             </td>
                             <td className="num">{row.played}</td>
                             <td className="num">{row.goalsFor}</td>
+                            <td className="num">{row.goalsAgainst}</td>
                             <td
                               className="num"
                               title={`${row.yellowCards} yellow, ${row.redCards} red`}

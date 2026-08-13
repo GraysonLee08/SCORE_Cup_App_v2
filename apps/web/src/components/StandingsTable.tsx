@@ -69,10 +69,8 @@ export default function StandingsTable({
                 <td className="num">{row.drawn}</td>
                 <td className="num">{row.lost}</td>
                 <td className="num">{row.goalsFor}</td>
-                <td
-                  className="num"
-                  title={`${row.yellowCards} yellow, ${row.redCards} red`}
-                >
+                <td className="num">{row.goalsAgainst}</td>
+                <td className="num" title={`${row.yellowCards} yellow, ${row.redCards} red`}>
                   {row.penaltyPoints}
                 </td>
                 <td className="num strong">{row.points}</td>
