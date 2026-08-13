@@ -38,8 +38,14 @@ Awaiting QA.
 - 3.2 Unscored games shaded, plus a scored/unscored filter
 - 3.5 Pool renaming
 
-**Next** — 2.3 per-division start time (newly required, see below), then 2.2
-delay, then the rest of Tier 3.
+- 3.3 Mobile "On the pitches" wrap · 3.4 Referee rota · 3.7 Playoff time slots
+- 3.9 Tournament link in the header · 3.10 "Following" at the top on a phone
+- 3.12 SCORES and donation links · 3.13 "Games per team" clarified
+
+**Not built yet** — 3.6 division ordering (deliberately held: it changes the
+order divisions claim pitches, so it waits until QA on generated times lands),
+3.8 QR on referee cards (needs confirming we generate the cards at all),
+3.11 grid transpose, 3.14 team colours.
 
 ## What the published schedule settles (13 Aug)
 
