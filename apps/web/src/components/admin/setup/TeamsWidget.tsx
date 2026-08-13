@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api, ApiFailure } from '../../../api.js';
-import type { AdminEvent } from '../../../types.js';
+import type { AdminEvent, AdminTeam } from '../../../types.js';
+import Jersey, { JERSEYS } from '../../Jersey.js';
 
 /**
  * Teams within a division.
@@ -94,6 +95,7 @@ export default function TeamsWidget({
                 <thead>
                   <tr>
                     <th scope="col">Team</th>
+                    <th scope="col">Kit</th>
                     <th scope="col">Pool</th>
                     <th scope="col">Join code</th>
                     <th scope="col" className="num">Players</th>
@@ -104,6 +106,9 @@ export default function TeamsWidget({
                   {division.teams.map((team) => (
                     <tr key={team.id}>
                       <td>{team.name}</td>
+                      <td>
+                        <KitPicker team={team} onChanged={onChanged} />
+                      </td>
                       <td>
                         <select
                           aria-label={`Pool for ${team.name}`}
@@ -220,5 +225,66 @@ export default function TeamsWidget({
         </section>
       </div>
     </div>
+  );
+}
+
+/**
+ * Which kit a team plays in.
+ *
+ * Offers a guess from the team's own name, because 19 teams is 19 chances to
+ * pick the wrong shirt from an identical-looking list. The guess is only ever
+ * a default -- two JPMorganChase sides wear different colours, so the name can
+ * narrow it down but cannot decide it.
+ */
+function KitPicker({ team, onChanged }: { team: AdminTeam; onChanged: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
+
+  const suggestion = team.jersey ?? suggestKit(team.name);
+
+  return (
+    <span className="kit-picker">
+      <Jersey jersey={team.jersey} teamName={team.name} size={26} />
+      <select
+        aria-label={`Kit for ${team.name}`}
+        value={team.jersey ?? ''}
+        disabled={saving}
+        style={{ width: 'auto', minHeight: '34px' }}
+        onChange={async (e) => {
+          setSaving(true);
+          setError(false);
+          try {
+            await api.patch(`/api/events/teams/${team.id}/jersey`, {
+              jersey: e.target.value || null,
+            });
+            onChanged();
+          } catch {
+            setError(true);
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <option value="">
+          {suggestion && !team.jersey ? `None — try ${suggestion}?` : 'None'}
+        </option>
+        {JERSEYS.map((k) => (
+          <option key={k} value={k}>
+            {k}
+          </option>
+        ))}
+      </select>
+      {error && <span className="asterisk">!</span>}
+    </span>
+  );
+}
+
+/** Loose match of a team name against the kit filenames. */
+function suggestKit(teamName: string): string | null {
+  const flat = teamName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return (
+    JERSEYS.find((k) => k.replace(/-/g, '') === flat) ??
+    JERSEYS.find((k) => flat.startsWith(k.replace(/-/g, '').slice(0, 6))) ??
+    null
   );
 }

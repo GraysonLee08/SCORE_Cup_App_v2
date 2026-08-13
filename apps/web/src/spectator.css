@@ -713,3 +713,15 @@
 .spectator .table-panel table.standings td:first-child {
   padding-left: 0;
 }
+
+/* The kits carry the recognition on the spectator board, so they sit clear of
+   the team name. Heights come from the markup -- overriding them here would
+   fight the size each caller asked for. */
+.spectator .jersey {
+  margin-right: 0.35rem;
+}
+
+.spectator .spotlight .team .jersey {
+  display: block;
+  margin: 0 auto 0.4rem;
+}

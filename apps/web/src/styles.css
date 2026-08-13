@@ -1330,3 +1330,25 @@ table.grid-table td {
   border-left-color: var(--warn);
   border-left-style: dashed;
 }
+
+/* ---- team kits ---------------------------------------------------------- */
+
+/* Height comes from the markup; `aspect-ratio` supplies the width so the box
+   is the right size before the image has loaded. Without that the element
+   computes to 0x0 until it arrives, which shifts the line as each kit appears
+   -- and would stop a lazily-loaded one arriving at all. */
+.jersey {
+  display: inline-block;
+  width: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: contain;
+  vertical-align: -0.35em;
+  margin-right: 0.3rem;
+  flex: 0 0 auto;
+}
+
+.kit-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}

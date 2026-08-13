@@ -1,4 +1,5 @@
 import type { PublicFixture } from '../types.js';
+import Jersey from './Jersey.js';
 
 function time(iso: string | null): string {
   if (!iso) return 'TBC';
@@ -72,12 +73,14 @@ export default function FixtureList({
                   </div>
 
                   <div className={`team-line ${homeWon ? 'winner' : ''}`}>
+                    <Jersey jersey={f.homeJersey} teamName={f.homeTeamName} />
                     <span className="team-name">{f.homeTeamName}</span>
                     <CardPips counts={f.homeCards} />
                     <span className="team-score">{played ? f.homeScore : '–'}</span>
                   </div>
 
                   <div className={`team-line ${awayWon ? 'winner' : ''}`}>
+                    <Jersey jersey={f.awayJersey} teamName={f.awayTeamName} />
                     <span className="team-name">{f.awayTeamName}</span>
                     <CardPips counts={f.awayCards} />
                     <span className="team-score">{played ? f.awayScore : '–'}</span>

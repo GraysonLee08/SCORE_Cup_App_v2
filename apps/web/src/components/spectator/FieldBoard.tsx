@@ -1,4 +1,5 @@
 import type { PublicFixture } from '../../types.js';
+import Jersey from '../Jersey.js';
 import { isRunning, matchPhase, phaseLabel } from './clock.js';
 
 /**
@@ -76,7 +77,10 @@ export default function FieldBoard({
               {current ? (
                 <>
                   <span className="field-teams">
-                    {current.homeTeamName} <span className="soft">v</span> {current.awayTeamName}
+                    <Jersey jersey={current.homeJersey} teamName={current.homeTeamName} size={20} />
+                    {current.homeTeamName} <span className="soft">v</span>{' '}
+                    <Jersey jersey={current.awayJersey} teamName={current.awayTeamName} size={20} />
+                    {current.awayTeamName}
                   </span>
                   <span className="field-score">
                     {current.homeScore != null

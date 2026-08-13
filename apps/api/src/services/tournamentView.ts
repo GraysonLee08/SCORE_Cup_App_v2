@@ -34,6 +34,13 @@ export interface PublicFixture {
   homeTeamName: string;
   awayTeamId: string | null;
   awayTeamName: string;
+  /**
+   * The kit each side is in, once the side is known. Sent on the fixture as
+   * well as the team list so a board showing one game does not have to hold
+   * the whole division to draw it.
+   */
+  homeJersey: string | null;
+  awayJersey: string | null;
   homeScore: number | null;
   awayScore: number | null;
   homePenalties: number | null;
@@ -70,7 +77,7 @@ export interface PublicDivision {
   name: string;
   pools: PublicPoolTable[];
   fixtures: PublicFixture[];
-  teams: { id: string; name: string }[];
+  teams: { id: string; name: string; jersey: string | null }[];
 }
 
 interface FixtureRow {
@@ -105,11 +112,17 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
   const division = divisionRows[0];
   if (!division) throw new HttpError(404, 'No such division.', 'not_found');
 
-  const { rows: teams } = await db.query<{ id: string; name: string; pool_id: string | null }>(
-    'SELECT id, name, pool_id FROM teams WHERE division_id = $1 ORDER BY name',
+  const { rows: teams } = await db.query<{
+    id: string;
+    name: string;
+    pool_id: string | null;
+    jersey: string | null;
+  }>(
+    'SELECT id, name, pool_id, jersey FROM teams WHERE division_id = $1 ORDER BY name',
     [divisionId],
   );
   const teamNames = new Map(teams.map((t) => [t.id, t.name]));
+  const teamJerseys = new Map(teams.map((t) => [t.id, t.jersey]));
 
   const { rows: fixtures } = await db.query<FixtureRow>(
     `SELECT f.id, f.stage_id, s.name AS stage_name, s.kind AS stage_kind,
@@ -286,6 +299,8 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
       awayTeamName: away.teamId
         ? (f.away_team_name ?? teamNames.get(away.teamId) ?? 'TBC')
         : away.label,
+      homeJersey: home.teamId ? (teamJerseys.get(home.teamId) ?? null) : null,
+      awayJersey: away.teamId ? (teamJerseys.get(away.teamId) ?? null) : null,
       homeScore: f.home_score,
       awayScore: f.away_score,
       homePenalties: f.home_penalties,
@@ -303,6 +318,6 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
     name: division.name,
     pools,
     fixtures: publicFixtures,
-    teams: teams.map((t) => ({ id: t.id, name: t.name })),
+    teams: teams.map((t) => ({ id: t.id, name: t.name, jersey: t.jersey })),
   };
 }

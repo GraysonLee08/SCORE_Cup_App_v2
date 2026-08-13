@@ -53,6 +53,7 @@ export function adminRoutes(db: Db): Router {
               COALESCE((SELECT json_agg(json_build_object(
                   'id', t.id, 'name', t.name, 'poolId', t.pool_id,
                   'joinCode', t.join_code, 'coachUserId', t.coach_user_id,
+                  'jersey', t.jersey,
                   'playerCount', (SELECT count(*) FROM players pl WHERE pl.team_id = t.id)
                 ) ORDER BY t.name)
                 FROM teams t WHERE t.division_id = d.id), '[]'::json) AS teams,

@@ -257,6 +257,31 @@ export function eventRoutes(db: Db): Router {
     res.status(204).end();
   });
 
+  /**
+   * Which kit a team plays in.
+   *
+   * Not validated against the images on disk: the web app owns those, the API
+   * has never seen them, and a kit that has been renamed should show as a
+   * missing picture rather than block the save.
+   */
+  router.patch('/teams/:teamId/jersey', ...admin, async (req, res) => {
+    const teamId = req.params.teamId;
+    const parsed = z
+      .object({ jersey: z.string().max(80).regex(/^[a-z0-9-]+$/).nullable() })
+      .safeParse(req.body);
+    if (!teamId || !parsed.success) {
+      throw new HttpError(400, 'A kit name is required.', 'invalid_input');
+    }
+
+    const { rowCount } = await db.query('UPDATE teams SET jersey = $1 WHERE id = $2', [
+      parsed.data.jersey,
+      teamId,
+    ]);
+    if (!rowCount) throw new HttpError(404, 'No such team.', 'not_found');
+
+    res.status(204).end();
+  });
+
   /** Event settings are editable after creation -- a day window or rest gap
    *  frequently changes once the organisers firm up the plan. */
   router.patch('/:eventId', ...admin, async (req, res) => {

@@ -52,6 +52,9 @@ export interface PublicFixture {
   homeTeamName: string;
   awayTeamId: string | null;
   awayTeamName: string;
+  /** Kit basename in /jerseys for each side, once the side is known. */
+  homeJersey: string | null;
+  awayJersey: string | null;
   homeScore: number | null;
   awayScore: number | null;
   homePenalties: number | null;
@@ -97,7 +100,7 @@ export interface PublicDivision {
   name: string;
   pools: PublicPoolTable[];
   fixtures: PublicFixture[];
-  teams: { id: string; name: string }[];
+  teams: { id: string; name: string; jersey: string | null }[];
 }
 
 export interface PublicEventResponse {
@@ -161,6 +164,8 @@ export interface AdminTeam {
   id: string;
   name: string;
   poolId: string | null;
+  /** Kit image basename in /jerseys, or null for no kit. */
+  jersey: string | null;
   joinCode: string;
   coachUserId: string | null;
   playerCount: number;

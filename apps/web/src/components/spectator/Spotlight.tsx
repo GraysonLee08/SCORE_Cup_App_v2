@@ -1,5 +1,6 @@
 import type { PublicFixture } from '../../types.js';
 import { isRunning, matchPhase, phaseLabel } from './clock.js';
+import Jersey from '../Jersey.js';
 
 /**
  * The one game the page is about right now.
@@ -54,6 +55,7 @@ export default function Spotlight({
 
       <div className="spotlight-score">
         <div className="team">
+          <Jersey jersey={fixture.homeJersey} teamName={fixture.homeTeamName} size={44} />
           <div className="team-name">{fixture.homeTeamName}</div>
           <Pips counts={fixture.homeCards} />
         </div>
@@ -65,6 +67,7 @@ export default function Spotlight({
         </div>
 
         <div className="team right">
+          <Jersey jersey={fixture.awayJersey} teamName={fixture.awayTeamName} size={44} />
           <div className="team-name">{fixture.awayTeamName}</div>
           <Pips counts={fixture.awayCards} />
         </div>
