@@ -1340,6 +1340,9 @@ table.grid-table td {
 .jersey {
   display: inline-block;
   width: auto;
+  /* Overridden by the inline height wherever a caller gives one; this is the
+     fallback for callers that leave the sizing to CSS. */
+  height: 1.5em;
   aspect-ratio: 3 / 4;
   object-fit: contain;
   vertical-align: -0.35em;

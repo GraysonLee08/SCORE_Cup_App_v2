@@ -10,7 +10,7 @@ import FieldBoard from '../components/spectator/FieldBoard.js';
 import Pulse from '../components/spectator/Pulse.js';
 import { useNow } from '../components/spectator/clock.js';
 
-type Tab = 'now' | 'schedule' | 'bracket';
+type Tab = 'next' | 'completed' | 'playoffs';
 
 const TEAM_KEY = 'scorescup.followed-team';
 
@@ -30,7 +30,7 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
   const [event, setEvent] = useState<PublicEventResponse | null>(null);
   const [divisions, setDivisions] = useState<Record<string, PublicDivision>>({});
   const [divisionId, setDivisionId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('now');
+  const [tab, setTab] = useState<Tab>('next');
   const [pickedFixtureId, setPickedFixtureId] = useState<string | null>(null);
   const [teamFilter, setTeamFilter] = useState<string>(
     () => localStorage.getItem(TEAM_KEY) ?? '',
@@ -139,8 +139,13 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
   }, [allFixtures, pickedFixtureId, teamFilter]);
 
   const liveNow = allFixtures.filter((f) => f.status === 'in_progress');
-  const upcoming = fixtures.filter((f) => f.status === 'scheduled').slice(0, 6);
-  const recent = fixtures.filter((f) => f.homeScore != null).slice(-6).reverse();
+
+  // Two halves of one list, so between them they hold every game -- there is
+  // no longer a separate full schedule to fall back on. Split on whether a
+  // score exists rather than on status, so a game that has kicked off but has
+  // no result yet sits under "Up next" instead of between the two.
+  const upcoming = fixtures.filter((f) => f.homeScore == null);
+  const completed = [...fixtures].reverse().filter((f) => f.homeScore != null);
   const bracketFixtures = division?.fixtures.filter((f) => f.stageKind === 'bracket') ?? [];
 
   const loading = event !== null && Object.keys(divisions).length === 0;
@@ -194,9 +199,9 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
             <nav className="segmented" aria-label="Sections">
               {(
                 [
-                  ['now', 'Now'],
-                  ['schedule', 'Full schedule'],
-                  ['bracket', 'Bracket'],
+                  ['next', 'Up next'],
+                  ['completed', 'Completed'],
+                  ['playoffs', 'Playoffs'],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -212,29 +217,23 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
 
             {loading && <p className="soft center">Loading…</p>}
 
-            {division && tab === 'now' && (
-              <>
-                <h3>Next up</h3>
-                {upcoming.length === 0 ? (
-                  <p className="soft">No games left to play.</p>
-                ) : (
-                  <FixtureList fixtures={upcoming} showField />
-                )}
-
-                {recent.length > 0 && (
-                  <>
-                    <h3>Latest results</h3>
-                    <FixtureList fixtures={recent} showField />
-                  </>
-                )}
-              </>
+            {division && tab === 'next' && (
+              upcoming.length === 0 ? (
+                <p className="soft">Every game has been played.</p>
+              ) : (
+                <FixtureList fixtures={upcoming} showField groupByTime />
+              )
             )}
 
-            {division && tab === 'schedule' && (
-              <FixtureList fixtures={fixtures} showField groupByTime />
+            {division && tab === 'completed' && (
+              completed.length === 0 ? (
+                <p className="soft">Nothing has finished yet.</p>
+              ) : (
+                <FixtureList fixtures={completed} showField groupByTime />
+              )
             )}
 
-            {division && tab === 'bracket' && <Bracket fixtures={bracketFixtures} />}
+            {division && tab === 'playoffs' && <Bracket fixtures={bracketFixtures} />}
           </div>
         </div>
 

@@ -36,10 +36,16 @@ export const JERSEYS = [
 export default function Jersey({
   jersey,
   teamName,
-  size = 22,
+  size,
 }: {
   jersey: string | null | undefined;
   teamName?: string;
+  /**
+   * Height in pixels. Omit to let the stylesheet decide, which is what the
+   * spotlight does so its kits can scale with the viewport -- an inline height
+   * beats any selector, so a fixed one here could only be overridden with
+   * `!important`.
+   */
   size?: number;
 }) {
   if (!jersey) return null;
@@ -57,7 +63,7 @@ export default function Jersey({
       // has a size before the image arrives. Not lazy: they are ~7KB each, and
       // a lazily-loaded image with no intrinsic size never enters the viewport
       // that would trigger it to load.
-      style={{ height: size }}
+      style={size === undefined ? undefined : { height: size }}
     />
   );
 }

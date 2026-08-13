@@ -55,7 +55,7 @@ export default function Spotlight({
 
       <div className="spotlight-score">
         <div className="team">
-          <Jersey jersey={fixture.homeJersey} teamName={fixture.homeTeamName} size={44} />
+          <Jersey jersey={fixture.homeJersey} teamName={fixture.homeTeamName} />
           <div className="team-name">{fixture.homeTeamName}</div>
           <Pips counts={fixture.homeCards} />
         </div>
@@ -67,7 +67,7 @@ export default function Spotlight({
         </div>
 
         <div className="team right">
-          <Jersey jersey={fixture.awayJersey} teamName={fixture.awayTeamName} size={44} />
+          <Jersey jersey={fixture.awayJersey} teamName={fixture.awayTeamName} />
           <div className="team-name">{fixture.awayTeamName}</div>
           <Pips counts={fixture.awayCards} />
         </div>
