@@ -1318,3 +1318,15 @@ table.grid-table td {
   color: var(--warn);
   font-style: italic;
 }
+
+/* No referee named. Amber and dashed rather than filled: an unassigned game is
+   playable -- whoever covers the pitch can score it -- so this is a gap in the
+   rota, not a fault in the schedule.
+
+   Explicitly yields to a real clash. `.slot.clash` is defined earlier in this
+   file, so without the :not() a missing referee would quietly override a
+   double-booked pitch simply by being written later. */
+.slot.no-ref:not(.clash):not(.warn) {
+  border-left-color: var(--warn);
+  border-left-style: dashed;
+}
