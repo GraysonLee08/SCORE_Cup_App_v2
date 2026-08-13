@@ -154,6 +154,11 @@ function DivisionCard({
               }
             }}
           />
+          <p className="hint">
+            Pool games each team plays before the playoffs — not the size of the pool. Four
+            teams playing 3 each is a full round robin; 11 teams playing 2 each is not, and
+            the schedule pairs them up so nobody plays the same side twice.
+          </p>
         </div>
       </div>
 

@@ -6,16 +6,9 @@ import type { PublicPoolTable } from '../types.js';
  * configuration would be worse than none at all.
  */
 function cardRule(weights: PublicPoolTable['penaltyPoints']): string {
-  if (!weights) return 'Cards counts against a team.';
-  const part = (n: number, colour: string) =>
-    `a ${colour} counts ${n}${n === 1 ? '' : ''}`;
-  return weights.yellow === weights.red
-    ? `Every card counts ${weights.yellow}.`
-    : `${capitalise(part(weights.yellow, 'yellow'))}, ${part(weights.red, 'red')}.`;
-}
-
-function capitalise(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  if (!weights) return 'Cards count against a team.';
+  if (weights.yellow === weights.red) return `Every card counts ${weights.yellow}.`;
+  return `A yellow counts ${weights.yellow}, a red counts ${weights.red}.`;
 }
 
 export default function StandingsTable({

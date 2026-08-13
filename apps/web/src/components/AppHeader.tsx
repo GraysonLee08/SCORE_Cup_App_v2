@@ -34,6 +34,12 @@ export default function AppHeader({
       <div className="topbar-actions">
         {user ? (
           <>
+            {/* Clicking the logo goes here too, but nobody discovers that. Once
+                you are on My Team there is otherwise no visible way back to the
+                tournament you came from. */}
+            <Link className="topbar-link" to="/">
+              Tournament
+            </Link>
             {homeFor(user) && (
               <Link className="topbar-link" to={homeFor(user)!}>
                 {labelFor(user)}

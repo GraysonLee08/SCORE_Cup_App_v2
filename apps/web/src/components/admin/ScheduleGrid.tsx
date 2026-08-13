@@ -309,6 +309,8 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
         )}
       </section>
 
+      <RefereeBoard fixtures={fixtures} slots={slots} referees={referees} />
+
       {chosen && chosenDivision && (
         <EditFixture
           fixture={chosen}
@@ -321,6 +323,149 @@ export default function ScheduleGrid({ data }: { data: AdminEvent }) {
         />
       )}
     </>
+  );
+}
+
+/**
+ * The day laid out by referee rather than by pitch.
+ *
+ * The same games, turned ninety degrees. On the pitch grid a referee's day is
+ * scattered across four rows, so "is everyone covered, and when does each of
+ * them get a break" cannot be read off it -- which is the question being asked
+ * while building the rota, and the one the director actually needs answered.
+ *
+ * Games with nobody named are their own row rather than being left out. An
+ * unassigned game is not an absence of information, it is the thing you are
+ * looking for.
+ */
+function RefereeBoard({
+  fixtures,
+  slots,
+  referees,
+}: {
+  fixtures: GridFixture[];
+  slots: string[];
+  referees: AdminUser[];
+}) {
+  const [open, setOpen] = useState(false);
+
+  /** Everyone with a game, plus anyone on the books who has none at all. */
+  const names = useMemo(() => {
+    const withGames = new Set(
+      fixtures.map((f) => f.refereeName).filter((n): n is string => Boolean(n)),
+    );
+    for (const r of referees) withGames.add(r.displayName);
+    return [...withGames].sort((a, b) => a.localeCompare(b));
+  }, [fixtures, referees]);
+
+  const uncovered = fixtures.filter((f) => f.kickoffAt && !f.refereeName);
+
+  if (slots.length === 0) return null;
+
+  return (
+    <section className="card">
+      <div className="meta">
+        <h2 style={{ margin: 0, flex: 1 }}>Referees</h2>
+        {uncovered.length > 0 && (
+          <span className="pill" style={{ background: 'var(--warn)', color: '#fff' }}>
+            {uncovered.length} unassigned
+          </span>
+        )}
+        <button
+          className="ghost"
+          style={{ minHeight: '2rem' }}
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+        >
+          {open ? 'Hide' : 'Show rota'}
+        </button>
+      </div>
+
+      {!open ? (
+        <p className="hint">
+          The same games by referee instead of by pitch — who is on, and where the gaps
+          are. {names.length} referee{names.length === 1 ? '' : 's'} on the books.
+        </p>
+      ) : (
+        <>
+          <p className="hint">
+            A blank cell is a break. Games with nobody named appear in the last row — those
+            fall to whoever is covering that pitch.
+          </p>
+
+          <div className="table-scroll">
+            <table className="grid-table">
+              <thead>
+                <tr>
+                  <th scope="col" className="corner">Referee</th>
+                  {slots.map((slot) => (
+                    <th key={slot} scope="col">
+                      {new Date(slot).toLocaleTimeString([], {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {names.map((name) => {
+                  const mine = fixtures.filter((f) => f.refereeName === name);
+                  return (
+                    <tr key={name}>
+                      <th scope="row">
+                        {name}
+                        <span className="pill">{mine.length}</span>
+                      </th>
+                      {slots.map((slot) => {
+                        const here = mine.filter((f) => f.kickoffAt === slot);
+                        return (
+                          <td key={slot}>
+                            {here.map((f) => (
+                              <span className="slot" key={f.id}>
+                                <span className="slot-teams">{f.fieldName ?? 'No pitch'}</span>
+                                <span className="slot-meta">
+                                  {f.divisionName}
+                                  {f.round ? ` · ${f.round}` : ''}
+                                </span>
+                              </span>
+                            ))}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+
+                {uncovered.length > 0 && (
+                  <tr className="unassigned-row">
+                    <th scope="row">
+                      Nobody named
+                      <span className="pill" style={{ background: 'var(--warn)', color: '#fff' }}>
+                        {uncovered.length}
+                      </span>
+                    </th>
+                    {slots.map((slot) => {
+                      const here = uncovered.filter((f) => f.kickoffAt === slot);
+                      return (
+                        <td key={slot}>
+                          {here.map((f) => (
+                            <span className="slot warn" key={f.id}>
+                              <span className="slot-teams">{f.fieldName ?? 'No pitch'}</span>
+                              <span className="slot-meta">{f.divisionName}</span>
+                            </span>
+                          ))}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

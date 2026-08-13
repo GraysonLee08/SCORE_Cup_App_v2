@@ -59,8 +59,15 @@
   gap: 1rem;
   padding: 1rem;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'full' 'centre' 'left' 'right';
+  /* Stacked, "Following" comes second -- straight after any notice and before
+     the boards. It is the only control on the page, and it used to land
+     halfway down behind two rails of content. */
+  grid-template-areas: 'full' 'follow' 'centre' 'left' 'right';
   align-items: start;
+}
+
+.follow-panel {
+  grid-area: follow;
 }
 
 .board-full {
@@ -88,6 +95,7 @@
     grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
     grid-template-areas:
       'full   full'
+      'centre follow'
       'centre right'
       'left   right';
   }
@@ -111,9 +119,13 @@
     align-items: stretch;
     padding: 1.15rem 1.4rem 1.4rem;
     grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr) minmax(17rem, 21rem);
-    grid-template-rows: auto minmax(0, 1fr);
+    /* "Following" takes its natural height at the top of the right column; the
+       tables below it get the remaining `1fr` and scroll inside themselves, so
+       the page still never scrolls. */
+    grid-template-rows: auto auto minmax(0, 1fr);
     grid-template-areas:
       'full   full   full'
+      'left   centre follow'
       'left   centre right';
   }
 
@@ -615,8 +627,50 @@
   font-size: 0.8rem;
 }
 
+.board-footer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* It is a fundraiser. The link should read as one without shouting over a
+   scoreboard. */
+.board-footer a.donate {
+  color: var(--on-glass, #fff);
+  font-weight: 700;
+}
+
+.board-footer a:hover {
+  opacity: 0.8;
+}
+
 /* Blur is expensive and least legible exactly where phones are used -- in
    daylight. Below tablet width the panels get more opaque and less blurred. */
+/* On a phone the three-column row cannot hold a long field name, a pair of
+   team names and a score. "JPMorganChase" alone eats the width, and the teams
+   -- the thing anyone is actually looking for -- get squeezed to nothing.
+   Field and score keep the top line; the teams take their own beneath. */
+@media (max-width: 640px) {
+  .spectator .field-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name  score'
+      'teams teams';
+    row-gap: 0.3rem;
+  }
+  .field-name {
+    grid-area: name;
+    white-space: normal;
+  }
+  .field-score {
+    grid-area: score;
+  }
+  .field-teams {
+    grid-area: teams;
+    font-size: 0.95rem;
+  }
+}
+
 @media (max-width: 879px) {
   .spectator .glass {
     background: rgba(10, 30, 52, 0.82);

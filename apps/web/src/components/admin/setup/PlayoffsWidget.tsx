@@ -68,6 +68,20 @@ export default function PlayoffsWidget({
 
   const teamCount = division.teams.length;
   const poolCount = division.pools.length || 1;
+
+  // A division pinned to some pitches only gets those; otherwise the venue's.
+  const fieldCount =
+    division.fieldIds.length > 0 ? division.fieldIds.length : data.fields.length || 1;
+  const gamesPerTeam =
+    ((division.stages.find((s) => s.kind === 'pool')?.config ?? {}) as {
+      gamesPerTeam?: number;
+    }).gamesPerTeam ?? 0;
+
+  const poolWindows = Math.ceil(Math.round((teamCount * gamesPerTeam) / 2) / fieldCount);
+  const playoffWindows = bracketRounds(qualifiers).reduce(
+    (n, games) => n + Math.ceil(games / fieldCount),
+    0,
+  );
   const size = nextPowerOfTwo(qualifiers);
   const byes = byeCount(qualifiers);
   const perPool = Math.floor(qualifiers / poolCount);
@@ -189,6 +203,17 @@ export default function PlayoffsWidget({
             <dt>Games</dt>
             <dd>{qualifiers - 1 + (thirdPlace && size >= 4 ? 1 : 0)}</dd>
           </div>
+          {/* The number the day is actually planned around. Minimising time
+              slots is the constraint when mapping out a venue, so it has to be
+              visible while the playoff size is being chosen, not afterwards. */}
+          <div>
+            <dt>Time slots needed</dt>
+            <dd>
+              <strong>{poolWindows + playoffWindows}</strong> across the day —{' '}
+              {poolWindows} for pool play, {playoffWindows} for the playoffs
+              {gamesPerTeam === 0 && ' (set games per team under Divisions)'}
+            </dd>
+          </div>
           <div>
             <dt>From each pool</dt>
             <dd>
@@ -233,6 +258,22 @@ export default function PlayoffsWidget({
       </section>
     </div>
   );
+}
+
+/**
+ * Games in each knockout round, first round first.
+ *
+ * The first round is short by however many byes there are -- 11 qualifiers in
+ * a bracket of 16 means 3 games, not 8 -- and every round after it halves the
+ * field.
+ */
+export function bracketRounds(qualifiers: number): number[] {
+  const size = nextPowerOfTwo(qualifiers);
+  if (size < 2) return [];
+
+  const rounds = [qualifiers - size / 2];
+  for (let games = size / 4; games >= 1; games /= 2) rounds.push(games);
+  return rounds.filter((games) => games > 0);
 }
 
 /** Which seed number belongs to which pool finish. */

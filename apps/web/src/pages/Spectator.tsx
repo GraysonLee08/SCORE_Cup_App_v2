@@ -238,54 +238,57 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
           </div>
         </div>
 
-        {/* ---- right rail: the tables and the controls ---- */}
+        {/* Its own grid item rather than the top of the right rail: stacked on a
+            phone the rails run one after another, which buried the only control
+            on the page halfway down. */}
+        <section className="glass filters follow-panel">
+          <h2>Following</h2>
+
+          {event && event.divisions.length > 1 && (
+            <div className="field">
+              <label htmlFor="division">Tournament</label>
+              <select
+                id="division"
+                value={divisionId ?? ''}
+                onChange={(e) => setDivisionId(e.target.value)}
+              >
+                {event.divisions.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {division && (
+            <div className="field">
+              <label htmlFor="team">Team</label>
+              <select
+                id="team"
+                value={teamFilter}
+                onChange={(e) => {
+                  setTeamFilter(e.target.value);
+                  setPickedFixtureId(null);
+                }}
+              >
+                <option value="">All teams</option>
+                {division.teams.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <p className="soft tiny">
+            Your choice is remembered on this device. No account needed.
+          </p>
+        </section>
+
+        {/* ---- right rail: the tables ---- */}
         <div className="rail right">
-          <section className="glass filters">
-            <h2>Following</h2>
-
-            {event && event.divisions.length > 1 && (
-              <div className="field">
-                <label htmlFor="division">Tournament</label>
-                <select
-                  id="division"
-                  value={divisionId ?? ''}
-                  onChange={(e) => setDivisionId(e.target.value)}
-                >
-                  {event.divisions.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {division && (
-              <div className="field">
-                <label htmlFor="team">Team</label>
-                <select
-                  id="team"
-                  value={teamFilter}
-                  onChange={(e) => {
-                    setTeamFilter(e.target.value);
-                    setPickedFixtureId(null);
-                  }}
-                >
-                  <option value="">All teams</option>
-                  {division.teams.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <p className="soft tiny">
-              Your choice is remembered on this device. No account needed.
-            </p>
-          </section>
-
           {division?.pools.map((pool) => (
             <div className="glass table-panel" key={pool.poolId}>
               <StandingsTable pool={pool} highlightTeamId={teamFilter} />
@@ -295,7 +298,19 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
       </div>
 
       <footer className="board-footer soft">
-        Scores update automatically · America SCORES Chicago
+        Scores update automatically ·{' '}
+        <a href="https://www.chicagoscores.org" target="_blank" rel="noreferrer">
+          America SCORES Chicago
+        </a>{' '}
+        ·{' '}
+        <a
+          className="donate"
+          href="https://www.chicagoscores.org/donate"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Donate
+        </a>
         {event?.event.location ? ` · ${event.event.location}` : ''}
       </footer>
     </div>
