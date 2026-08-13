@@ -22,6 +22,87 @@ scoring bug is unrecoverable, because the standings are the product. Anything
 that writes a score or builds a schedule must be in before the rehearsal, or it
 does not go in at all.
 
+## Status
+
+**Shipped to staging, 13 Aug** — commit `d58179c`, 165 tests passing
+(engine 88, API 69, web 8). Awaiting QA.
+
+- 1.1 Nil-nil draws and clearing a result
+- 1.2 Unassigned row on the schedule grid
+- 1.3 The Highlight dropdown
+- 2.1 Cadence settings, incl. the per-division wait before the playoffs
+- 3.1 Cards in the standings (public and admin)
+- 3.2 Unscored games shaded, plus a scored/unscored filter
+- 3.5 Pool renaming
+
+**Next** — 2.3 per-division start time (newly required, see below), then 2.2
+delay, then the rest of Tier 3.
+
+## What the published schedule settles (13 Aug)
+
+The director shared the schedule already sent to teams. Decoding it answers
+three open questions, confirms the engine is right, and raises one new
+requirement that was on nobody's list.
+
+### The configuration it implies
+
+| | Competitive | Community |
+|---|---|---|
+| Teams | 8 | 11 |
+| Pools | 2 — **"Poet"** and **"Athlete"** | 1 (a single table) |
+| Games each | 3 (full round robin) | 2 |
+| Reaching the playoffs | 4 | **all 11** |
+| Game length | 30 min | 30 min |
+| Gap between rounds | 15 | 5 |
+| Wait before playoffs | **20** | **15** |
+| Gap between playoff rounds | 15 | 10 |
+| Runs | 9:00 AM – 12:35 PM | 1:30 PM – 5:55 PM |
+
+Fields are named for sponsors and values: JP Morgan, Teamwork, Leadership,
+Commitment.
+
+### Questions this answers
+
+- **Sequencing is `sequential`** — Competitive all morning, Community all
+  afternoon. No longer an open decision.
+- **The pool→playoff wait is 20 and 15**, not a single 15. It had to become
+  per division, and now it is.
+- **Pool renaming is required, not cosmetic.** The playoff games are published
+  as "Poet 1st v Athlete 2nd". Pool A/B would contradict a schedule teams
+  already hold.
+
+### What it confirms
+
+The Community playoff is an 11-team bracket with byes for the top 3 seeds, and
+the published pairings match what the engine already generates, round for
+round:
+
+```
+Round 1   6v11, 7v10, 8v9                    (seeds 1-5 bye; 4v5 played early)
+QF        1 v W(8/9), 4 v 5, 3 v W(6/11), 2 v W(7/10)
+SF        W(4/5 side) v W(1/8/9),  W(3/6/11) v W(2/7/10)
+```
+
+That is the standard mirrored bracket, including seeds 1 and 2 meeting only in
+the final — the seeding bug fixed on 12 Aug. Their spreadsheet and the engine
+independently agree, which is the strongest evidence available that the bracket
+work is right.
+
+### What it breaks
+
+1. **Playoff games are 30 minutes; the stored config says 27** (12-min halves).
+   Fixed by setting it on the new Timings screen — but it must actually be set,
+   for both divisions, before the final generate.
+2. **Community's 1:30 PM start is published and therefore fixed.** The
+   scheduler currently starts the second division "10 minutes after the first
+   one ends", which is not the same thing — if the morning finishes early, the
+   afternoon drifts away from the time teams were told. **This needs a
+   per-division start time and is not yet built.** See Tier 2.3.
+3. **Card weighting.** The director describes 1 for a yellow and 2 for a red.
+   The stored config weights both 1, from the 2026 rules' "least number of
+   cards". These give different standings. A decision, not a bug — but it must
+   be made deliberately, and the tiebreaker is now visible to the public.
+
 ## Gates outside the build
 
 These block work but aren't work themselves. Flagged because the plan slips if
@@ -174,6 +255,24 @@ first-round overrun.
 
 **Rehearsal must exercise this.** Delay a round mid-run and confirm the public
 board, the ref phones and "next up" all agree afterwards.
+
+### 2.3 Per-division start time — NEW, required
+
+**Size: S–M · Risk: medium (feeds generation) · Needs a migration**
+
+Community's 1:30 PM start is already published to teams, so it is a fixed
+point, not a consequence. The scheduler currently starts the second division
+ten minutes after the first one ends, which drifts if the morning runs early or
+late — in either direction, away from the time teams were told.
+
+- Add a nullable start time per division; when set, that division's first
+  kickoff is pinned to it rather than derived.
+- Keep the derived behaviour when it is blank, so a single-division event needs
+  no configuration.
+- Warn when the previous division's schedule would overrun a pinned start,
+  since that is a real clash and not a rounding difference.
+
+Without this the generated day cannot reproduce the schedule teams are holding.
 
 ---
 
