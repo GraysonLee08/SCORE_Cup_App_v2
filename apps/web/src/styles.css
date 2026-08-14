@@ -1359,14 +1359,22 @@ table.grid-table td {
 /* ---- referee card ------------------------------------------------------- */
 
 /* Cards go in beside the goals, not behind a panel. A referee has one hand
-   free and about four seconds. */
+   free and about four seconds.
+
+   Set well clear of the steppers, with a rule between them. A mis-tap here is
+   not a typo -- it books a player who did nothing, and the two zones are
+   otherwise a thumb's width apart on a phone held at arm's length.
+
+   Deliberately no min-height of its own: these inherit the 48px tap target the
+   rest of the app uses, which the previous 2.4rem quietly undercut. */
 .card-buttons {
-  margin-top: 0.6rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
   justify-content: center;
 }
 
 .card-buttons button {
-  min-height: 2.4rem;
   flex: 1 1 0;
   min-width: 0;
 }
