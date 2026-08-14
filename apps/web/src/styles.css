@@ -679,6 +679,7 @@ a {
 .admin-shell {
   display: grid;
   grid-template-rows: auto 1fr;
+  grid-template-columns: minmax(0, 1fr);
   height: 100dvh;
   max-width: none;
   padding: 0;
@@ -755,7 +756,7 @@ a {
 /* Wide screens get two columns so a setup form does not become a long scroll. */
 .cols {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 1rem;
   align-items: start;
 }
@@ -832,7 +833,7 @@ a {
 
 @media (max-width: 900px) {
   .admin-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .admin-nav {
     display: flex;
@@ -849,10 +850,13 @@ a {
   .admin-nav .nav-group {
     display: none;
   }
+  /* minmax(0, ...) rather than a bare 1fr: 1fr's automatic minimum is
+     min-content, so a wide table inside stretches the column past the screen
+     instead of scrolling within it. */
   .split,
   .grid-2,
   .grid-3 {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .admin-main {
     padding: 1rem;
@@ -1208,7 +1212,7 @@ table.grid-table td {
 
 @media (max-width: 900px) {
   .admin-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .admin-main {
     padding: 1.25rem 1rem 3rem;
@@ -1398,4 +1402,94 @@ table.grid-table td {
   padding: 0.75rem;
   margin-top: 0.75rem;
   background: var(--page);
+}
+
+/* --- Narrow screens ------------------------------------------------------
+   The admin shell is desktop-first on purpose -- it is used at a desk with a
+   laptop. But "not designed for a phone" should mean a cramped layout, not a
+   page that scrolls sideways, and the director does check things on a phone. */
+
+@media (max-width: 860px) {
+  /* The 216px sidebar plus a content column cannot both fit, so they stack.
+     Height goes back to auto: a fixed-height shell with two scrolling panes
+     is a desktop idea, and on a phone it just traps the content. */
+  .admin-shell {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .admin-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The nav becomes a wrapping row of chips rather than a 13-item column --
+     otherwise every page begins with half a screen of navigation. The
+     `display: contents` lets the grouped children join the same wrap. */
+  .admin-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    padding: 0.6rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    overflow-y: visible;
+  }
+
+  .admin-nav > div,
+  .admin-nav .nav-children {
+    display: contents;
+  }
+
+  .admin-nav .nav-group {
+    flex: 1 0 100%;
+    padding: 0.5rem 0.2rem 0.1rem;
+  }
+
+  .admin-nav button {
+    width: auto;
+    min-height: 36px;
+    padding: 0 0.6rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--line);
+  }
+
+  .admin-main {
+    overflow-y: visible;
+    padding: 1rem 1rem 3rem;
+  }
+}
+
+/* The header carries a logo, a title and up to three actions, and below this
+   they cannot share one line. Wrapping rather than shrinking further: the
+   labels are already short, and a header that squeezes to fit is one label
+   away from overflowing again. Wrapping holds whatever gets added later.
+
+   It matters more than it looks -- the shell's column is sized to the widest
+   child's min-content, so a header that refuses to wrap sets the minimum
+   width of every admin page behind it. */
+@media (max-width: 560px) {
+  .topbar {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .topbar .brand img {
+    height: 26px;
+  }
+
+  .topbar-title {
+    /* Second in the source, but the first thing that can go. */
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .topbar-actions {
+    margin-left: auto;
+  }
+
+  .topbar-link,
+  .topbar-btn {
+    padding: 0 0.45rem;
+    font-size: 0.82rem;
+  }
 }
