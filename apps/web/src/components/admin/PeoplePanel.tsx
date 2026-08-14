@@ -120,28 +120,71 @@ export default function PeoplePanel({ data }: { data: AdminEvent }) {
                 <th scope="col">Name</th>
                 <th scope="col">Role</th>
                 <th scope="col">Email</th>
+                <th scope="col">Status</th>
                 <th scope="col"></th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id}>
+                <tr key={u.id} className={u.disabled ? 'muted' : undefined}>
                   <td>{u.displayName}</td>
                   <td>{u.role}</td>
                   <td>{u.email}</td>
                   <td>
-                    <button
-                      className="ghost"
-                      style={{ minHeight: '2rem', padding: '0 .55rem' }}
-                      onClick={async () => {
-                        const res = await api.post<{ tempPassword: string }>(
-                          `/api/auth/users/${u.id}/temp-password`,
-                        );
-                        setTempPassword({ name: u.displayName, value: res.tempPassword });
-                      }}
-                    >
-                      Reset password
-                    </button>
+                    {u.disabled ? (
+                      <span className="pill" style={{ background: 'var(--bad)', color: '#fff' }}>
+                        Disabled
+                      </span>
+                    ) : (
+                      <span className="pill done">Active</span>
+                    )}
+                  </td>
+                  <td>
+                    <div className="row" style={{ flexWrap: 'nowrap' }}>
+                      <button
+                        className="ghost"
+                        style={{ minHeight: '2rem', padding: '0 .55rem' }}
+                        disabled={u.disabled}
+                        onClick={async () => {
+                          const res = await api.post<{ tempPassword: string }>(
+                            `/api/auth/users/${u.id}/temp-password`,
+                          );
+                          setTempPassword({ name: u.displayName, value: res.tempPassword });
+                        }}
+                      >
+                        Reset password
+                      </button>
+                      <button
+                        className={u.disabled ? 'ghost' : 'ghost danger'}
+                        style={{ minHeight: '2rem', padding: '0 .55rem' }}
+                        onClick={async () => {
+                          if (
+                            !u.disabled &&
+                            !window.confirm(
+                              `Disable ${u.displayName}? They are signed out immediately and ` +
+                                `cannot sign in again until you turn the account back on.`,
+                            )
+                          ) {
+                            return;
+                          }
+                          try {
+                            await api.put(`/api/auth/users/${u.id}/disabled`, {
+                              disabled: !u.disabled,
+                            });
+                            setStatus(
+                              `${u.displayName} ${u.disabled ? 'can sign in again.' : 'is disabled.'}`,
+                            );
+                            await load();
+                          } catch (error) {
+                            setStatus(
+                              error instanceof ApiFailure ? error.message : 'Could not change it.',
+                            );
+                          }
+                        }}
+                      >
+                        {u.disabled ? 'Enable' : 'Disable'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

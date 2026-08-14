@@ -3,7 +3,7 @@ import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import type { Config } from './config.js';
 import type { Db } from './db.js';
-import { errorHandler } from './auth/middleware.js';
+import { errorHandler, rejectDisabled } from './auth/middleware.js';
 import { authRoutes } from './routes/auth.js';
 import { teamRoutes } from './routes/teams.js';
 import { registrationRoutes } from './routes/registration.js';
@@ -15,6 +15,19 @@ import { refRoutes } from './routes/ref.js';
 import { publicRoutes } from './routes/publicView.js';
 import { adminRoutes } from './routes/admin.js';
 import { participantRoutes } from './routes/participant.js';
+
+/**
+ * Same job as wrapAsyncRoutes, for a single app-level middleware rather than a
+ * router's stack. Without it a rejection here hangs the request instead of
+ * reaching the error handler.
+ */
+function asyncMiddleware(
+  handler: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<void>,
+) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction): void => {
+    handler(req, res, next).catch(next);
+  };
+}
 
 /**
  * Wrap async route handlers so a rejected promise reaches the error handler
@@ -90,6 +103,10 @@ export function createApp(config: Config, db: Db): Express {
       res.status(503).json({ status: 'degraded', database: 'unreachable' });
     }
   });
+
+  // Runs before every router: an account disabled mid-day loses its open
+  // session on the next request rather than at the next sign-in.
+  app.use(asyncMiddleware(rejectDisabled(db)));
 
   const mount = (path: string, router: express.Router) => {
     wrapAsyncRoutes(router);

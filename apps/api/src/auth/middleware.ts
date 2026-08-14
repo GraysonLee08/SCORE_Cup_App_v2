@@ -28,6 +28,37 @@ export class HttpError extends Error {
   }
 }
 
+/**
+ * Ends the session of an account that has since been disabled.
+ *
+ * Sign-in checks the flag, but a session already open would otherwise carry on
+ * until it expired -- up to a full tournament day. Revoking access to a login
+ * that has been shared around is worth nothing if the person holding it stays
+ * signed in, so the check runs per request rather than only at the door.
+ *
+ * One primary-key lookup, and only for requests that carry a session at all --
+ * the public board never reaches the database for this.
+ */
+export function rejectDisabled(db: Db) {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    const user = req.session?.user;
+    if (!user) return next();
+
+    const { rows } = await db.query<{ disabled: boolean }>(
+      'SELECT disabled FROM users WHERE id = $1',
+      [user.id],
+    );
+
+    // Deleted or disabled: either way the session no longer stands for anyone.
+    if (!rows[0] || rows[0].disabled) {
+      req.session.destroy(() => undefined);
+      throw new HttpError(401, 'That account is no longer active.', 'account_disabled');
+    }
+
+    next();
+  };
+}
+
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
   if (!req.session.user) {
     throw new HttpError(401, 'You need to sign in.', 'unauthenticated');

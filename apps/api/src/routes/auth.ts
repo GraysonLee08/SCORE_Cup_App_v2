@@ -204,6 +204,60 @@ export function authRoutes(db: Db): Router {
     res.status(201).json({ id: created.id, tempPassword });
   });
 
+  /**
+   * Turn an account off, or back on.
+   *
+   * The counterpart to handing out a password. A referee who drops out, a
+   * login that has been shared around, an account that should not have been
+   * made -- until now none of those could be closed at all: the column existed
+   * and sign-in honoured it, but nothing anywhere set it.
+   *
+   * Takes effect immediately, including on a session that is already open,
+   * because "revoked next time they sign in" is not revocation.
+   */
+  router.put('/users/:id/disabled', requireAuth, requireRole('admin'), async (req, res) => {
+    const userId = req.params.id;
+    const parsed = z.object({ disabled: z.boolean() }).safeParse(req.body);
+    if (!userId || !parsed.success) {
+      throw new HttpError(400, 'Say whether to disable or enable them.', 'invalid_input');
+    }
+    const { disabled } = parsed.data;
+
+    // Locking yourself out of your own tournament is never the intent, and it
+    // is the one mistake here that cannot be undone from inside the app.
+    if (disabled && userId === req.session.user!.id) {
+      throw new HttpError(
+        400,
+        'You cannot disable your own account. Ask another admin.',
+        'cannot_disable_self',
+      );
+    }
+
+    const { rows: targetRows } = await db.query<{ role: string; display_name: string }>(
+      'SELECT role, display_name FROM users WHERE id = $1',
+      [userId],
+    );
+    const target = targetRows[0];
+    if (!target) throw new HttpError(404, 'No such person.', 'not_found');
+
+    // There is deliberately no "last admin" check beyond the one above. Whoever
+    // is making this call is an enabled admin who is not the target, so an
+    // enabled admin always remains -- refusing self-disable is what guarantees
+    // it. A second check would read like a safety net while never once firing.
+
+    await db.query('UPDATE users SET disabled = $1 WHERE id = $2', [disabled, userId]);
+
+    await recordAudit(db, {
+      actorUserId: req.session.user!.id,
+      entityType: 'user',
+      entityId: userId,
+      action: disabled ? 'disable' : 'enable',
+      after: { displayName: target.display_name, role: target.role },
+    });
+
+    res.json({ disabled });
+  });
+
   router.post('/users/:id/temp-password', requireAuth, requireRole('admin'), async (req, res) => {
     const userId = req.params.id;
     if (!userId) throw new HttpError(400, 'No user specified.', 'invalid_input');

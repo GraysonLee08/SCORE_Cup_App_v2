@@ -51,8 +51,23 @@ function makeClient(app: Express) {
       });
       return { status: res.status, body: await res.json().catch(() => null) };
     },
+    async put(path: string, body?: unknown): Promise<{ status: number; body: any }> {
+      const res = await fetch(`http://127.0.0.1:${port}${path}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      return { status: res.status, body: await res.json().catch(() => null) };
+    },
     clearCookie() {
       cookie = '';
+    },
+    /** Held and put back so one client can carry two sessions in turn. */
+    cookieValue() {
+      return cookie;
+    },
+    useCookie(value: string) {
+      cookie = value;
     },
   };
 }
@@ -200,5 +215,113 @@ suite('auth', () => {
       "SELECT count(*) FROM audit_log WHERE action = 'login'",
     );
     expect(Number(rows[0]!.count)).toBeGreaterThan(0);
+  });
+
+  /**
+   * Revoking access. The column existed and sign-in honoured it, but nothing
+   * anywhere set it, so no account could actually be closed.
+   */
+  describe('disabling an account', () => {
+    let refId = '';
+    let adminId = '';
+
+    beforeAll(async () => {
+      const { rows } = await db.query<{ id: string }>(
+        `INSERT INTO users (email, password_hash, role, display_name)
+         VALUES ('revoke-ref@example.com', $1, 'ref', 'A Referee') RETURNING id`,
+        [await hashPassword('a very good password')],
+      );
+      refId = rows[0]!.id;
+      const { rows: admins } = await db.query<{ id: string }>(
+        "SELECT id FROM users WHERE role = 'admin' LIMIT 1",
+      );
+      adminId = admins[0]!.id;
+    });
+
+    async function asAdmin() {
+      client.clearCookie();
+      await client.post('/api/auth/login', {
+        email: 'admin@example.com',
+        password: 'a very good password',
+      });
+    }
+
+    /**
+     * The point of the whole feature: a session that is already open has to
+     * stop working. "Revoked next time they sign in" is not revocation.
+     */
+    it('ends a session that is already open', async () => {
+      client.clearCookie();
+      await client.post('/api/auth/login', {
+        email: 'revoke-ref@example.com',
+        password: 'a very good password',
+      });
+      const refCookie = client.cookieValue();
+      expect((await client.get('/api/auth/me')).status).toBe(200);
+
+      await asAdmin();
+      const res = await client.put(`/api/auth/users/${refId}/disabled`, { disabled: true });
+      expect(res.status).toBe(200);
+
+      client.useCookie(refCookie);
+      const after = await client.get('/api/auth/me');
+      expect(after.status).toBe(401);
+      expect(after.body.code).toBe('account_disabled');
+    });
+
+    it('stops them signing in again', async () => {
+      client.clearCookie();
+      const res = await client.post('/api/auth/login', {
+        email: 'revoke-ref@example.com',
+        password: 'a very good password',
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it('lets them back in once re-enabled', async () => {
+      await asAdmin();
+      await client.put(`/api/auth/users/${refId}/disabled`, { disabled: false });
+
+      client.clearCookie();
+      const res = await client.post('/api/auth/login', {
+        email: 'revoke-ref@example.com',
+        password: 'a very good password',
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it('refuses to let an admin disable themselves', async () => {
+      await asAdmin();
+      const res = await client.put(`/api/auth/users/${adminId}/disabled`, { disabled: true });
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('cannot_disable_self');
+    });
+
+    /**
+     * The invariant that matters: an enabled admin always remains. It holds
+     * because the caller is an enabled admin who cannot be the target, so
+     * disabling anyone else still leaves them. Asserted rather than assumed,
+     * since it is the reason there is no separate "last admin" check.
+     */
+    it('always leaves an admin who can still sign in', async () => {
+      const { rows: created } = await db.query<{ id: string }>(
+        `INSERT INTO users (email, password_hash, role, display_name)
+         VALUES ('admin2@example.com', $1, 'admin', 'Second Admin') RETURNING id`,
+        [await hashPassword('a very good password')],
+      );
+      const secondAdminId = created[0]!.id;
+
+      await asAdmin();
+      expect(
+        (await client.put(`/api/auth/users/${secondAdminId}/disabled`, { disabled: true })).status,
+      ).toBe(200);
+
+      const { rows } = await db.query<{ n: string }>(
+        "SELECT count(*) AS n FROM users WHERE role = 'admin' AND disabled = FALSE",
+      );
+      expect(Number(rows[0]!.n)).toBeGreaterThan(0);
+
+      await db.query('UPDATE users SET disabled = FALSE');
+    });
   });
 });
