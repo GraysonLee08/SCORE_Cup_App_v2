@@ -95,12 +95,17 @@ export default function RefView({
   );
 
   const signOff = useCallback(
-    async (fixture: Fixture, teamId: string, captainName: string) => {
+    async (
+      fixture: Fixture,
+      teamId: string,
+      captainName: string,
+      cardNames: { cardId: string; name: string }[],
+    ) => {
       const result = await sendOrQueue({
         id: `signoff:${fixture.id}:${teamId}`,
         method: 'POST',
         path: `/api/ref/fixtures/${fixture.id}/signoff`,
-        body: { teamId, captainName },
+        body: { teamId, captainName, cardNames },
       });
       setPending(pendingCount());
       if (result.sent) await load();
@@ -109,8 +114,13 @@ export default function RefView({
     [load],
   );
 
-  const upcoming = fixtures.filter((f) => f.status !== 'complete');
-  const finished = fixtures.filter((f) => f.status === 'complete');
+  // A referee's job is not done at the final whistle, it is done when both
+  // captains have signed. Partitioning on status alone pulled the game out
+  // from under them the moment they tapped Finish match -- the card unmounted,
+  // taking the half-completed sign-off with it.
+  const settled = (f: Fixture) => f.status === 'complete' && f.signoffCount >= 2;
+  const upcoming = fixtures.filter((f) => !settled(f));
+  const finished = fixtures.filter(settled);
 
   return (
     <div className="app">
@@ -152,7 +162,9 @@ export default function RefView({
             onSubmitScore={(payload) => submitScore(fixture, payload)}
             onAddCard={(teamId, type, minute) => addCard(fixture, teamId, type, minute)}
             onRemoveCard={(cardId) => removeCard(fixture, cardId)}
-            onSignOff={(teamId, captainName) => signOff(fixture, teamId, captainName)}
+            onSignOff={(teamId, captainName, cardNames) =>
+              signOff(fixture, teamId, captainName, cardNames)
+            }
           />
         ))}
 
@@ -168,7 +180,9 @@ export default function RefView({
                 onSubmitScore={(payload) => submitScore(fixture, payload)}
                 onAddCard={(teamId, type, minute) => addCard(fixture, teamId, type, minute)}
                 onRemoveCard={(cardId) => removeCard(fixture, cardId)}
-                onSignOff={(teamId, captainName) => signOff(fixture, teamId, captainName)}
+                onSignOff={(teamId, captainName, cardNames) =>
+              signOff(fixture, teamId, captainName, cardNames)
+            }
               />
             ))}
           </>

@@ -1355,3 +1355,39 @@ table.grid-table td {
   align-items: center;
   gap: 0.3rem;
 }
+
+/* ---- referee card ------------------------------------------------------- */
+
+/* Cards go in beside the goals, not behind a panel. A referee has one hand
+   free and about four seconds. */
+.card-buttons {
+  margin-top: 0.6rem;
+  justify-content: center;
+}
+
+.card-buttons button {
+  min-height: 2.4rem;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.signoff {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.9rem;
+}
+
+.signoff h3 {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+}
+
+/* Each team's block is visibly its own, because a captain signs for one team
+   and names only their own players. */
+.signoff-team {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  background: var(--page);
+}

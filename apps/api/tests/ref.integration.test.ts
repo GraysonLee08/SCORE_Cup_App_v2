@@ -311,6 +311,53 @@ suite('referee score entry', () => {
     expect(second.body.signoffCount).toBe(2);
   });
 
+  /**
+   * The captain writes down who was carded, because the referee cannot know a
+   * stranger's name and the shirts have no numbers.
+   */
+  it('records the name a captain gives for their own team’s card', async () => {
+    const card = await client.post(`/api/ref/fixtures/${myFixtureId}/cards`, {
+      teamId: homeTeamId, type: 'yellow', clientId: 'naming-test-card-0001',
+    });
+    await client.put(`/api/ref/fixtures/${myFixtureId}/score`, {
+      homeScore: 1, awayScore: 0, status: 'complete',
+    });
+
+    const res = await client.post(`/api/ref/fixtures/${myFixtureId}/signoff`, {
+      teamId: homeTeamId,
+      captainName: 'A. Captain',
+      cardNames: [{ cardId: card.body.id, name: 'Jamie Rivera' }],
+    });
+    expect(res.status).toBe(201);
+
+    const cards = await client.get(`/api/ref/fixtures/${myFixtureId}/cards`);
+    const named = cards.body.cards.find((c: any) => c.id === card.body.id);
+    expect(named.playerName).toBe('Jamie Rivera');
+  });
+
+  /**
+   * The rule with teeth: a captain signs for their own side only. Enforced in
+   * the statement rather than by the screen, since the screen is not what an
+   * attacker would be using.
+   */
+  it('ignores a captain naming players on the opposition’s cards', async () => {
+    const theirs = await client.post(`/api/ref/fixtures/${myFixtureId}/cards`, {
+      teamId: awayTeamId, type: 'red', clientId: 'naming-test-card-0002',
+    });
+
+    await client.post(`/api/ref/fixtures/${myFixtureId}/signoff`, {
+      teamId: homeTeamId,
+      captainName: 'A. Captain',
+      cardNames: [{ cardId: theirs.body.id, name: 'Someone Else Entirely' }],
+    });
+
+    const cards = await client.get(`/api/ref/fixtures/${myFixtureId}/cards`);
+    const untouched = cards.body.cards.find((c: any) => c.id === theirs.body.id);
+    expect(untouched.playerName).toBeNull();
+
+    await client.del(`/api/ref/fixtures/${myFixtureId}/cards/${theirs.body.id}`);
+  });
+
   it('stops a coach entering scores', async () => {
     await client.loginAs('coach@example.com', PW);
     const res = await client.put(`/api/ref/fixtures/${myFixtureId}/score`, {

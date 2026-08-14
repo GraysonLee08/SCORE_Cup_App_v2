@@ -25,9 +25,19 @@ const cardSchema = z.object({
 const signoffSchema = z.object({
   teamId: z.string().uuid(),
   captainName: z.string().min(1).max(120),
-  /** Captains name the carded players here, since jerseys have no numbers. */
+  /** Where the roster is known, the card is tied to an actual player row. */
   cardAttributions: z
     .array(z.object({ cardId: z.string().uuid(), playerId: z.string().uuid() }))
+    .optional(),
+  /**
+   * Who the captain says was carded, in their words.
+   *
+   * Free text rather than a roster pick: jerseys have no numbers, a referee
+   * cannot identify a stranger, and half these players will have registered on
+   * the morning. A name written down beats a dropdown nobody can complete.
+   */
+  cardNames: z
+    .array(z.object({ cardId: z.string().uuid(), name: z.string().max(120) }))
     .optional(),
 });
 
@@ -116,7 +126,9 @@ export function refRoutes(db: Db): Router {
       `SELECT c.id, c.team_id AS "teamId", c.type, c.minute,
               c.identifying_note AS "identifyingNote", c.player_id AS "playerId",
               t.name AS "teamName",
-              (p.first_name || ' ' || p.last_name) AS "playerName"
+              -- The roster row when there is one, otherwise whatever the
+              -- captain wrote down at sign-off.
+              COALESCE(p.first_name || ' ' || p.last_name, c.player_name_note) AS "playerName"
          FROM cards c
          JOIN teams t ON t.id = c.team_id
          LEFT JOIN players p ON p.id = c.player_id
@@ -326,6 +338,17 @@ export function refRoutes(db: Db): Router {
     );
     if (scoreRows[0]?.home_score == null) {
       throw new HttpError(400, 'Enter the score before signing off.', 'no_score');
+    }
+
+    // Scoped to the signing team in the statement itself: a captain naming
+    // players on the opposition's cards is not a thing that should be possible,
+    // whatever the screen happens to offer.
+    for (const naming of d.cardNames ?? []) {
+      await db.query(
+        `UPDATE cards SET player_name_note = NULLIF(btrim($1), '')
+          WHERE id = $2 AND fixture_id = $3 AND team_id = $4`,
+        [naming.name, naming.cardId, fixtureId, d.teamId],
+      );
     }
 
     for (const attribution of d.cardAttributions ?? []) {
