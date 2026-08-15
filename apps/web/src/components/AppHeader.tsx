@@ -1,3 +1,4 @@
+import type React from 'react';
 import { Link } from 'react-router-dom';
 import type { SessionUser } from '../types.js';
 
@@ -14,11 +15,21 @@ export default function AppHeader({
   title,
   subtitle,
   onSignOut,
+  extra,
+  titleIsHeading,
 }: {
   user: SessionUser | null;
   title: string;
   subtitle?: string;
   onSignOut?: () => void;
+  /** Render the title as the page's `h1`. For views with no heading of their own. */
+  titleIsHeading?: boolean;
+  /**
+   * A control belonging to this view, placed ahead of the account actions.
+   * The spectator board puts its bright-sun switch here, because a control
+   * for "I cannot read this" has to be visible without scrolling.
+   */
+  extra?: React.ReactNode;
 }) {
   return (
     <header className="topbar">
@@ -27,11 +38,20 @@ export default function AppHeader({
       </Link>
 
       <div className="topbar-title">
-        <strong>{title}</strong>
+        {/* On a view whose content has no other title, this is the page's
+            heading and not merely bold text -- without it the document outline
+            starts at h2 and a screen reader has no top of the page. Views that
+            render their own h1 (admin, sign-in) leave it as it was. */}
+        {titleIsHeading ? (
+          <h1 className="topbar-name">{title}</h1>
+        ) : (
+          <strong className="topbar-name">{title}</strong>
+        )}
         {subtitle && <div className="who">{subtitle}</div>}
       </div>
 
       <div className="topbar-actions">
+        {extra}
         {user ? (
           <>
             {/* Clicking the logo goes here too, but nobody discovers that. Once

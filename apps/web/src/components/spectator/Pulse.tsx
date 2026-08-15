@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { PublicFixture, PublicPoolTable } from '../../types.js';
+import type { EventTense } from './eventDay.js';
 
 /**
  * The tournament in numbers.
@@ -8,13 +9,23 @@ import type { PublicFixture, PublicPoolTable } from '../../types.js';
  * data, no guesses, no invented predictions. It exists because a fundraiser is
  * a day out as much as a competition, and "42 goals so far" is the kind of
  * thing people read out to each other on a sideline.
+ *
+ * Before the day there are no results to count, and the honest version of this
+ * panel is a much shorter one. Left as it was, it reported a 0% bar, four zero
+ * tiles and -- because rank 1 exists in a table nobody has played in yet -- a
+ * pool leader on no games.
  */
 export default function Pulse({
   fixtures,
   pools,
+  tense,
+  dayWindow,
 }: {
   fixtures: PublicFixture[];
   pools: PublicPoolTable[];
+  tense: EventTense;
+  /** The published hours, e.g. "9:00 AM – 5:00 PM". */
+  dayWindow: string;
 }) {
   const stats = useMemo(() => {
     const played = fixtures.filter((f) => f.homeScore != null);
@@ -65,9 +76,21 @@ export default function Pulse({
 
   const pct = stats.total === 0 ? 0 : Math.round((stats.played / stats.total) * 100);
 
+  if (tense === 'before') {
+    return (
+      <section className="glass pulse" aria-labelledby="pulse-title">
+        <h2 id="pulse-title">The day ahead</h2>
+        <p className="pulse-line">
+          {stats.total} {stats.total === 1 ? 'game' : 'games'}
+          {dayWindow && <span className="soft"> · {dayWindow}</span>}
+        </p>
+      </section>
+    );
+  }
+
   return (
-    <section className="glass pulse">
-      <h2>The day so far</h2>
+    <section className="glass pulse" aria-labelledby="pulse-title">
+      <h2 id="pulse-title">{tense === 'after' ? 'How the day went' : 'The day so far'}</h2>
 
       <div className="progress" role="img" aria-label={`${pct}% of games played`}>
         <span style={{ width: `${pct}%` }} />

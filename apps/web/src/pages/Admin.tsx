@@ -77,6 +77,29 @@ export default function Admin({
   const [active, setActive] = useState('setup.tournament');
   const [expanded, setExpanded] = useState<string[]>(['setup']);
   const [error, setError] = useState<string | null>(null);
+  const [pendingResults, setPendingResults] = useState(0);
+
+  /**
+   * Leaving the results screen unmounts it, and its unsaved score edits go
+   * with it. The screen counted them and said so; nothing stopped a click on
+   * the nav from discarding them anyway, without a word.
+   *
+   * Every route out of that screen goes through here.
+   */
+  const leave = useCallback(
+    (go: () => void) => {
+      if (pendingResults > 0) {
+        const ok = window.confirm(
+          `${pendingResults} score change${pendingResults === 1 ? '' : 's'} ` +
+            `${pendingResults === 1 ? 'has' : 'have'} not been saved yet.\n\n` +
+            `Leaving this screen discards ${pendingResults === 1 ? 'it' : 'them'}.`,
+        );
+        if (!ok) return;
+      }
+      go();
+    },
+    [pendingResults],
+  );
 
   const loadEvents = useCallback(async () => {
     try {
@@ -120,7 +143,7 @@ export default function Admin({
                 <button
                   key={item.key}
                   className={`nav-parent ${active === item.key ? 'active' : ''}`}
-                  onClick={() => setActive(item.key)}
+                  onClick={() => leave(() => setActive(item.key))}
                   aria-current={active === item.key ? 'page' : undefined}
                 >
                   {item.label}
@@ -135,12 +158,24 @@ export default function Admin({
                   className={`nav-parent ${isOpen ? 'open' : ''}`}
                   aria-expanded={isOpen}
                   onClick={() => {
-                    setExpanded((e) =>
-                      e.includes(item.key) ? e.filter((k) => k !== item.key) : [...e, item.key],
-                    );
+                    // Collapsing a group changes nothing but the nav, so it is
+                    // only a departure when it also moves the screen.
+                    const moves = !isOpen && item.children?.[0];
+                    const toggle = () =>
+                      setExpanded((e) =>
+                        e.includes(item.key) ? e.filter((k) => k !== item.key) : [...e, item.key],
+                      );
+
+                    if (!moves) {
+                      toggle();
+                      return;
+                    }
                     // Opening a group lands on its first screen, so a click
                     // always shows something.
-                    if (!isOpen && item.children?.[0]) setActive(item.children[0].key);
+                    leave(() => {
+                      toggle();
+                      setActive(item.children![0]!.key);
+                    });
                   }}
                 >
                   <span className="caret">▶</span>
@@ -153,7 +188,7 @@ export default function Admin({
                       <button
                         key={child.key}
                         className={active === child.key ? 'active' : ''}
-                        onClick={() => setActive(child.key)}
+                        onClick={() => leave(() => setActive(child.key))}
                         aria-current={active === child.key ? 'page' : undefined}
                       >
                         {child.label}
@@ -181,7 +216,14 @@ export default function Admin({
           {events.length > 1 && (
             <div className="field" style={{ maxWidth: '22rem' }}>
               <label htmlFor="event">Tournament</label>
-              <select id="event" value={eventId ?? ''} onChange={(e) => setEventId(e.target.value)}>
+              <select
+                id="event"
+                value={eventId ?? ''}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  leave(() => setEventId(next));
+                }}
+              >
                 {events.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name}
@@ -219,7 +261,9 @@ export default function Admin({
 
               {active === 'people' && <PeoplePanel data={data} />}
               {active === 'schedule' && <ScheduleGrid data={data} />}
-              {active === 'results' && <ResultsPanel data={data} />}
+              {active === 'results' && (
+                <ResultsPanel data={data} onPendingChange={setPendingResults} />
+              )}
               {active === 'messages' && <AnnouncementsPanel data={data} />}
             </>
           )}

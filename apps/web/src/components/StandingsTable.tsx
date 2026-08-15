@@ -1,4 +1,5 @@
 import type { PublicPoolTable } from '../types.js';
+import { cardLabel } from './cards.js';
 
 /**
  * State the weighting rather than assume it. The number is on public display
@@ -11,6 +12,25 @@ function cardRule(weights: PublicPoolTable['penaltyPoints']): string {
   return `A yellow counts ${weights.yellow}, a red counts ${weights.red}.`;
 }
 
+/**
+ * The rule as one sentence for every table on screen.
+ *
+ * Weighting is configured per pool, so stating one pool's numbers under all of
+ * them would be a guess dressed as a fact. When the pools agree -- which they
+ * do, and are meant to -- say the numbers. When they ever disagree, say the
+ * rule without them rather than say it wrongly.
+ */
+export function sharedCardRule(pools: PublicPoolTable[]): string {
+  if (pools.length === 0) return '';
+
+  const shapes = new Set(
+    pools.map((p) => (p.penaltyPoints ? `${p.penaltyPoints.yellow}:${p.penaltyPoints.red}` : '—')),
+  );
+  const rule = shapes.size === 1 ? cardRule(pools[0]!.penaltyPoints) : 'Cards count against a team.';
+
+  return `${rule} Used to separate teams level on points — fewer is better.`;
+}
+
 export default function StandingsTable({
   pool,
   highlightTeamId,
@@ -21,19 +41,31 @@ export default function StandingsTable({
   const anyManual = pool.rows.some((r) => r.needsManualTiebreak);
   const anyAdjustment = pool.rows.some((r) => r.adjustmentPoints !== 0);
 
+  // A table of zeros badged "In progress" says a tournament is underway that
+  // nobody has played a minute of. Three states, not two.
+  const notStarted = pool.rows.every((r) => r.played === 0);
+
+  // The pool name names both the panel and the table inside it. Without it a
+  // table-navigation user meets two unnamed ten-column tables in a row.
+  const headingId = `pool-${pool.poolId}-title`;
+
   return (
-    <section className="card">
+    <section className="card" aria-labelledby={headingId}>
       <div className="meta">
-        <h2 style={{ margin: 0 }}>{pool.poolName}</h2>
+        <h2 id={headingId} style={{ margin: 0 }}>
+          {pool.poolName}
+        </h2>
         {pool.complete ? (
           <span className="pill done">Final</span>
+        ) : notStarted ? (
+          <span className="pill">Not started</span>
         ) : (
           <span className="pill">In progress</span>
         )}
       </div>
 
       <div className="table-scroll">
-        <table className="standings">
+        <table className="standings" aria-labelledby={headingId}>
           <thead>
             <tr>
               <th scope="col" className="num">#</th>
@@ -59,9 +91,15 @@ export default function StandingsTable({
                 <td className="num">{row.rank}</td>
                 <td>
                   {row.teamName}
-                  {row.needsManualTiebreak && <span className="asterisk" title="Tied">*</span>}
+                  {row.needsManualTiebreak && (
+                    <span className="asterisk" title="Tied">
+                      *<span className="sr-only"> separated by the organisers</span>
+                    </span>
+                  )}
                   {row.adjustmentPoints !== 0 && (
-                    <span className="asterisk" title="Points adjustment">†</span>
+                    <span className="asterisk" title="Points adjustment">
+                      †<span className="sr-only"> includes a points adjustment</span>
+                    </span>
                   )}
                 </td>
                 <td className="num">{row.played}</td>
@@ -70,8 +108,15 @@ export default function StandingsTable({
                 <td className="num">{row.lost}</td>
                 <td className="num">{row.goalsFor}</td>
                 <td className="num">{row.goalsAgainst}</td>
-                <td className="num" title={`${row.yellowCards} yellow, ${row.redCards} red`}>
+                {/* The breakdown was a `title` and nothing else, which is a
+                    tooltip on a desktop and silence everywhere else. The
+                    number stays visible; the split is now said out loud. */}
+                <td className="num" title={cardLabel(row.yellowCards, row.redCards)}>
                   {row.penaltyPoints}
+                  <span className="sr-only">
+                    {' '}
+                    card points, {cardLabel(row.yellowCards, row.redCards)}
+                  </span>
                 </td>
                 <td className="num strong">{row.points}</td>
               </tr>
@@ -80,11 +125,9 @@ export default function StandingsTable({
         </table>
       </div>
 
-      {/* Say why the order is what it is, rather than leaving people to guess. */}
-      <p className="muted" style={{ marginTop: '.6rem' }}>
-        {cardRule(pool.penaltyPoints)} Used to separate teams level on points — fewer is
-        better. Hover or tap a number for the yellow and red breakdown.
-      </p>
+      {/* The card rule is said once for the whole rail -- see sharedCardRule.
+          These two footnotes stay, because they are about rows in this table:
+          they only appear when a team here is actually affected. */}
       {anyManual && (
         <p className="muted" style={{ marginTop: '.6rem' }}>
           * Level on every tiebreaker — separated by the tournament organisers.

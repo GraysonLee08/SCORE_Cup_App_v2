@@ -20,6 +20,47 @@ interface PendingEdit {
 }
 
 /**
+ * What to tell the person at the scores table after a save.
+ *
+ * Separated out and tested because this sentence is the only thing standing
+ * between a director and a wrong belief about the day's record. "Could not
+ * save" after four of ten wrote is not a small inaccuracy: it invites someone
+ * to re-enter four results that are already in the database, or to walk away
+ * thinking nothing landed when half of it did.
+ */
+export function saveOutcome({
+  savedCount,
+  failed,
+  attempted,
+  sessionLost,
+}: {
+  savedCount: number;
+  /** Human names of the games that failed, in the order they were tried. */
+  failed: string[];
+  attempted: number;
+  sessionLost: boolean;
+}): { ok: boolean; text: string } {
+  if (failed.length === 0) {
+    return { ok: true, text: `Saved ${savedCount} game${savedCount === 1 ? '' : 's'}.` };
+  }
+
+  // Everything not saved is still in the editor, including any the run never
+  // reached after a lost session -- so count from what was attempted rather
+  // than from the failures seen.
+  const remaining = attempted - savedCount;
+
+  return {
+    ok: false,
+    text:
+      (savedCount > 0 ? `Saved ${savedCount}. ` : '') +
+      `${failed.length} could not be saved: ${failed.join(', ')}. ` +
+      (sessionLost
+        ? `Your session has expired — sign in again, then save the remaining ${remaining}.`
+        : `${remaining === 1 ? 'It is' : 'They are'} still here, so you can try again.`),
+  };
+}
+
+/**
  * Results, with the standings recomputed live as edits are made.
  *
  * The preview runs the engine in the browser -- the very same
@@ -27,7 +68,19 @@ interface PendingEdit {
  * is pure: no database, no HTTP. An admin correcting a score at the awards
  * table can see who it promotes before committing to it.
  */
-export default function ResultsPanel({ data }: { data: AdminEvent }) {
+export default function ResultsPanel({
+  data,
+  onPendingChange,
+}: {
+  data: AdminEvent;
+  /**
+   * How many edits are waiting to be saved. Reported upward because the panel
+   * cannot defend its own state: the nav that unmounts it lives a level above,
+   * and until it knew, a click on "Schedule grid" threw the work away in
+   * silence.
+   */
+  onPendingChange?: (count: number) => void;
+}) {
   const [divisionId, setDivisionId] = useState(data.divisions[0]?.id ?? '');
   const [division, setDivision] = useState<PublicDivision | null>(null);
   const [pending, setPending] = useState<Record<string, PendingEdit>>({});
@@ -218,6 +271,31 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
     });
   }, [division, scoreFilter, pending]);
 
+  const pendingCount = changedIds.length;
+
+  // Tell the shell, and clear the flag on the way out so a guard cannot
+  // outlive the edits it was guarding.
+  useEffect(() => {
+    onPendingChange?.(pendingCount);
+  }, [pendingCount, onPendingChange]);
+
+  useEffect(() => () => onPendingChange?.(0), [onPendingChange]);
+
+  /**
+   * The browser's own guard, for the exits the app does not own: a closed tab,
+   * a reload, a followed link. Registered only while there is something to
+   * lose, so it never interrupts anyone for nothing.
+   */
+  useEffect(() => {
+    if (pendingCount === 0) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [pendingCount]);
+
   /** One side entered and the other blank -- not a result, and not a clear. */
   const incompleteIds = changedIds.filter((id) => {
     const e = pending[id]!;
@@ -249,10 +327,25 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
 
     setSaving(true);
     setStatus(null);
-    try {
-      for (const id of changedIds) {
-        const fixture = division.fixtures.find((f) => f.id === id)!;
-        const edit = pending[id]!;
+
+    /**
+     * Each game is saved on its own terms.
+     *
+     * These are separate writes, so "it failed" was never the whole truth: a
+     * failure on the fourth game used to report one error and leave all ten
+     * marked unsaved, including the three already in the database. On a day
+     * where the standings are the product, the person at the scores table has
+     * to know exactly where the record now stands -- not merely that something
+     * went wrong.
+     */
+    const saved: string[] = [];
+    const failed: string[] = [];
+    let sessionLost = false;
+
+    for (const id of changedIds) {
+      const fixture = division.fixtures.find((f) => f.id === id)!;
+      const edit = pending[id]!;
+      try {
         if (edit.homeScore === null && edit.awayScore === null) {
           await api.delete(`/api/ref/fixtures/${id}/score`);
         } else {
@@ -263,29 +356,51 @@ export default function ResultsPanel({ data }: { data: AdminEvent }) {
           });
         }
         await reconcileCards(fixture, edit);
+        saved.push(id);
+      } catch (error) {
+        failed.push(`${fixture.homeTeamName} v ${fixture.awayTeamName}`);
+        // A signed-out session fails every remaining write identically. Stop
+        // rather than firing nine more doomed requests and listing nine games
+        // that were never really the problem.
+        if (error instanceof ApiFailure && (error.status === 401 || error.status === 403)) {
+          sessionLost = true;
+          break;
+        }
       }
-      setStatus({
-        ok: true,
-        text: `Saved ${changedIds.length} game${changedIds.length === 1 ? '' : 's'}.`,
+    }
+
+    // What saved stops being unsaved, whatever happened to the rest; what
+    // failed stays in the editor so it can be tried again without retyping.
+    if (saved.length > 0) {
+      setPending((prev) => {
+        const next = { ...prev };
+        for (const id of saved) delete next[id];
+        return next;
       });
-      setPending({});
       setCardsByFixture({});
       setOpenFixture(null);
-      await load();
-    } catch (error) {
-      setStatus({
-        ok: false,
-        text: error instanceof ApiFailure ? error.message : 'Could not save.',
-      });
-    } finally {
-      setSaving(false);
     }
+
+    // Re-read either way. A screen that disagrees with the server is the one
+    // outcome worse than a failed save.
+    await load().catch(() => {});
+    setSaving(false);
+
+    setStatus(
+      saveOutcome({ savedCount: saved.length, failed, attempted: changedIds.length, sessionLost }),
+    );
   }
 
   return (
     <>
+      {/* A failed save is announced assertively; a successful one waits its
+          turn. Both used to be `status`, so "3 could not be saved" queued
+          politely behind whatever the screen reader was already saying. */}
       {status && (
-        <div className={status.ok ? 'notice ok' : 'notice error'} role="status">
+        <div
+          className={status.ok ? 'notice ok' : 'notice error'}
+          role={status.ok ? 'status' : 'alert'}
+        >
           {status.text}
         </div>
       )}

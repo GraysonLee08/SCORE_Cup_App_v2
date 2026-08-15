@@ -28,6 +28,13 @@ postgres_data/
 .idea/
 *.swp
 *.swo
+
+# Design tooling: the config, the design sidecar and the critique snapshots are
+# shared and belong in the repo. Everything below is per-machine runtime state.
+.impeccable/hook.cache.json
+.impeccable/hook.pending.json
+.impeccable/config.local.json
+.impeccable/live/
 *~
 
 # OS generated files

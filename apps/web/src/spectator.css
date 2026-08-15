@@ -35,8 +35,8 @@
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(52rem 30rem at 12% -8%, rgba(22, 64, 110, 0.75), transparent 70%),
-    radial-gradient(38rem 26rem at 96% 4%, rgba(225, 27, 52, 0.2), transparent 68%),
+    radial-gradient(52rem 30rem at 12% -8%, rgba(0, 70, 127, 0.75), transparent 70%),
+    radial-gradient(38rem 26rem at 96% 4%, rgba(227, 24, 55, 0.2), transparent 68%),
     radial-gradient(34rem 24rem at 62% 108%, rgba(245, 197, 24, 0.09), transparent 70%);
 }
 
@@ -176,8 +176,12 @@
   color: var(--on-glass);
 }
 
+/* Marked up as headings, but by role these are labels -- small, uppercase and
+   tracked out. The display face is for headings that read as titles, so these
+   stay on the body face where the uppercase run belongs. */
 .spectator .glass h2 {
-  font-size: 0.82rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: var(--on-glass-soft);
@@ -185,6 +189,7 @@
 }
 
 .spectator .glass h3 {
+  font-family: var(--font-body);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -218,7 +223,7 @@
   gap: 0.35rem;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -275,10 +280,10 @@
 }
 
 .spectator .spotlight.is-live {
-  border-color: rgba(225, 27, 52, 0.45);
+  border-color: rgba(227, 24, 55, 0.45);
   box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.34),
-    0 0 0 1px rgba(225, 27, 52, 0.18),
+    0 0 0 1px rgba(227, 24, 55, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
@@ -316,6 +321,7 @@
    the score itself. Scaled with the viewport rather than fixed, since the same
    panel serves a phone and a venue screen. */
 .spotlight-score .team-name {
+  font-family: var(--font-display);
   font-size: clamp(1.35rem, 2.4vw, 2rem);
   font-weight: 800;
   line-height: 1.15;
@@ -358,7 +364,7 @@
   margin-top: 1.1rem;
   padding-top: 0.9rem;
   border-top: 1px solid var(--glass-line);
-  font-size: 0.86rem;
+  font-size: 0.85rem;
 }
 
 .spotlight-clock strong {
@@ -375,6 +381,107 @@
   padding: 2.4rem 1.4rem;
 }
 
+/* --- countdown -----------------------------------------------------------
+   The pre-event state, in the Spotlight's slot. It borrows the spotlight's
+   padding and its big tabular number deliberately: the figure sitting where
+   the score will sit is the thing that makes the panel read as the same organ
+   waiting to start, rather than as a different panel apologising. */
+
+.spectator .countdown {
+  padding: 1.3rem 1.4rem 1.15rem;
+  text-align: center;
+}
+
+/* Beats `.spectator .glass h2`, which is the uppercase label treatment for
+   panel titles. This h2 is a title in the ordinary sense, so it takes the
+   display face at the same size the spotlight gives a team name. */
+.spectator .countdown .countdown-date {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--on-glass);
+  margin: 0 0 0.6rem;
+}
+
+.countdown-days {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 0 0 0.9rem;
+}
+
+.countdown-days strong {
+  font-size: clamp(2.6rem, 6vw, 4.1rem);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.countdown-days span {
+  font-size: 1.05rem;
+  color: var(--on-glass-soft);
+}
+
+.countdown-facts {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--on-glass-soft);
+}
+
+/* The payoff for following a team, before anything has happened to report. */
+.countdown-mine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--glass-line);
+}
+
+.countdown-mine-teams {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.countdown-hint {
+  margin: 1.1rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--glass-line);
+}
+
+/* It is a fundraiser, and this is the one screen with room to ask without
+   talking over a score. Solid on glass -- the same inversion the active chip
+   and the active segment already use, rather than a new button language. */
+.spectator .btn-donate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 1.1rem;
+  padding: 0 1.4rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #0b2038;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.spectator .btn-donate:hover {
+  background: rgba(255, 255, 255, 0.88);
+}
+
 .spotlight-switch {
   display: flex;
   flex-wrap: wrap;
@@ -382,14 +489,17 @@
   margin-top: 0.9rem;
 }
 
+/* 44px, not 36: this is tapped one-handed, outdoors, by someone holding a
+   coffee. PRODUCT.md sets the field floor at 48 and the desk floor at 42; a
+   chip in a rail sits between the two. */
 .spectator .chip-btn {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 0.7rem;
   border-radius: 999px;
   background: var(--glass-strong);
   border: 1px solid var(--glass-line);
   color: var(--on-glass);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
@@ -435,7 +545,7 @@
   color: var(--on-glass);
 }
 
-.spectator .field-row:hover:not(:disabled) {
+.spectator .field-row:hover:not(:disabled):not([aria-disabled='true']) {
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -448,8 +558,10 @@
   color: #ff8a9b;
 }
 
-.spectator .field-row:disabled {
+.spectator .field-row:disabled,
+.spectator .field-row[aria-disabled='true'] {
   opacity: 0.45;
+  cursor: default;
 }
 
 .field-name {
@@ -457,7 +569,7 @@
   align-items: center;
   gap: 0.4rem;
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   /* Wraps rather than overflowing: "JPMorganChase Field" does not fit on one
@@ -483,7 +595,7 @@
 }
 
 .field-next {
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   overflow-wrap: anywhere;
 }
 
@@ -514,7 +626,7 @@
 .stat {
   text-align: center;
   padding: 0.55rem 0.2rem;
-  border-radius: 11px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -527,7 +639,7 @@
 }
 
 .stat span {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--on-glass-soft);
@@ -535,7 +647,7 @@
 
 .pulse-line {
   margin: 0.5rem 0 0;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   overflow-wrap: anywhere;
 }
 
@@ -552,13 +664,15 @@
 
 .spectator .seg {
   flex: 1 1 0;
-  min-height: 38px;
+  min-height: 48px;
   padding: 0 0.5rem;
   border: 0;
-  border-radius: 9px;
+  /* 8px, not 9: the track is 12px with 0.25rem of padding, so this is the
+     radius that sits concentric inside it rather than near it. */
+  border-radius: 8px;
   background: transparent;
   color: var(--on-glass-soft);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
@@ -608,6 +722,70 @@
   border-radius: 12px;
 }
 
+/* A game nobody has scored yet.
+ *
+ * The light theme's rule cannot simply be reused here: `--ink-soft` at 60%
+ * opacity measures 1.59:1 against the board, which is not a quieter dash but
+ * an absent one. Same gesture, board ink -- the hatch says "nothing here yet"
+ * and the dash stays readable at the soft tone's 7.24:1.
+ *
+ * It matters most at 9am, when every game is unscored and a list of dashes at
+ * full weight reads as a completed round of nil-nil draws.
+ */
+.spectator .fixture.unscored {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 6px,
+    rgba(255, 255, 255, 0.05) 6px,
+    rgba(255, 255, 255, 0.05) 12px
+  );
+}
+
+.spectator .fixture.unscored .team-score,
+.spectator .spotlight-score .n.empty {
+  color: var(--on-glass-soft);
+}
+
+/* Which tournament a pitch is running, when there is more than one. Sits in
+   the label tier beside the field name rather than taking a line of its own. */
+.field-division::before {
+  content: '·';
+  margin: 0 0.3rem;
+}
+
+/* The only place the board says there are two tournaments and that they run
+   one after the other. Above the tabs, because it frames what they list. */
+.day-shape {
+  margin: 0 0 0.6rem;
+}
+
+/* Footnote to the whole rail rather than to one table, so it sits on the board
+   itself instead of taking a panel of its own for a single line. */
+.standings-key {
+  padding: 0 0.2rem;
+}
+
+.standings-key p {
+  margin: 0;
+}
+
+.standings-key p + p {
+  margin-top: 0.35rem;
+}
+
+/* A knockout slot whose entrants are not decided yet: "Winner of 6 v 11".
+ *
+ * It inherited `--ink-soft`, a light-theme grey, and measured 2.5:1 on the
+ * glass and 2.3:1 in bright sun -- so the entire playoff picture was close to
+ * unreadable for the whole of pool play, which is exactly when people go
+ * looking at it. The italic stays: it carries the same "not settled yet"
+ * meaning without depending on the colour to say it.
+ */
+.spectator .team-name.pending {
+  color: var(--on-glass-soft);
+}
+
 .spectator .fixture-meta,
 .spectator .time-heading,
 .spectator label {
@@ -628,11 +806,13 @@
   color: var(--on-glass-soft);
 }
 
+/* Back to the global 48px tap target. The 42px here was a desk value that had
+   been applied to the surface most used standing in a field. */
 .spectator select {
   background: rgba(255, 255, 255, 0.08);
   border-color: var(--glass-line);
   color: var(--on-glass);
-  min-height: 42px;
+  min-height: 48px;
 }
 
 /* The native menu is drawn by the OS in its own colours, so the options have
@@ -649,7 +829,7 @@
 .board-footer {
   padding: 0.5rem 1.4rem 1.5rem;
   text-align: center;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
 .board-footer a {
@@ -696,6 +876,143 @@
   }
 }
 
+/* --- bright sun ----------------------------------------------------------
+ *
+ * The board is read on a field in August, and glass is the wrong material
+ * outdoors. Translucency and blur both spend contrast to buy depth, and
+ * sunlight falling on the screen adds the same luminance to a panel and to the
+ * text on it -- which flattens precisely the mid-tones this theme leans on. A
+ * ratio measured indoors says nothing about that.
+ *
+ * So this changes the material, not the design. Same navy, same red, same
+ * layout, same type. The panels stop being glass, the atmosphere goes away,
+ * and the soft tone moves from 66% to 85% white. Measured on the new panel:
+ * white 13.2:1 and soft white 9.9:1, against 7.2:1 for the soft tone on glass
+ * -- and neither is paying the translucency tax any more.
+ */
+
+.spectator.sun {
+  --glass: #12324f;
+  --glass-strong: #1d456d;
+  --glass-line: rgba(255, 255, 255, 0.45);
+  --on-glass-soft: rgba(255, 255, 255, 0.85);
+  /* Inner surfaces that were a 5% white wash: too faint to survive glare. */
+  --sun-inset: #0c2439;
+}
+
+.app.spectator.sun {
+  /* Flat rather than a gradient: the gradient buys atmosphere indoors and
+     bands under glare, and its darkest stop is where reflection bites worst. */
+  background: #071c2e;
+}
+
+.spectator.sun .glow {
+  display: none;
+}
+
+.spectator.sun .topbar {
+  background: #0a2338;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.spectator.sun .glass {
+  background: var(--glass);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+.spectator.sun .fixture,
+.spectator.sun .field-row,
+.spectator.sun .stat,
+.spectator.sun .segmented,
+.spectator.sun .progress {
+  background: var(--sun-inset);
+}
+
+.spectator.sun .fixture {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.spectator.sun .field-row.active,
+.spectator.sun .field-row:hover:not(:disabled):not([aria-disabled='true']) {
+  background: #17405f;
+}
+
+.spectator.sun .chip-btn,
+.spectator.sun select {
+  background: var(--glass-strong);
+}
+
+.spectator.sun table.standings th,
+.spectator.sun table.standings td {
+  border-bottom-color: rgba(255, 255, 255, 0.24);
+}
+
+/* The hatch has to survive glare too, so it doubles in strength. */
+.spectator.sun .fixture.unscored {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 6px,
+    rgba(255, 255, 255, 0.1) 6px,
+    rgba(255, 255, 255, 0.1) 12px
+  );
+}
+
+/* The smallest two tiers go up one step on the ramp. Small type is the first
+   thing to go in bright light, and these carry field names and stat labels. */
+.spectator.sun .tiny,
+.spectator.sun .tag {
+  font-size: 0.85rem;
+}
+
+.spectator.sun .stat span {
+  font-size: 0.78rem;
+}
+
+/* --- the switch ---------------------------------------------------------- */
+
+.sun-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sun-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* On is a filled switch, not a tinted one: the state has to be legible in the
+   conditions the mode exists for. */
+.sun-toggle.is-on {
+  background: #fff;
+  border-color: #fff;
+  color: #0b2038;
+}
+
+/* Below this the header wraps to two rows and the label costs more than it
+   gives; the icon and the pressed state still carry it, and the button keeps
+   its accessible name. */
+@media (max-width: 430px) {
+  .sun-toggle {
+    font-size: 0;
+    gap: 0;
+    padding: 0 0.6rem;
+  }
+}
+
 /* ---- standings inside a rail ------------------------------------------- */
 
 /* Nine numeric columns beside a team name is a lot for a side panel, and the
@@ -703,7 +1020,7 @@
    which hides exactly the tiebreaker column that was just added -- the numbers
    are tightened and the rail is given more room. */
 .spectator .table-panel table.standings {
-  font-size: 0.86rem;
+  font-size: 0.85rem;
 }
 
 .spectator .table-panel table.standings th,

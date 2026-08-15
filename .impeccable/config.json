@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/styles.css"
+        ],
+        "createdAt": "2026-08-15T01:58:03.971Z",
+        "reason": "The .slot left edge is the schedule grid's state carrier, not an accent: navy scheduled, red clash, dashed amber no-referee. Documented as The Slot in DESIGN.md Components and load-bearing for the admin's clash detection."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "2px",
+        "createdAt": "2026-08-15T02:58:45.614Z",
+        "reason": "The 14x2px rule between the two spotlight scores takes half its own thickness, like the 1px standings pip and the 3px card chip. Documented in DESIGN.md Shapes as a mark that refuses the ladder, not a step on it."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "3px",
+        "createdAt": "2026-08-15T03:49:31.723Z",
+        "reason": "The referee's card chip. DESIGN.md Shapes names it with the 1px pip and 2px mark as shapes that deliberately refuse the ladder: they read as playing cards, not UI."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "1px",
+        "createdAt": "2026-08-15T03:49:31.791Z",
+        "reason": "The standings card pip, 7x11px. Same documented exemption in DESIGN.md Shapes as the 3px chip and 2px mark."
+      }
+    ]
+  }
+}

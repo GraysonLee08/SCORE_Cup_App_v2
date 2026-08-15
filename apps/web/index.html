@@ -5,7 +5,41 @@
     <!-- maximum-scale is deliberately omitted: pinch-zoom must keep working
          for anyone reading a score in bright sun. -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0B5FA5" />
+    <meta name="theme-color" content="#00467f" />
+
+    <!-- The board is distributed by being pasted into team group chats and
+         sponsor email, where a bare URL renders as a grey rectangle. Kept free
+         of this year's date deliberately: this file is static and the event is
+         not, so anything written here has to stay true next season too. -->
+    <meta
+      name="description"
+      content="Live scores, standings and playoff brackets for the SCORES Cup — the America SCORES Chicago charity soccer tournament."
+    />
+    <meta property="og:site_name" content="America SCORES Chicago" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SCORES Cup" />
+    <meta
+      property="og:description"
+      content="Live scores, standings and playoff brackets. No account needed."
+    />
+    <meta name="twitter:card" content="summary" />
+    <!-- og:image needs an absolute URL to resolve for a scraper, so it waits on
+         the production hostname being settled. Add it as:
+         <meta property="og:image" content="https://HOST/brand/AS-CHI-Horizontal.webp" /> -->
+
+    <!-- The three faces the first screen is built from: body text, the score,
+         and the headings. The other two weights arrive with the components
+         that use them. -->
+    <link rel="preload" href="/fonts/poppins-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/poppins-800.woff2" as="font" type="font/woff2" crossorigin />
+    <link
+      rel="preload"
+      href="/fonts/lubalin-graph-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
     <title>SCORES Cup</title>
   </head>
   <body>

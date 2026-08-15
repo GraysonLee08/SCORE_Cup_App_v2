@@ -1,6 +1,7 @@
 import type { PublicFixture } from '../../types.js';
 import Jersey from '../Jersey.js';
 import { isRunning, matchPhase, phaseLabel } from './clock.js';
+import type { EventTense } from './eventDay.js';
 
 /**
  * What is on every pitch, right now.
@@ -21,13 +22,22 @@ function kickoffTime(fixture: PublicFixture): string {
 export default function FieldBoard({
   fixtures,
   now,
+  tense,
   selectedId,
   onPick,
+  divisionOf,
 }: {
   fixtures: PublicFixture[];
   now: number;
+  tense: EventTense;
   selectedId: string | null;
   onPick: (id: string) => void;
+  /**
+   * Fixture id to division name, or null when the event has only one division
+   * and naming it on every row would be noise. The pitches are shared, so a
+   * row can belong to a division other than the one selected below.
+   */
+  divisionOf: Map<string, string> | null;
 }) {
   const fieldNames = [
     ...new Set(fixtures.map((f) => f.fieldName).filter((n): n is string => Boolean(n))),
@@ -35,16 +45,22 @@ export default function FieldBoard({
 
   if (fieldNames.length === 0) {
     return (
-      <section className="glass">
-        <h2>Pitches</h2>
-        <p className="soft">No fields have games on them yet.</p>
+      <section className="glass" aria-labelledby="field-board-title">
+        <h2 id="field-board-title">Pitches</h2>
+        <p className="soft">
+          {tense === 'before'
+            ? 'The pitches appear here once the schedule is published.'
+            : 'No fields have games on them yet.'}
+        </p>
       </section>
     );
   }
 
   return (
-    <section className="glass field-board">
-      <h2>On the pitches</h2>
+    <section className="glass field-board" aria-labelledby="field-board-title">
+      {/* "On the pitches" is a claim about right now, and three weeks out it is
+          not true. The rows are the same either way -- the heading is not. */}
+      <h2 id="field-board-title">{tense === 'before' ? 'The pitches' : 'On the pitches'}</h2>
 
       <div className="field-rows">
         {fieldNames.map((name) => {
@@ -67,11 +83,19 @@ export default function FieldBoard({
                 current && current.id === selectedId ? 'active' : ''
               }`}
               onClick={() => current && onPick(current.id)}
-              disabled={!current}
+              // `aria-disabled` rather than `disabled`: a pitch that has
+              // finished is still one of the four, and `disabled` drops it out
+              // of the tab order entirely -- so a keyboard user could not find
+              // out that Leadership is done for the day, only that it was
+              // missing from the list.
+              aria-disabled={current ? undefined : true}
             >
               <span className="field-name">
                 {live && <span className="dot" aria-hidden="true" />}
                 {name}
+                {current && divisionOf?.get(current.id) && (
+                  <span className="field-division">{divisionOf.get(current.id)}</span>
+                )}
               </span>
 
               {current ? (

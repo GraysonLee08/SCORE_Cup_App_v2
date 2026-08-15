@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import StandingsTable from '../src/components/StandingsTable.js';
+import StandingsTable, { sharedCardRule } from '../src/components/StandingsTable.js';
 import type { PublicPoolTable, StandingsRow } from '../src/types.js';
 
 /**
@@ -36,6 +36,17 @@ function row(over: Partial<StandingsRow> = {}): StandingsRow {
   };
 }
 
+function pool(over: Partial<PublicPoolTable> = {}): PublicPoolTable {
+  return {
+    poolId: 'p1',
+    poolName: 'Athlete',
+    complete: false,
+    rows: [row()],
+    penaltyPoints: { yellow: 1, red: 2 },
+    ...over,
+  };
+}
+
 function render(pool: Partial<PublicPoolTable> = {}) {
   const html = renderToStaticMarkup(
     <StandingsTable
@@ -51,6 +62,13 @@ function render(pool: Partial<PublicPoolTable> = {}) {
   );
   const host = document.createElement('div');
   host.innerHTML = html;
+
+  // Drop screen-reader-only text before reading the cells. This test is about
+  // what a sighted reader sees lining up under each heading; the spoken
+  // equivalents ("3 card points, 1 yellow card…") live in the same cells and
+  // would otherwise look like a column full of prose.
+  for (const hidden of host.querySelectorAll('.sr-only')) hidden.remove();
+
   const table = host.querySelector('table.standings')!;
   return {
     headers: [...table.querySelectorAll('thead th')].map((t) => t.textContent!.trim()),
@@ -91,31 +109,35 @@ describe('standings columns', () => {
     });
   });
 
+  /**
+   * The rule moved out of the table and is now written once for every pool in
+   * the rail, so the requirement moved with it: still state the weighting that
+   * was configured, never a weighting that was assumed.
+   */
   it('states the weighting it was given rather than assuming one', () => {
-    const flat = renderToStaticMarkup(
-      <StandingsTable
-        pool={{
-          poolId: 'p1',
-          poolName: 'Athlete',
-          complete: false,
-          rows: [row()],
-          penaltyPoints: { yellow: 1, red: 1 },
-        }}
-      />,
+    expect(sharedCardRule([pool({ penaltyPoints: { yellow: 1, red: 1 } })])).toContain(
+      'Every card counts 1.',
     );
-    expect(flat).toContain('Every card counts 1.');
+    expect(sharedCardRule([pool({ penaltyPoints: { yellow: 1, red: 2 } })])).toContain(
+      'A yellow counts 1, a red counts 2.',
+    );
+  });
 
-    const weighted = renderToStaticMarkup(
-      <StandingsTable
-        pool={{
-          poolId: 'p1',
-          poolName: 'Athlete',
-          complete: false,
-          rows: [row()],
-          penaltyPoints: { yellow: 1, red: 2 },
-        }}
-      />,
-    );
-    expect(weighted).toContain('A yellow counts 1, a red counts 2.');
+  it('will not put one pool’s weighting under another pool’s table', () => {
+    // Saying "a yellow counts 1" beneath a pool that weights it 2 would be a
+    // guess printed as a fact, so with pools that disagree the numbers go.
+    const mixed = sharedCardRule([
+      pool({ poolId: 'a', penaltyPoints: { yellow: 1, red: 2 } }),
+      pool({ poolId: 'b', penaltyPoints: { yellow: 2, red: 4 } }),
+    ]);
+    expect(mixed).toContain('Cards count against a team.');
+    expect(mixed).not.toMatch(/counts \d/);
+
+    // Agreeing pools are the normal case and do get the numbers.
+    const agreed = sharedCardRule([
+      pool({ poolId: 'a', penaltyPoints: { yellow: 1, red: 2 } }),
+      pool({ poolId: 'b', penaltyPoints: { yellow: 1, red: 2 } }),
+    ]);
+    expect(agreed).toContain('A yellow counts 1, a red counts 2.');
   });
 });

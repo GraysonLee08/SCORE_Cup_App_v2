@@ -35,6 +35,51 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return payload as T;
 }
 
+/**
+ * A GET that asks "has this changed?" rather than "send it again".
+ *
+ * The public board re-reads the whole tournament on a timer, and on a normal
+ * afternoon almost every one of those reads is identical to the last: 25KB of
+ * JSON re-sent, re-parsed and re-rendered to discover that nothing happened.
+ * The API already returns an ETag on every response, so this keeps the last one
+ * and sends it back; an unchanged tournament answers 304 with an empty body.
+ *
+ * `changed` is the useful half. A caller that skips its state update when
+ * nothing changed also skips the re-render, which is the part a phone feels.
+ */
+const revalidation = new Map<string, { etag: string; data: unknown }>();
+
+export async function getRevalidated<T>(path: string): Promise<{ data: T; changed: boolean }> {
+  const known = revalidation.get(path);
+
+  const res = await fetch(path, {
+    credentials: 'same-origin',
+    // The browser's own cache would answer some of these without telling us
+    // whether anything changed, which is the one thing the caller needs.
+    cache: 'no-store',
+    headers: known ? { 'If-None-Match': known.etag } : {},
+  });
+
+  if (res.status === 304 && known) return { data: known.data as T, changed: false };
+
+  const payload = (await res.json().catch(() => null)) as T & Partial<ApiError>;
+  if (!res.ok) {
+    throw new ApiFailure(
+      res.status,
+      payload?.code ?? 'error',
+      payload?.error ?? 'Something went wrong.',
+    );
+  }
+
+  const etag = res.headers.get('ETag');
+  // No ETag (a proxy stripped it, say) degrades to exactly the old behaviour:
+  // every poll is a full read and every read counts as a change.
+  if (etag) revalidation.set(path, { etag, data: payload });
+  else revalidation.delete(path);
+
+  return { data: payload as T, changed: true };
+}
+
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),

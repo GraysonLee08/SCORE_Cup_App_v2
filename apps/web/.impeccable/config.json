@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/styles.css"
+        ],
+        "createdAt": "2026-08-15T03:55:13.030Z",
+        "reason": "Same documented exception as the apps/web/src/styles.css entry: the .slot left edge is the schedule grid's state carrier (navy scheduled, red clash, dashed amber no-referee), named as The Slot in DESIGN.md Components. Second path form so it resolves whether the detector runs from the repo root or from apps/web."
+      }
+    ]
+  }
+}

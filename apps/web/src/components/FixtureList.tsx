@@ -1,5 +1,6 @@
 import type { PublicFixture } from '../types.js';
 import Jersey from './Jersey.js';
+import { cardLabel } from './cards.js';
 
 function time(iso: string | null): string {
   if (!iso) return 'TBC';
@@ -9,7 +10,7 @@ function time(iso: string | null): string {
 function CardPips({ counts }: { counts: { yellow: number; red: number } }) {
   if (counts.yellow === 0 && counts.red === 0) return null;
   return (
-    <span className="pips" aria-label={`${counts.yellow} yellow, ${counts.red} red`}>
+    <span className="pips" role="img" aria-label={cardLabel(counts.yellow, counts.red)}>
       {Array.from({ length: counts.yellow }, (_, i) => (
         <span key={`y${i}`} className="pip yellow" />
       ))}
@@ -63,7 +64,7 @@ export default function FixtureList({
                     (f.awayPenalties ?? 0) > (f.homePenalties ?? 0)));
 
               return (
-                <div className="fixture" key={f.id}>
+                <div className={played ? 'fixture' : 'fixture unscored'} key={f.id}>
                   <div className="fixture-meta">
                     {!groupByTime && <span>{time(f.kickoffAt)}</span>}
                     {showField && f.fieldName && <span>{f.fieldName}</span>}

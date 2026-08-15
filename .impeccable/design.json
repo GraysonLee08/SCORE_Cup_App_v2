@@ -1,0 +1,419 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-14T23:20:00-05:00",
+  "title": "Design System: SCORES Cup",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Chicago Navy",
+        "canonical": "oklch(37% 0.115 250)",
+        "tonalRamp": [
+          "oklch(15% 0.055 250)",
+          "oklch(24% 0.085 250)",
+          "oklch(33% 0.110 250)",
+          "oklch(42% 0.125 250)",
+          "oklch(53% 0.125 250)",
+          "oklch(66% 0.100 250)",
+          "oklch(81% 0.060 250)",
+          "oklch(94% 0.020 250)"
+        ]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "SCORES Red",
+        "canonical": "oklch(56% 0.215 25)",
+        "tonalRamp": [
+          "oklch(15% 0.070 25)",
+          "oklch(25% 0.110 25)",
+          "oklch(35% 0.160 25)",
+          "oklch(45% 0.195 25)",
+          "oklch(56% 0.215 25)",
+          "oklch(70% 0.160 25)",
+          "oklch(84% 0.090 25)",
+          "oklch(95% 0.030 25)"
+        ]
+      },
+      "focus": {
+        "role": "tertiary",
+        "displayName": "Pencil Yellow",
+        "canonical": "oklch(84% 0.160 90)",
+        "tonalRamp": [
+          "oklch(15% 0.050 90)",
+          "oklch(28% 0.080 90)",
+          "oklch(41% 0.100 90)",
+          "oklch(54% 0.125 90)",
+          "oklch(67% 0.145 90)",
+          "oklch(84% 0.160 90)",
+          "oklch(91% 0.090 90)",
+          "oklch(97% 0.030 90)"
+        ]
+      },
+      "board-top": {
+        "role": "primary",
+        "displayName": "Board Navy",
+        "canonical": "oklch(24% 0.055 255)",
+        "tonalRamp": [
+          "oklch(12% 0.030 255)",
+          "oklch(18% 0.045 255)",
+          "oklch(24% 0.055 255)",
+          "oklch(33% 0.070 255)",
+          "oklch(45% 0.075 255)",
+          "oklch(60% 0.060 255)",
+          "oklch(78% 0.035 255)",
+          "oklch(93% 0.012 255)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(23% 0.008 250)",
+        "tonalRamp": [
+          "oklch(15% 0.008 250)",
+          "oklch(23% 0.008 250)",
+          "oklch(35% 0.010 250)",
+          "oklch(47% 0.012 250)",
+          "oklch(60% 0.012 250)",
+          "oklch(74% 0.010 250)",
+          "oklch(88% 0.006 250)",
+          "oklch(96% 0.003 250)"
+        ]
+      },
+      "good": {
+        "role": "tertiary",
+        "displayName": "Good Green",
+        "canonical": "oklch(52% 0.125 155)",
+        "tonalRamp": [
+          "oklch(15% 0.045 155)",
+          "oklch(26% 0.070 155)",
+          "oklch(38% 0.100 155)",
+          "oklch(52% 0.125 155)",
+          "oklch(64% 0.115 155)",
+          "oklch(76% 0.085 155)",
+          "oklch(88% 0.050 155)",
+          "oklch(96% 0.018 155)"
+        ]
+      },
+      "bad": {
+        "role": "tertiary",
+        "displayName": "Alarm Red",
+        "canonical": "oklch(52% 0.170 30)",
+        "tonalRamp": [
+          "oklch(15% 0.060 30)",
+          "oklch(26% 0.100 30)",
+          "oklch(38% 0.145 30)",
+          "oklch(52% 0.170 30)",
+          "oklch(64% 0.150 30)",
+          "oklch(77% 0.105 30)",
+          "oklch(88% 0.060 30)",
+          "oklch(96% 0.020 30)"
+        ]
+      },
+      "warn": {
+        "role": "tertiary",
+        "displayName": "Marshal Amber",
+        "canonical": "oklch(63% 0.130 85)",
+        "tonalRamp": [
+          "oklch(15% 0.045 85)",
+          "oklch(27% 0.070 85)",
+          "oklch(40% 0.100 85)",
+          "oklch(52% 0.120 85)",
+          "oklch(63% 0.130 85)",
+          "oklch(76% 0.110 85)",
+          "oklch(88% 0.065 85)",
+          "oklch(96% 0.025 85)"
+        ]
+      },
+      "card-yellow": {
+        "role": "tertiary",
+        "displayName": "Card Yellow",
+        "canonical": "oklch(87% 0.135 92)",
+        "tonalRamp": [
+          "oklch(20% 0.050 92)",
+          "oklch(33% 0.075 92)",
+          "oklch(46% 0.095 92)",
+          "oklch(59% 0.115 92)",
+          "oklch(72% 0.130 92)",
+          "oklch(87% 0.135 92)",
+          "oklch(93% 0.075 92)",
+          "oklch(98% 0.025 92)"
+        ]
+      },
+      "live-pink": {
+        "role": "secondary",
+        "displayName": "Live Pink",
+        "canonical": "oklch(75% 0.130 15)",
+        "tonalRamp": [
+          "oklch(20% 0.055 15)",
+          "oklch(33% 0.090 15)",
+          "oklch(45% 0.120 15)",
+          "oklch(57% 0.140 15)",
+          "oklch(66% 0.140 15)",
+          "oklch(75% 0.130 15)",
+          "oklch(87% 0.075 15)",
+          "oklch(96% 0.025 15)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display — Lubalin Graph",
+        "purpose": "The two team names in the board's spotlight. The largest words on any screen, scaled with the viewport so one panel serves a phone and a venue display."
+      },
+      "headline": {
+        "displayName": "Headline — Lubalin Graph",
+        "purpose": "Admin page titles. Drops from 2rem to 1.5rem below 900px."
+      },
+      "title": {
+        "displayName": "Title — Lubalin Graph",
+        "purpose": "Card and panel headings across both themes."
+      },
+      "body": {
+        "displayName": "Body — Poppins",
+        "purpose": "All prose. 17px rather than 16 because it is read outdoors at arm's length; hints drop to 0.92rem and measure no wider than 60ch."
+      },
+      "label": {
+        "displayName": "Label — Poppins uppercase",
+        "purpose": "Column headers, time headings, nav groups, tags, board panel titles. The only role permitted to be uppercase, and never above 0.92rem."
+      },
+      "mono": {
+        "displayName": "Mono — system stack",
+        "purpose": "Join codes and admin-issued temporary passwords. Keeps 0 apart from O while somebody reads one out across a car park. The system's only monospace, and a code is the only thing that earns it."
+      },
+      "score": {
+        "displayName": "Score — Poppins tabular",
+        "purpose": "The spotlight scoreline and every figure that can change. Tabular figures at every size so digits never shift as a score updates."
+      }
+    },
+    "shadows": [
+      {
+        "name": "admin-lift",
+        "value": "0 1px 2px rgba(16, 32, 52, 0.06), 0 6px 20px rgba(16, 32, 52, 0.05)",
+        "purpose": "The only shadow in the light theme. Lets admin panels drop their border entirely so definition comes from whitespace."
+      },
+      {
+        "name": "glass-lift",
+        "value": "0 12px 34px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.14)",
+        "purpose": "Every board panel. The inset highlight is the light-catching top edge that makes a translucent sheet read as physical."
+      },
+      {
+        "name": "glass-live",
+        "value": "0 12px 40px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(227, 24, 55, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.16)",
+        "purpose": "The spotlight while a match is running. The only state-driven shadow in the system."
+      }
+    ],
+    "motion": [
+      {
+        "name": "press",
+        "value": "transform: translateY(1px)",
+        "purpose": "Every button on :active. The whole system's click feel; there is no other press treatment."
+      },
+      {
+        "name": "caret",
+        "value": "transform 0.12s ease",
+        "purpose": "The admin nav's disclosure caret rotating 90deg on open."
+      },
+      {
+        "name": "progress",
+        "value": "width 0.6s ease",
+        "purpose": "The day's progress bar filling. Suppressed under prefers-reduced-motion."
+      },
+      {
+        "name": "pulse",
+        "value": "opacity/scale 1.9s ease-in-out infinite (1 → 0.35 / 1 → 0.72)",
+        "purpose": "The live dot inside a live tag. The only looping animation in the system, and suppressed entirely under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      { "name": "header-tight", "value": "430px" },
+      { "name": "header-wrap", "value": "560px" },
+      { "name": "admin-stack", "value": "860px" },
+      { "name": "board-two-col", "value": "880px" },
+      { "name": "admin-rail", "value": "900px" },
+      { "name": "board-one-screen", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The end of a task, so it spans the column. Navy fill, 48px minimum for a gloved thumb.",
+      "html": "<button class=\"ds-btn-primary\">Save result</button>",
+      "css": ".ds-btn-primary { font: 700 17px/1.45 Poppins, -apple-system, 'Segoe UI', Roboto, sans-serif; width: 100%; min-height: 48px; padding: 0 1rem; background: var(--brand, #00467f); color: #fff; border: 1px solid var(--brand, #00467f); border-radius: var(--radius, 10px); cursor: pointer; touch-action: manipulation; } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 3px solid var(--focus, #f5c518); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Score Stepper",
+      "kind": "button",
+      "refersTo": "button-step",
+      "description": "The primary scoring control. A 48px square with a 1.6rem glyph, flanking a tabular score.",
+      "html": "<div class=\"ds-stepper\"><button class=\"ds-step\" aria-label=\"Subtract a goal\">−</button><span class=\"ds-step-value\">2</span><button class=\"ds-step\" aria-label=\"Add a goal\">+</button></div>",
+      "css": ".ds-stepper { display: flex; align-items: center; justify-content: center; gap: 0.5rem; } .ds-step { width: 48px; min-height: 48px; padding: 0; font: 700 1.6rem/1 Poppins, -apple-system, sans-serif; background: #fff; color: #1a1d21; border: 1px solid #dfe4e9; border-radius: 10px; cursor: pointer; touch-action: manipulation; } .ds-step:active { transform: translateY(1px); } .ds-step:focus-visible { outline: 3px solid #f5c518; outline-offset: 2px; } .ds-step-value { min-width: 3.1rem; text-align: center; font: 800 2.6rem/1 Poppins, -apple-system, sans-serif; font-variant-numeric: tabular-nums; color: #1a1d21; }"
+    },
+    {
+      "name": "Card Buttons",
+      "kind": "button",
+      "refersTo": "button-card-yellow",
+      "description": "Yellow and red cards, set below a rule with 1.5rem of clearance from the score steppers. A mis-tap books a player who did nothing, so the separation is structural.",
+      "html": "<div class=\"ds-card-buttons\"><button class=\"ds-btn-yellow\">Yellow</button><button class=\"ds-btn-red\">Red</button></div>",
+      "css": ".ds-card-buttons { display: flex; gap: 0.6rem; justify-content: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #dfe4e9; } .ds-card-buttons button { flex: 1 1 0; min-width: 0; min-height: 48px; padding: 0 1rem; font: 700 17px/1.45 Poppins, -apple-system, sans-serif; border-radius: 10px; cursor: pointer; touch-action: manipulation; } .ds-btn-yellow { background: #f7d154; border: 1px solid #d9b23f; color: #1a1d21; } .ds-btn-red { background: #c0392b; border: 1px solid #c0392b; color: #fff; } .ds-card-buttons button:active { transform: translateY(1px); } .ds-card-buttons button:focus-visible { outline: 3px solid #f5c518; outline-offset: 2px; }"
+    },
+    {
+      "name": "Kit Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The light theme's container: white on grey, one hairline, no shadow. A live game thickens the border to 2px navy — depth never means state.",
+      "html": "<div class=\"ds-card ds-card--live\"><div class=\"ds-card-meta\"><span class=\"ds-pill ds-pill--live\">Live</span><span>Leadership · 10:10</span></div><h2 class=\"ds-card-title\">Poet Pool · Round 2</h2></div>",
+      "css": ".ds-card { background: #fff; border: 1px solid #dfe4e9; border-radius: 10px; padding: 1rem; margin-bottom: 0.9rem; } .ds-card--live { border-color: var(--brand, #00467f); border-width: 2px; } .ds-card-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; font: 400 0.85rem/1.45 Poppins, -apple-system, sans-serif; color: #5c6670; margin-bottom: 0.6rem; } .ds-card-title { margin: 0; font: 600 1.2rem/1.2 'Lubalin Graph', Rockwell, 'Roboto Slab', Georgia, serif; letter-spacing: -0.01em; color: #1a1d21; } .ds-pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; background: #eef2f6; font: 700 0.78rem/1.45 Poppins, -apple-system, sans-serif; color: #1a1d21; } .ds-pill--live { background: var(--brand, #00467f); color: #fff; }"
+    },
+    {
+      "name": "Admin Panel",
+      "kind": "card",
+      "refersTo": "admin-card",
+      "description": "The desk theme: borderless and roomy, floating on a two-layer ambient shadow. Definition comes from whitespace rather than hard edges.",
+      "html": "<section class=\"ds-panel\"><h2 class=\"ds-panel-title\">Cadence</h2><p class=\"ds-hint\">35-minute slots → 9:00, 9:35, 10:10, 10:45. The day ends at 12:35.</p></section>",
+      "css": ".ds-panel { background: #fff; border: 0; border-radius: 14px; padding: 1.6rem 1.75rem; box-shadow: 0 1px 2px rgba(16, 32, 52, 0.06), 0 6px 20px rgba(16, 32, 52, 0.05); } .ds-panel-title { margin: 0 0 0.2rem; font: 600 1.2rem/1.2 'Lubalin Graph', Rockwell, 'Roboto Slab', Georgia, serif; letter-spacing: -0.01em; color: #1a1d21; } .ds-hint { margin: 0.3rem 0 0; font: 400 0.92rem/1.5 Poppins, -apple-system, sans-serif; color: #5c6670; }"
+    },
+    {
+      "name": "Glass Panel",
+      "kind": "card",
+      "refersTo": "glass-panel",
+      "description": "The board's container. 7.5% white over deep navy, 22px backdrop blur, a translucent edge and a 1px inset highlight along the top — the light-catching edge that makes it read as a physical sheet.",
+      "html": "<div class=\"ds-glass-stage\"><section class=\"ds-glass\"><h2 class=\"ds-glass-title\">On the pitches</h2><p class=\"ds-glass-body\">Four games running.</p></section></div>",
+      "css": ".ds-glass-stage { background: linear-gradient(163deg, #0d2542 0%, #071829 46%, #04101d 100%); padding: 1.25rem; border-radius: 16px; } .ds-glass { background: rgba(255, 255, 255, 0.075); border: 1px solid rgba(255, 255, 255, 0.155); border-radius: 16px; padding: 1rem 1.1rem; backdrop-filter: blur(22px) saturate(150%); -webkit-backdrop-filter: blur(22px) saturate(150%); box-shadow: 0 12px 34px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.14); } .ds-glass-title { margin: 0 0 0.7rem; font: 700 0.82rem/1.2 Poppins, -apple-system, sans-serif; text-transform: uppercase; letter-spacing: 0.09em; color: rgba(255, 255, 255, 0.66); } .ds-glass-body { margin: 0; font: 400 1rem/1.45 Poppins, -apple-system, sans-serif; color: #fff; }"
+    },
+    {
+      "name": "Spotlight Scoreline",
+      "kind": "custom",
+      "refersTo": "score-display",
+      "description": "The one thing read from across a room. Kit, name and cards share one centre axis per side; the score scales with the viewport in tabular figures.",
+      "html": "<div class=\"ds-spotlight\"><div class=\"ds-spot-team\"><span class=\"ds-spot-name\">Wintrust</span></div><div class=\"ds-spot-numbers\"><span class=\"ds-spot-n\">2</span><span class=\"ds-spot-sep\"></span><span class=\"ds-spot-n\">1</span></div><div class=\"ds-spot-team\"><span class=\"ds-spot-name\">Zebra</span></div></div>",
+      "css": ".ds-spotlight { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.9rem; padding: 1.3rem 1.4rem 1.15rem; background: linear-gradient(163deg, #0d2542 0%, #071829 100%); border: 1px solid rgba(227, 24, 55, 0.45); border-radius: 16px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(227, 24, 55, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.16); } .ds-spot-team { min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; } .ds-spot-name { font: 600 clamp(1.35rem, 2.4vw, 2rem)/1.15 'Lubalin Graph', Rockwell, 'Roboto Slab', Georgia, serif; color: #fff; overflow-wrap: anywhere; } .ds-spot-numbers { display: flex; align-items: center; gap: 0.85rem; } .ds-spot-n { font: 800 clamp(2.6rem, 6vw, 4.1rem)/1 Poppins, -apple-system, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; color: #fff; } .ds-spot-sep { width: 14px; height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.66); }"
+    },
+    {
+      "name": "Live Tag",
+      "kind": "chip",
+      "refersTo": "tag-live",
+      "description": "The board's status marker. Only a running match wears SCORES Red, and its dot is the system's only looping animation.",
+      "html": "<span class=\"ds-tag ds-tag--live\"><span class=\"ds-dot\"></span>Live</span> <span class=\"ds-tag ds-tag--ghost\">9:35</span>",
+      "css": ".ds-tag { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 999px; font: 700 0.74rem/1.2 Poppins, -apple-system, sans-serif; letter-spacing: 0.03em; text-transform: uppercase; background: rgba(255, 255, 255, 0.13); border: 1px solid rgba(255, 255, 255, 0.155); color: #fff; white-space: nowrap; } .ds-tag--live { background: var(--accent, #e31837); border-color: transparent; } .ds-tag--ghost { background: transparent; color: rgba(255, 255, 255, 0.66); font-weight: 600; } .ds-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: 0 0 auto; animation: ds-pulse 1.9s ease-in-out infinite; } @keyframes ds-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.72); } } @media (prefers-reduced-motion: reduce) { .ds-dot { animation: none; } }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "White fill, hairline, 48px minimum. Focus is a ring rather than a border shift, because a ring survives sunlight where a 1px hue change does not.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-label\" for=\"ds-team\">Team name</label><input class=\"ds-input\" id=\"ds-team\" value=\"Elephant &amp; Castle\" /></div>",
+      "css": ".ds-field { margin-bottom: 0.9rem; } .ds-label { display: block; font: 600 0.85rem/1.45 Poppins, -apple-system, sans-serif; color: #5c6670; margin-bottom: 0.3rem; } .ds-input { font: 400 17px/1.45 Poppins, -apple-system, sans-serif; width: 100%; min-height: 48px; padding: 0 0.75rem; border: 1px solid #dfe4e9; border-radius: 10px; background: #fff; color: #1a1d21; } .ds-input:focus-visible { outline: 3px solid #f5c518; outline-offset: 2px; }"
+    },
+    {
+      "name": "Schedule Slot",
+      "kind": "custom",
+      "refersTo": "slot",
+      "description": "A game on the admin grid. The 3px left edge carries the state: navy scheduled, red for a clash that must be fixed, dashed amber for no referee named.",
+      "html": "<div class=\"ds-slots\"><button class=\"ds-slot\"><span class=\"ds-slot-teams\">Aon v Milliman</span><span class=\"ds-slot-meta\">Teamwork · 10:10</span><span class=\"ds-slot-ref\">Ref: J. Okafor</span></button><button class=\"ds-slot ds-slot--clash\"><span class=\"ds-slot-teams\">PwC v Cisco</span><span class=\"ds-slot-meta\">Teamwork · 10:10</span><span class=\"ds-slot-ref ds-slot-ref--none\">No referee</span></button></div>",
+      "css": ".ds-slots { display: flex; gap: 0.5rem; flex-wrap: wrap; } .ds-slot { display: block; min-width: 11rem; text-align: left; min-height: 52px; padding: 0.35rem 0.45rem; border: 1px solid #dfe4e9; border-left: 3px solid var(--brand, #00467f); border-radius: 6px; background: #fff; cursor: pointer; line-height: 1.25; font-family: Poppins, -apple-system, sans-serif; } .ds-slot:hover { background: #f4f8fc; } .ds-slot:focus-visible { outline: 3px solid #f5c518; outline-offset: 2px; } .ds-slot--clash { border-left-color: #c0392b; background: #fdecea; } .ds-slot-teams { display: block; font-weight: 700; font-size: 0.84rem; color: #1a1d21; } .ds-slot-meta { display: block; font-size: 0.74rem; color: #5c6670; } .ds-slot-ref { display: block; font-size: 0.7rem; color: #5c6670; margin-top: 0.15rem; } .ds-slot-ref--none { color: #b8860b; font-style: italic; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Match Day",
+    "overview": "One Saturday in August, from the first kickoff to the last whistle. The system is built around the two things that actually happen on that day: a crowd standing in the sun wanting to know what just happened, and a volunteer with one free hand recording it. Everything else is downstream of those two moments.\n\nSo the system runs two faces of one identity. The board is the floodlit face — a deep navy field, frosted panels, scores large enough to read across a tent, a live match holding the top of the screen. The kit is the working face — white, hairline-ruled, 48-pixel targets because referees wear gloves, high contrast because the screen is being read at arm's length in direct sun. They are not two brands. They are the same navy, the same red, the same pencil yellow, arranged for two different jobs. Glass only reads well over a deep background, and a referee squinting at a phone in August daylight needs precisely the opposite of glass.\n\nThe personality is a sporting authority that never oversells: the numbers are the drama, so the interface does not compete with them. Density is generous on the board and compact in the kit. Ornament earns its place by encoding something real — a hatched fill means nobody has scored that game yet, a pulsing dot means a match is running now, a shirt icon means that is literally the shirt to look for on the pitch. Nothing decorative is allowed to look like data.",
+    "keyCharacteristics": [
+      "Two themes, one palette: floodlit board, sunlit kit.",
+      "Numbers set in tabular figures at every size; digits never shift as scores change.",
+      "Red means now or wrong — never merely \"important\".",
+      "Definition from hairlines and whitespace in the kit, from depth and light-catching edges on the board.",
+      "Touch targets never below 48px in the field; 42px at a desk.",
+      "Every state that matters has a visible form, including absence: no field, no referee, no score."
+    ],
+    "rules": [
+      {
+        "name": "The Red Means Now Rule",
+        "body": "SCORES Red marks a match in progress and nothing else. If a thing is merely important, it is navy or it is bold — not red. A board where three panels are red is a board where nobody can find the game being played.",
+        "section": "colors"
+      },
+      {
+        "name": "The Pencil Yellow Rule",
+        "body": "Yellow is focus and following. It never fills a surface, never carries a label, and never appears as a brand accent. Its one decorative appearance — a 9%-opacity wash in the board's bottom glow — is the limit, not a precedent.",
+        "section": "colors"
+      },
+      {
+        "name": "The Cards Are Not A Palette Rule",
+        "body": "Card Yellow and Alarm Red belong to the referee's cards. No button, badge, or status may borrow them for an unrelated meaning; on this product a yellow rectangle is a booking.",
+        "section": "colors"
+      },
+      {
+        "name": "The Thirteen Steps Rule",
+        "body": "A size that is not on the ramp does not exist. The stylesheets once held 27 distinct sizes, fifteen of them between 0.68 and 0.98rem — differences of a third of a pixel that nobody chose and nobody could see. When a new element needs to sit between two steps, it takes one of them.",
+        "section": "typography"
+      },
+      {
+        "name": "The Numbers Are Not Decoration Rule",
+        "body": "Every figure that can change — scores, goals for and against, points, card counts, stat tiles, counters — sets in the body face with tabular figures. The display face never touches a changing number. A score that shifts sideways when 9 becomes 10 is a score people stop trusting.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Shouting Rule",
+        "body": "The organisation's own site uses no uppercase runs, and neither does this. Uppercase belongs to labels at 0.92rem or below, always with positive tracking, never longer than three words. Headings are mixed case at every level, including in the admin.",
+        "section": "typography"
+      },
+      {
+        "name": "The Dash Is A Value Rule",
+        "body": "\"–\" means nobody has entered a score; \"0\" means it finished nil–nil. They must never render alike. An unentered figure is Soft Ink; an entered zero is full Ink at full weight.",
+        "section": "typography"
+      },
+      {
+        "name": "The Page Never Scrolls Sideways Rule",
+        "body": "Wide content scrolls inside its own container, never the document. Every grid column is minmax(0, 1fr), never a bare 1fr — 1fr's automatic minimum is min-content, so one wide table stretches the whole column past the screen instead of scrolling within it.",
+        "section": "layout"
+      },
+      {
+        "name": "The One Screen Rule",
+        "body": "At 1280px and above, the board fits one display with no scrolling. Anything added to it must earn its height from something else, not from the bottom of the page.",
+        "section": "layout"
+      },
+      {
+        "name": "The Material Changes, The Design Does Not Rule",
+        "body": "Bright sun may remove translucency, blur, gradient and glow, and may raise a tone or a type step. It may not move an element, change a colour's meaning, hide content, or introduce a shape the standard board does not have. Somebody switching mid-match must find the same board, in a different material.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Mechanism Rule",
+        "body": "A surface is defined by a hairline, or by a shadow, or by glass. Never two. A bordered card with a drop shadow means someone has mixed the themes.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Blur Retreats In Daylight Rule",
+        "body": "Below 880px the glass gets more opaque (82% navy) and less blurred (12px), because blur is expensive and least legible exactly where phones are used — outdoors. Where backdrop-filter is unsupported, panels fall back to 90% solid navy. Translucency is never allowed to degrade into unreadable text.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Radius Follows Size Rule",
+        "body": "Small surfaces take small corners. A 6px radius on a 16px-tall control and a 16px radius on a full panel are the same gesture at two scales; a 16px radius on a small control is a different design.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do keep the two themes whole. Light surfaces for the referee, participant, and admin views; the glass board only over the navy gradient, scoped under .spectator.",
+      "Do set every changing number in tabular figures, at every size.",
+      "Do give absence a visible form — an Unassigned row for a game with no pitch, italic amber for a missing referee, a hatch for an unscored game, nothing at all for an unknown kit.",
+      "Do hold 48px touch targets in anything a referee uses outdoors, and 42px in the admin.",
+      "Do put the Pencil Yellow focus ring on every interactive element in both themes, at 3px with 2px offset.",
+      "Do let wide tables scroll inside .table-scroll, and write grid columns as minmax(0, 1fr).",
+      "Do state the consequence rather than the input — \"35-minute slots → 9:00, 9:35, 10:10\" beats three number fields.",
+      "Do suppress the pulse and the progress transition under prefers-reduced-motion."
+    ],
+    "donts": [
+      "Don't put glass, blur, or the dark theme into the referee, participant, or admin views. Glass needs a deep background; a phone in August sun needs the opposite.",
+      "Don't use SCORES Red for anything but a live match, or Alarm Red for anything but an error, a clash, or a red card.",
+      "Don't borrow Card Yellow or the card shapes for unrelated UI states.",
+      "Don't render an unentered score as 0, or an entered 0 in the unentered treatment.",
+      "Don't combine a hairline border and a drop shadow on the same surface.",
+      "Don't set a heading, sentence, or button label in uppercase; uppercase stops at 0.92rem labels.",
+      "Don't set the display face on a number that can change.",
+      "Don't hide a game to filter a view — dim it. A hidden game is a game whose pitch clash nobody can see.",
+      "Don't add height to the board above 1280px without taking it from somewhere else; the page does not scroll there.",
+      "Don't rely on source order to win a CSS conflict in this project. Both the admin shell and the spectator board deliberately win on specificity, and the stylesheet says so in three places."
+    ]
+  }
+}
