@@ -710,9 +710,18 @@ a {
   line-height: 0;
 }
 
+/* The organisation running the tournament, at the size that says so.
+ *
+ * Fluid rather than fixed, because the lockup is 4.13 wide to 1 tall: at the
+ * full 100px it is 413px across, and above 560px the header does not wrap, so
+ * a fixed height would put the logo and the sign-in actions on one line that
+ * is wider than the window somewhere around 700px. The clamp reaches 100px at
+ * about 950px -- laptops, desks and the venue display -- and eases down from
+ * there. Below 560px the header wraps and the floor takes over. */
 .topbar .brand img {
-  height: 34px;
+  height: clamp(48px, 10.5vw, 100px);
   width: auto;
+  max-width: 100%;
   display: block;
 }
 
@@ -1508,8 +1517,11 @@ table.grid-table td {
     row-gap: 0.5rem;
   }
 
+  /* The header wraps here, so the logo shares a row only with the actions and
+     can stay well above the 26px it used to shrink to -- which would now look
+     like a different logo from the one on a laptop. */
   .topbar .brand img {
-    height: 26px;
+    height: 44px;
   }
 
   .topbar-title {

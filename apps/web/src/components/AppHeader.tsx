@@ -34,7 +34,10 @@ export default function AppHeader({
   return (
     <header className="topbar">
       <Link to="/" className="brand" aria-label="America SCORES Chicago — tournament home">
-        <img src="/brand/AS-CHI-Horizontal.webp" alt="" width={132} height={38} />
+        {/* Sized in the stylesheet, not here. The attributes carry the real
+            proportions of the file (500x121) so the box is the right shape
+            before the image arrives. */}
+        <img src="/brand/AS-CHI-Horizontal.webp" alt="" width={413} height={100} />
       </Link>
 
       <div className="topbar-title">
