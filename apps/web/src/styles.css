@@ -72,7 +72,7 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.6rem;
   padding: 0.9rem 1rem;
   background: var(--brand);
   color: #fff;
@@ -589,10 +589,6 @@ a {
 /* --- Header --------------------------------------------------------------
    The only route to signing in, so the action is always visible. */
 
-.topbar {
-  gap: 0.6rem;
-}
-
 .topbar .brand {
   display: flex;
   align-items: center;
@@ -672,9 +668,13 @@ a {
   }
 }
 
-/* --- Admin: desktop-first ------------------------------------------------
+/* --- Admin ---------------------------------------------------------------
    Admins do this at a desk. The shell fills the viewport and never scrolls;
-   only the content column does, so the nav and page heading stay put. */
+   only the content column does, so the nav and page heading stay put.
+
+   Styled toward the organisation's own site: white, airy, borderless, with
+   definition coming from whitespace rather than hard edges. Showing one widget
+   at a time is what buys the room for that. */
 
 .admin-shell {
   display: grid;
@@ -683,19 +683,19 @@ a {
   height: 100dvh;
   max-width: none;
   padding: 0;
-  background: var(--page);
+  background: #fff;
 }
 
 .admin-body {
   display: grid;
-  grid-template-columns: 216px 1fr;
+  grid-template-columns: 248px 1fr;
   min-height: 0;
 }
 
 .admin-nav {
-  background: #fff;
+  background: #fbfcfd;
   border-right: 1px solid var(--line);
-  padding: 1rem 0.6rem;
+  padding: 1.25rem 0.75rem;
   overflow-y: auto;
 }
 
@@ -735,22 +735,26 @@ a {
 .admin-main {
   min-width: 0;
   overflow-y: auto;
-  padding: 1.4rem 1.6rem 3rem;
+  padding: 2.2rem 2.5rem 4rem;
+  background: #fff;
 }
 
 .admin-main > header {
-  margin-bottom: 1.1rem;
+  margin-bottom: 1.8rem;
+  max-width: 60ch;
 }
 
 .admin-main > header h1 {
-  font-size: 1.4rem;
-  margin: 0 0 0.15rem;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.35rem;
 }
 
 .admin-main > header p {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 0.92rem;
+  font-size: 1rem;
 }
 
 /* Wide screens get two columns so a setup form does not become a long scroll. */
@@ -773,44 +777,32 @@ a {
   gap: 0.75rem;
 }
 
+/* Borderless, roomy panels -- definition comes from whitespace rather than
+   from hard edges. */
 .admin .card {
-  padding: 1.1rem 1.2rem;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 32, 52, 0.06), 0 6px 20px rgba(16, 32, 52, 0.05);
+  padding: 1.6rem 1.75rem;
+  margin-bottom: 1.5rem;
 }
 
 .admin .card h2 {
-  font-size: 1.05rem;
-  letter-spacing: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.2rem;
 }
 
+/* Mixed case, not shouted -- their site uses no uppercase runs. */
 .admin .card h3 {
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-soft);
-  margin: 1.1rem 0 0.5rem;
-}
-
-/* Tighter controls than the field-facing views: a mouse is more precise than
-   a gloved thumb, and vertical space is the scarce resource here. */
-.admin input,
-.admin select,
-.admin button {
-  min-height: 38px;
-}
-
-.admin .field {
-  margin-bottom: 0.7rem;
-}
-
-.admin label {
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.admin table.standings th,
-.admin table.standings td {
-  padding: 0.35rem 0.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  margin: 1.6rem 0 0.6rem;
 }
 
 .hint {
@@ -829,38 +821,6 @@ a {
 .sticky-side {
   position: sticky;
   top: 0;
-}
-
-@media (max-width: 900px) {
-  .admin-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .admin-nav {
-    display: flex;
-    gap: 0.3rem;
-    overflow-x: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    padding: 0.5rem;
-  }
-  .admin-nav button {
-    width: auto;
-    white-space: nowrap;
-  }
-  .admin-nav .nav-group {
-    display: none;
-  }
-  /* minmax(0, ...) rather than a bare 1fr: 1fr's automatic minimum is
-     min-content, so a wide table inside stretches the column past the screen
-     instead of scrolling within it. */
-  .split,
-  .grid-2,
-  .grid-3 {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .admin-main {
-    padding: 1rem;
-  }
 }
 
 /* Compact inline editing rows for the admin results screen. */
@@ -1007,24 +967,7 @@ table.grid-table td {
 }
 
 
-/* ==========================================================================
-   Admin, restyled toward the organisation's own site: white, airy, borderless.
-   Showing one widget at a time is what buys the room to breathe.
-   ========================================================================== */
-
-.admin-shell {
-  background: #fff;
-}
-
-.admin-body {
-  grid-template-columns: 248px 1fr;
-}
-
-.admin-nav {
-  background: #fbfcfd;
-  padding: 1.25rem 0.75rem;
-}
-
+/* The collapsible nav tree. */
 .admin-nav .nav-parent {
   display: flex;
   align-items: center;
@@ -1067,6 +1010,7 @@ table.grid-table td {
 }
 
 .admin-nav .nav-children button {
+  position: relative;
   min-height: 36px;
   font-weight: 500;
   font-size: 0.92rem;
@@ -1088,59 +1032,6 @@ table.grid-table td {
   background: var(--accent);
 }
 
-.admin-nav .nav-children button {
-  position: relative;
-}
-
-.admin-main {
-  padding: 2.2rem 2.5rem 4rem;
-  background: #fff;
-}
-
-.admin-main > header {
-  margin-bottom: 1.8rem;
-  max-width: 60ch;
-}
-
-.admin-main > header h1 {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.35rem;
-}
-
-.admin-main > header p {
-  font-size: 1rem;
-  color: var(--ink-soft);
-}
-
-/* Borderless, roomy panels -- definition comes from whitespace, as on the
-   organisation's own site, rather than from hard edges. */
-.admin .card {
-  border: 0;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(16, 32, 52, 0.06), 0 6px 20px rgba(16, 32, 52, 0.05);
-  padding: 1.6rem 1.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.admin .card h2 {
-  font-size: 1.2rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  margin-bottom: 0.2rem;
-}
-
-/* Mixed case, not shouted -- their site uses no uppercase runs. */
-.admin .card h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--ink);
-  margin: 1.6rem 0 0.6rem;
-}
 
 .admin label {
   font-size: 0.88rem;
@@ -1210,8 +1101,37 @@ table.grid-table td {
   max-width: none;
 }
 
+/* Below this the 248px sidebar and a content column cannot share the width,
+   so the nav becomes a scrolling strip above the content.
+
+   Note the two paddings that are deliberately absent: the nav's and the
+   content column's. Both were set here once and both lost to rules further
+   down the file, so writing them would silently change the layout rather than
+   preserve it. The winning values are the ones below. */
 @media (max-width: 900px) {
   .admin-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-nav {
+    display: flex;
+    gap: 0.3rem;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .admin-nav button {
+    width: auto;
+    white-space: nowrap;
+  }
+  .admin-nav .nav-group {
+    display: none;
+  }
+  /* minmax(0, ...) rather than a bare 1fr: 1fr's automatic minimum is
+     min-content, so a wide table inside stretches the column past the screen
+     instead of scrolling within it. */
+  .split,
+  .grid-2,
+  .grid-3 {
     grid-template-columns: minmax(0, 1fr);
   }
   .admin-main {
