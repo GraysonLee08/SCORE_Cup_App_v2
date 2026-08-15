@@ -35,6 +35,9 @@ postgres_data/
 .impeccable/hook.pending.json
 .impeccable/config.local.json
 .impeccable/live/
+
+# Vendored agent skills -- installed per machine, not part of the app.
+.claude/skills/
 *~
 
 # OS generated files
