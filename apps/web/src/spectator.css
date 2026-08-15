@@ -1,21 +1,31 @@
 /* --- Spectator board ------------------------------------------------------
  *
- * A dark, frosted dashboard. Everything here is scoped to `.spectator` so the
- * referee, participant and admin views keep the light theme they were built
- * for -- glass only reads well over a deep background, and a referee squinting
- * at a phone in August sun needs the opposite of that.
+ * A light, frosted dashboard between two navy bands.
  *
- * The palette is still the organisation's: the navy from the shield deepened
- * into a backdrop, the red kept for anything live, and the pencil yellow left
- * where it already was, on focus rings.
+ * The structure is the organisation's own site: a coloured header, a light
+ * field of content, a coloured footer. The board used to be navy throughout,
+ * which read as a different product from the one running the tournament -- and
+ * put the primary user on the one surface the product predicts will fail in
+ * August sun, while the referee's kit stayed white for exactly that reason.
+ *
+ * The glass survives the move. It was always the most considered thing here --
+ * the blur, the light-catching edge, the fallback when `backdrop-filter` is
+ * missing -- so the panels are still frosted, now in grey over a light field
+ * rather than white over a deep one. Everything scoped to `.spectator`.
  */
 
 .spectator {
-  --glass: rgba(255, 255, 255, 0.075);
-  --glass-strong: rgba(255, 255, 255, 0.13);
-  --glass-line: rgba(255, 255, 255, 0.155);
-  --on-glass: #ffffff;
-  --on-glass-soft: rgba(255, 255, 255, 0.66);
+  /* Frosted grey rather than translucent white: the panel has to separate from
+     the field behind it without a hard edge doing all the work. */
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-strong: rgba(255, 255, 255, 0.94);
+  --glass-line: rgba(16, 42, 70, 0.16);
+  --on-glass: var(--ink);
+  --on-glass-soft: var(--ink-soft);
+  /* Inner surfaces -- rows, tiles, tracks -- tint down into the field instead
+     of up out of it, which is the one inversion the whole theme turns on. */
+  --on-field: rgba(16, 42, 70, 0.05);
+  --on-field-strong: rgba(16, 42, 70, 0.09);
 }
 
 /* Beats `.app`'s 720px column on specificity, not on source order -- the
@@ -24,20 +34,22 @@
   position: relative;
   max-width: none;
   min-height: 100vh;
-  padding: 0 0 1rem;
-  background: linear-gradient(163deg, #0d2542 0%, #071829 46%, #04101d 100%);
+  padding: 0;
+  background: linear-gradient(163deg, #eef3f9 0%, #e7edf4 46%, #dfe7f0 100%);
   color: var(--on-glass);
 }
 
+/* The same three lights as before, turned right down. On a deep field they
+   were atmosphere; on a light one anything stronger reads as a stain. */
 .spectator .glow {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(52rem 30rem at 12% -8%, rgba(0, 70, 127, 0.75), transparent 70%),
-    radial-gradient(38rem 26rem at 96% 4%, rgba(227, 24, 55, 0.2), transparent 68%),
-    radial-gradient(34rem 24rem at 62% 108%, rgba(245, 197, 24, 0.09), transparent 70%);
+    radial-gradient(52rem 30rem at 12% -8%, rgba(0, 70, 127, 0.1), transparent 70%),
+    radial-gradient(38rem 26rem at 96% 4%, rgba(227, 24, 55, 0.05), transparent 68%),
+    radial-gradient(34rem 24rem at 62% 108%, rgba(245, 197, 24, 0.07), transparent 70%);
 }
 
 .spectator > *:not(.glow) {
@@ -45,11 +57,12 @@
   z-index: 1;
 }
 
+/* The top band. Solid rather than the frosted navy it used to be: over a light
+   field a translucent header has nothing to be translucent against, and the
+   band is the point. Same blue as every other view's header. */
 .spectator .topbar {
-  background: rgba(9, 27, 48, 0.62);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border-bottom: 1px solid var(--glass-line);
+  background: var(--brand);
+  border-bottom: 0;
 }
 
 /* --- the grid ------------------------------------------------------------ */
@@ -136,14 +149,14 @@
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    scrollbar-color: rgba(16, 42, 70, 0.22) transparent;
     padding-right: 2px;
   }
   .rail::-webkit-scrollbar {
     width: 6px;
   }
   .rail::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.22);
+    background: rgba(16, 42, 70, 0.22);
     border-radius: 999px;
   }
 }
@@ -157,16 +170,20 @@
   padding: 1rem 1.1rem;
   backdrop-filter: blur(22px) saturate(150%);
   -webkit-backdrop-filter: blur(22px) saturate(150%);
+  /* Much lighter than the shadow this carried on navy. A deep field swallows a
+     30%-black shadow; a light one shows every bit of it, and the panel would
+     look like it was hovering rather than resting. */
   box-shadow:
-    0 12px 34px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    0 1px 2px rgba(16, 42, 70, 0.06),
+    0 10px 26px rgba(16, 42, 70, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 /* Without blur the translucency just looks like washed-out text, so fall
    back to something solid rather than something illegible. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .spectator .glass {
-    background: rgba(11, 32, 56, 0.9);
+    background: rgba(255, 255, 255, 0.94);
   }
 }
 
@@ -246,10 +263,13 @@
   color: #fff;
 }
 
+/* "Final" was a near-white chip because white was the loud colour on navy.
+   On a light field the loud colour is the green the kit already uses for a
+   finished thing. */
 .spectator .tag.done {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--good);
   border-color: transparent;
-  color: #0b2038;
+  color: #fff;
 }
 
 .spectator .dot {
@@ -279,12 +299,16 @@
   padding: 1.3rem 1.4rem 1.15rem;
 }
 
+/* A running match. The red ring does the work now that the field is light --
+   the heavy black drop shadow underneath it was reading depth against navy and
+   only reads as grime against grey. */
 .spectator .spotlight.is-live {
-  border-color: rgba(227, 24, 55, 0.45);
+  border-color: rgba(227, 24, 55, 0.55);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.34),
-    0 0 0 1px rgba(227, 24, 55, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    0 1px 2px rgba(16, 42, 70, 0.06),
+    0 10px 26px rgba(227, 24, 55, 0.14),
+    0 0 0 1px rgba(227, 24, 55, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .spotlight-top {
@@ -373,7 +397,7 @@
 }
 
 .spotlight-clock .ticking {
-  color: #ff8a9b;
+  color: var(--accent);
 }
 
 .spectator .spotlight.empty {
@@ -472,14 +496,14 @@
   margin-top: 1.1rem;
   padding: 0 1.4rem;
   border-radius: 999px;
-  background: #fff;
-  color: #0b2038;
+  background: var(--brand);
+  color: #fff;
   font-weight: 700;
   text-decoration: none;
 }
 
 .spectator .btn-donate:hover {
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--brand-hover, #003a69);
 }
 
 .spotlight-switch {
@@ -504,9 +528,9 @@
 }
 
 .spectator .chip-btn.active {
-  background: #fff;
-  border-color: #fff;
-  color: #0b2038;
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
 }
 
 .spectator .chip-btn .mini {
@@ -540,22 +564,22 @@
   padding: 0.6rem 0.75rem;
   text-align: left;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--on-field);
   border: 1px solid transparent;
   color: var(--on-glass);
 }
 
 .spectator .field-row:hover:not(:disabled):not([aria-disabled='true']) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--on-field-strong);
 }
 
 .spectator .field-row.active {
-  border-color: rgba(255, 255, 255, 0.34);
-  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(16, 42, 70, 0.3);
+  background: var(--on-field-strong);
 }
 
 .spectator .field-row.is-live .field-name {
-  color: #ff8a9b;
+  color: var(--accent);
 }
 
 .spectator .field-row:disabled,
@@ -604,7 +628,7 @@
 .spectator .progress {
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--on-field-strong);
   overflow: hidden;
 }
 
@@ -627,7 +651,7 @@
   text-align: center;
   padding: 0.55rem 0.2rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--on-field);
 }
 
 .stat strong {
@@ -658,7 +682,7 @@
   gap: 0.25rem;
   padding: 0.25rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--on-field);
   margin-bottom: 0.4rem;
 }
 
@@ -677,12 +701,12 @@
 }
 
 .spectator .seg.active {
-  background: #fff;
-  color: #0b2038;
+  background: var(--brand);
+  color: #fff;
   font-weight: 700;
 }
 
-/* --- reused components, re-dressed for the dark -------------------------- */
+/* --- reused components, re-dressed for the light ------------------------- */
 
 /* StandingsTable and Bracket both render `.card`; inside a glass panel it
    should be the panel, not a white box floating in one. */
@@ -711,14 +735,14 @@
   border-color: transparent;
 }
 .spectator .pill.done {
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--good);
   border-color: transparent;
-  color: #0b2038;
+  color: #fff;
 }
 
 .spectator .fixture {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--on-field);
+  border: 1px solid var(--glass-line);
   border-radius: 12px;
 }
 
@@ -737,8 +761,8 @@
     135deg,
     transparent,
     transparent 6px,
-    rgba(255, 255, 255, 0.05) 6px,
-    rgba(255, 255, 255, 0.05) 12px
+    rgba(16, 42, 70, 0.06) 6px,
+    rgba(16, 42, 70, 0.06) 12px
   );
 }
 
@@ -794,13 +818,13 @@
 
 .spectator table.standings th,
 .spectator table.standings td {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+  border-bottom-color: var(--glass-line);
 }
 .spectator table.standings th {
   color: var(--on-glass-soft);
 }
 .spectator table.standings tr.highlight {
-  background: rgba(245, 197, 24, 0.16);
+  background: #eaf3fb;
 }
 .spectator .asterisk {
   color: var(--on-glass-soft);
@@ -809,27 +833,34 @@
 /* Back to the global 48px tap target. The 42px here was a desk value that had
    been applied to the surface most used standing in a field. */
 .spectator select {
-  background: rgba(255, 255, 255, 0.08);
+  background: #fff;
   border-color: var(--glass-line);
   color: var(--on-glass);
   min-height: 48px;
 }
 
-/* The native menu is drawn by the OS in its own colours, so the options have
-   to be legible there rather than here. */
-.spectator select option {
-  background: #0d2542;
-  color: #fff;
-}
+/* The forced dark option list is gone with the dark board: the select is a
+   light control again, so the OS menu is already right and overriding it only
+   fights whatever the visitor's own system is doing. */
 
 .spectator .field {
   margin-bottom: 0.7rem;
 }
 
+/* The bottom band, matching the top one. It used to be text floating on the
+   navy field; with a light field it has to become a band or the page just
+   trails off into grey. It also gives the donate link somewhere to sit that
+   is not the quietest corner of the page. */
 .board-footer {
-  padding: 0.5rem 1.4rem 1.5rem;
+  padding: 1rem 1.4rem;
   text-align: center;
   font-size: 0.78rem;
+  background: var(--brand);
+  color: #fff;
+}
+
+.spectator .board-footer.soft {
+  color: #fff;
 }
 
 .board-footer a {
@@ -853,7 +884,7 @@
    daylight. Below tablet width the panels get more opaque and less blurred. */
 @media (max-width: 879px) {
   .spectator .glass {
-    background: rgba(10, 30, 52, 0.82);
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(12px) saturate(130%);
     -webkit-backdrop-filter: blur(12px) saturate(130%);
     border-radius: 14px;
@@ -879,41 +910,37 @@
 /* --- bright sun ----------------------------------------------------------
  *
  * The board is read on a field in August, and glass is the wrong material
- * outdoors. Translucency and blur both spend contrast to buy depth, and
- * sunlight falling on the screen adds the same luminance to a panel and to the
- * text on it -- which flattens precisely the mid-tones this theme leans on. A
- * ratio measured indoors says nothing about that.
+ * outdoors whichever way round it is. Translucency and blur both spend
+ * contrast to buy depth, and sunlight falling on the screen adds the same
+ * luminance to a panel and to the text on it -- which flattens exactly the
+ * mid-tones this theme leans on. A ratio measured indoors says nothing about
+ * that.
  *
- * So this changes the material, not the design. Same navy, same red, same
- * layout, same type. The panels stop being glass, the atmosphere goes away,
- * and the soft tone moves from 66% to 85% white. Measured on the new panel:
- * white 13.2:1 and soft white 9.9:1, against 7.2:1 for the soft tone on glass
- * -- and neither is paying the translucency tax any more.
+ * The switch used to escape a deep field by going opaque navy. With the board
+ * light, the direction reverses but the job does not: the panels stop being
+ * glass, the atmosphere goes away, hairlines strengthen, and the soft tone
+ * darkens. It changes the material, not the design.
  */
 
 .spectator.sun {
-  --glass: #12324f;
-  --glass-strong: #1d456d;
-  --glass-line: rgba(255, 255, 255, 0.45);
-  --on-glass-soft: rgba(255, 255, 255, 0.85);
-  /* Inner surfaces that were a 5% white wash: too faint to survive glare. */
-  --sun-inset: #0c2439;
+  --glass: #ffffff;
+  --glass-strong: #ffffff;
+  --glass-line: rgba(16, 42, 70, 0.34);
+  /* Soft text stops being soft: #3f4a55 measures 8.6:1 on white against the
+     5.4:1 the resting tone gives. */
+  --on-glass-soft: #3f4a55;
+  --on-field: rgba(16, 42, 70, 0.08);
+  --on-field-strong: rgba(16, 42, 70, 0.14);
 }
 
 .app.spectator.sun {
   /* Flat rather than a gradient: the gradient buys atmosphere indoors and
-     bands under glare, and its darkest stop is where reflection bites worst. */
-  background: #071c2e;
+     bands under glare. */
+  background: #eef2f7;
 }
 
 .spectator.sun .glow {
   display: none;
-}
-
-.spectator.sun .topbar {
-  background: #0a2338;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 .spectator.sun .glass {
@@ -921,33 +948,11 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   box-shadow: none;
-}
-
-.spectator.sun .fixture,
-.spectator.sun .field-row,
-.spectator.sun .stat,
-.spectator.sun .segmented,
-.spectator.sun .progress {
-  background: var(--sun-inset);
+  border-color: var(--glass-line);
 }
 
 .spectator.sun .fixture {
-  border-color: rgba(255, 255, 255, 0.24);
-}
-
-.spectator.sun .field-row.active,
-.spectator.sun .field-row:hover:not(:disabled):not([aria-disabled='true']) {
-  background: #17405f;
-}
-
-.spectator.sun .chip-btn,
-.spectator.sun select {
-  background: var(--glass-strong);
-}
-
-.spectator.sun table.standings th,
-.spectator.sun table.standings td {
-  border-bottom-color: rgba(255, 255, 255, 0.24);
+  border-color: var(--glass-line);
 }
 
 /* The hatch has to survive glare too, so it doubles in strength. */
@@ -956,9 +961,14 @@
     135deg,
     transparent,
     transparent 6px,
-    rgba(255, 255, 255, 0.1) 6px,
-    rgba(255, 255, 255, 0.1) 12px
+    rgba(16, 42, 70, 0.12) 6px,
+    rgba(16, 42, 70, 0.12) 12px
   );
+}
+
+.spectator.sun table.standings th,
+.spectator.sun table.standings td {
+  border-bottom-color: var(--glass-line);
 }
 
 /* The smallest two tiers go up one step on the ramp. Small type is the first
@@ -995,11 +1005,12 @@
 }
 
 /* On is a filled switch, not a tinted one: the state has to be legible in the
-   conditions the mode exists for. */
+   conditions the mode exists for. Filled exactly like the Sign in button
+   sitting next to it -- they share a band, so they should share a treatment. */
 .sun-toggle.is-on {
   background: #fff;
   border-color: #fff;
-  color: #0b2038;
+  color: var(--brand);
 }
 
 /* Below this the header wraps to two rows and the label costs more than it

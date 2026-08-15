@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-14T23:20:00-05:00",
+  "generatedAt": "2026-08-15T04:30:00-05:00",
   "title": "Design System: SCORES Cup",
   "extensions": {
     "colorMeta": {
@@ -47,21 +47,6 @@
           "oklch(84% 0.160 90)",
           "oklch(91% 0.090 90)",
           "oklch(97% 0.030 90)"
-        ]
-      },
-      "board-top": {
-        "role": "primary",
-        "displayName": "Board Navy",
-        "canonical": "oklch(24% 0.055 255)",
-        "tonalRamp": [
-          "oklch(12% 0.030 255)",
-          "oklch(18% 0.045 255)",
-          "oklch(24% 0.055 255)",
-          "oklch(33% 0.070 255)",
-          "oklch(45% 0.075 255)",
-          "oklch(60% 0.060 255)",
-          "oklch(78% 0.035 255)",
-          "oklch(93% 0.012 255)"
         ]
       },
       "ink": {
@@ -139,19 +124,19 @@
           "oklch(98% 0.025 92)"
         ]
       },
-      "live-pink": {
-        "role": "secondary",
-        "displayName": "Live Pink",
-        "canonical": "oklch(75% 0.130 15)",
+      "field": {
+        "role": "neutral",
+        "displayName": "The Field",
+        "canonical": "oklch(93.5% 0.012 250)",
         "tonalRamp": [
-          "oklch(20% 0.055 15)",
-          "oklch(33% 0.090 15)",
-          "oklch(45% 0.120 15)",
-          "oklch(57% 0.140 15)",
-          "oklch(66% 0.140 15)",
-          "oklch(75% 0.130 15)",
-          "oklch(87% 0.075 15)",
-          "oklch(96% 0.025 15)"
+          "oklch(20% 0.020 250)",
+          "oklch(34% 0.024 250)",
+          "oklch(48% 0.024 250)",
+          "oklch(62% 0.020 250)",
+          "oklch(76% 0.016 250)",
+          "oklch(87% 0.014 250)",
+          "oklch(93.5% 0.012 250)",
+          "oklch(98% 0.006 250)"
         ]
       }
     },
@@ -193,13 +178,13 @@
       },
       {
         "name": "glass-lift",
-        "value": "0 12px 34px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.14)",
-        "purpose": "Every board panel. The inset highlight is the light-catching top edge that makes a translucent sheet read as physical."
+        "value": "0 1px 2px rgba(16, 42, 70, 0.06), 0 10px 26px rgba(16, 42, 70, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        "purpose": "Every board panel. Deliberately shallow: a deep field swallowed a 30%-black shadow, a light one shows all of it and the panel reads as hovering rather than resting."
       },
       {
         "name": "glass-live",
-        "value": "0 12px 40px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(227, 24, 55, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.16)",
-        "purpose": "The spotlight while a match is running. The only state-driven shadow in the system."
+        "value": "0 1px 2px rgba(16, 42, 70, 0.06), 0 10px 26px rgba(227, 24, 55, 0.14), 0 0 0 1px rgba(227, 24, 55, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.7)",
+        "purpose": "The spotlight while a match is running. The red carries it alone now; the black drop shadow underneath read as depth on navy and as grime on grey."
       }
     ],
     "motion": [
@@ -225,12 +210,30 @@
       }
     ],
     "breakpoints": [
-      { "name": "header-tight", "value": "430px" },
-      { "name": "header-wrap", "value": "560px" },
-      { "name": "admin-stack", "value": "860px" },
-      { "name": "board-two-col", "value": "880px" },
-      { "name": "admin-rail", "value": "900px" },
-      { "name": "board-one-screen", "value": "1280px" }
+      {
+        "name": "header-tight",
+        "value": "430px"
+      },
+      {
+        "name": "header-wrap",
+        "value": "560px"
+      },
+      {
+        "name": "admin-stack",
+        "value": "860px"
+      },
+      {
+        "name": "board-two-col",
+        "value": "880px"
+      },
+      {
+        "name": "admin-rail",
+        "value": "900px"
+      },
+      {
+        "name": "board-one-screen",
+        "value": "1280px"
+      }
     ]
   },
   "components": [
@@ -317,12 +320,12 @@
   ],
   "narrative": {
     "northStar": "Match Day",
-    "overview": "One Saturday in August, from the first kickoff to the last whistle. The system is built around the two things that actually happen on that day: a crowd standing in the sun wanting to know what just happened, and a volunteer with one free hand recording it. Everything else is downstream of those two moments.\n\nSo the system runs two faces of one identity. The board is the floodlit face — a deep navy field, frosted panels, scores large enough to read across a tent, a live match holding the top of the screen. The kit is the working face — white, hairline-ruled, 48-pixel targets because referees wear gloves, high contrast because the screen is being read at arm's length in direct sun. They are not two brands. They are the same navy, the same red, the same pencil yellow, arranged for two different jobs. Glass only reads well over a deep background, and a referee squinting at a phone in August daylight needs precisely the opposite of glass.\n\nThe personality is a sporting authority that never oversells: the numbers are the drama, so the interface does not compete with them. Density is generous on the board and compact in the kit. Ornament earns its place by encoding something real — a hatched fill means nobody has scored that game yet, a pulsing dot means a match is running now, a shirt icon means that is literally the shirt to look for on the pitch. Nothing decorative is allowed to look like data.",
+    "overview": "One Saturday in August, from the first kickoff to the last whistle. The system is built around the two things that actually happen on that day: a crowd standing in the sun wanting to know what just happened, and a volunteer with one free hand recording it.\n\nSo the system runs two faces of one identity, and both of them are built for daylight. The board is the public face — the organisation's navy as a band at the top and another at the foot, a light field between them, frosted panels, and scores large enough to read across a tent. The kit is the working face — white, hairline-ruled, 48-pixel targets because referees wear gloves.\n\nThe board was navy throughout until it wasn't. It looked good and it was wrong twice over: it read as a different product from the organisation running it, and it put the primary user on the one surface this product predicts will fail in August sun. The glass survived the move because the glass was never the problem.",
     "keyCharacteristics": [
-      "Two themes, one palette: floodlit board, sunlit kit.",
+      "One light ground, two structures: the board banded and frosted, the kit ruled and flat.",
       "Numbers set in tabular figures at every size; digits never shift as scores change.",
       "Red means now or wrong — never merely \"important\".",
-      "Definition from hairlines and whitespace in the kit, from depth and light-catching edges on the board.",
+      "Definition from hairlines and whitespace in the kit, from a frosted edge and a shallow lift on the board.",
       "Touch targets never below 48px in the field; 42px at a desk.",
       "Every state that matters has a visible form, including absence: no field, no referee, no score."
     ],
@@ -334,7 +337,7 @@
       },
       {
         "name": "The Pencil Yellow Rule",
-        "body": "Yellow is focus and following. It never fills a surface, never carries a label, and never appears as a brand accent. Its one decorative appearance — a 9%-opacity wash in the board's bottom glow — is the limit, not a precedent.",
+        "body": "Yellow is focus, and nothing else. It never fills a surface, never carries a label, and never appears as a brand accent. It used to also wash the followed team's row; on a light field that row takes the pale navy the kit already uses.",
         "section": "colors"
       },
       {
@@ -374,17 +377,17 @@
       },
       {
         "name": "The Material Changes, The Design Does Not Rule",
-        "body": "Bright sun may remove translucency, blur, gradient and glow, and may raise a tone or a type step. It may not move an element, change a colour's meaning, hide content, or introduce a shape the standard board does not have. Somebody switching mid-match must find the same board, in a different material.",
+        "body": "Bright sun may remove translucency, blur, gradient and glow, and may raise a tone or a type step. It may not move an element, change a colour's meaning, hide content, or introduce a shape the standard board does not have. The switch reversed direction when the board went light — opaque white instead of opaque navy — and the job did not change.",
         "section": "elevation"
       },
       {
         "name": "The One Mechanism Rule",
-        "body": "A surface is defined by a hairline, or by a shadow, or by glass. Never two. A bordered card with a drop shadow means someone has mixed the themes.",
+        "body": "A surface is defined by a hairline, or by a shadow, or by glass. Never two — except the board's glass, where the frosted edge and the shallow lift are one mechanism rather than two.",
         "section": "elevation"
       },
       {
         "name": "The Blur Retreats In Daylight Rule",
-        "body": "Below 880px the glass gets more opaque (82% navy) and less blurred (12px), because blur is expensive and least legible exactly where phones are used — outdoors. Where backdrop-filter is unsupported, panels fall back to 90% solid navy. Translucency is never allowed to degrade into unreadable text.",
+        "body": "Below 880px the glass gets more opaque (90% white) and less blurred (12px), because blur is expensive and least legible exactly where phones are used — outdoors. Where backdrop-filter is unsupported, panels fall back to 94% solid white. Translucency is never allowed to degrade into unreadable text.",
         "section": "elevation"
       },
       {
@@ -404,7 +407,7 @@
       "Do suppress the pulse and the progress transition under prefers-reduced-motion."
     ],
     "donts": [
-      "Don't put glass, blur, or the dark theme into the referee, participant, or admin views. Glass needs a deep background; a phone in August sun needs the opposite.",
+      "Don't put glass or blur into the referee, participant, or admin views. They are working surfaces read at speed; the frost is the public board's material and buys nothing on a scoring screen but a slower paint.",
       "Don't use SCORES Red for anything but a live match, or Alarm Red for anything but an error, a clash, or a red card.",
       "Don't borrow Card Yellow or the card shapes for unrelated UI states.",
       "Don't render an unentered score as 0, or an entered 0 in the unentered treatment.",

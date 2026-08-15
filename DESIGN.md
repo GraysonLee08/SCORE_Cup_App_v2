@@ -1,6 +1,6 @@
 ---
 name: SCORES Cup
-description: Match-day tournament system for America SCORES Chicago — a floodlit public board and a sunlit working kit, built from one palette.
+description: Match-day tournament system for America SCORES Chicago — a public board between navy bands and a working kit, both built for daylight from one palette.
 colors:
   brand: "#00467f"
   accent: "#e31837"
@@ -14,23 +14,21 @@ colors:
   good: "#1a7f4b"
   bad: "#c0392b"
   warn: "#b8860b"
-  board-top: "#0d2542"
-  board-mid: "#071829"
-  board-base: "#04101d"
-  glass: "rgba(255, 255, 255, 0.075)"
-  glass-strong: "rgba(255, 255, 255, 0.13)"
-  glass-line: "rgba(255, 255, 255, 0.155)"
-  sun-page: "#071c2e"
-  sun-bar: "#0a2338"
-  sun-panel: "#12324f"
-  sun-panel-strong: "#1d456d"
-  sun-inset: "#0c2439"
-  sun-active: "#17405f"
-  on-glass: "#ffffff"
-  on-glass-soft: "rgba(255, 255, 255, 0.66)"
-  live-pink: "#ff8a9b"
+  field-top: "#eef3f9"
+  field-mid: "#e7edf4"
+  field-base: "#dfe7f0"
+  glass: "rgba(255, 255, 255, 0.72)"
+  glass-strong: "rgba(255, 255, 255, 0.94)"
+  glass-line: "rgba(16, 42, 70, 0.16)"
+  on-field: "rgba(16, 42, 70, 0.05)"
+  on-field-strong: "rgba(16, 42, 70, 0.09)"
+  sun-page: "#eef2f7"
+  sun-panel: "#ffffff"
+  sun-line: "rgba(16, 42, 70, 0.34)"
+  sun-ink-soft: "#3f4a55"
+  on-glass: "#1a1d21"
+  on-glass-soft: "#5c6670"
   ember: "#ff7a55"
-  ink-inverse: "#0b2038"
   card-yellow: "#f7d154"
   card-yellow-edge: "#d9b23f"
   pip-yellow: "#f0c419"
@@ -47,7 +45,6 @@ colors:
   slot-warn-bg: "#fff8e6"
   slot-warn-edge: "#d9a406"
   row-highlight: "#eaf3fb"
-  board-scrim: "rgba(9, 27, 48, 0.62)"
 typography:
   scale:
     micro: "0.7rem"
@@ -209,7 +206,7 @@ components:
     padding: "0.35rem 0.45rem"
     height: "52px"
   field-row:
-    backgroundColor: "rgba(255, 255, 255, 0.05)"
+    backgroundColor: "{colors.on-field}"
     textColor: "{colors.on-glass}"
     rounded: "{rounded.xl}"
     padding: "0.6rem 0.75rem"
@@ -226,14 +223,22 @@ built around the two things that actually happen on that day: a crowd standing i
 the sun wanting to know what just happened, and a volunteer with one free hand
 recording it. Everything else is downstream of those two moments.
 
-So the system runs two faces of one identity. **The board** is the floodlit face —
-a deep navy field, frosted panels, scores large enough to read across a tent, a
-live match holding the top of the screen. **The kit** is the working face — white,
-hairline-ruled, 48-pixel targets because referees wear gloves, high contrast
-because the screen is being read at arm's length in direct sun. They are not two
-brands. They are the same navy, the same red, the same pencil yellow, arranged for
-two different jobs. Glass only reads well over a deep background, and a referee
-squinting at a phone in August daylight needs precisely the opposite of glass.
+So the system runs two faces of one identity, and both of them are built for
+daylight. **The board** is the public face — the organisation's navy as a band at
+the top and another at the foot, a light field between them, frosted panels, and
+scores large enough to read across a tent. **The kit** is the working face —
+white, hairline-ruled, 48-pixel targets because referees wear gloves, dense
+because it is read at arm's length while something else is happening. They are not
+two brands and no longer two moods: the same navy, the same red, the same light
+ground, arranged for two different jobs.
+
+The board was navy throughout until it wasn't. It looked good and it was wrong
+twice over — it read as a different product from the organisation running it, and
+it put the primary user on the one surface this product predicts will fail in
+August sun, while the referee's kit had been white for exactly that reason since
+the beginning. The glass survived the move because the glass was never the
+problem: the panels are still frosted, in grey over a light field rather than
+white over a deep one.
 
 The personality is a sporting authority that never oversells: the numbers are the
 drama, so the interface does not compete with them. Density is generous on the
@@ -242,31 +247,14 @@ a hatched fill means nobody has scored that game yet, a pulsing dot means a matc
 is running now, a shirt icon means that is literally the shirt to look for on the
 pitch. Nothing decorative is allowed to look like data.
 
-> **Committed direction, after the 2026 tournament.** The board goes light. Not
-> white throughout: the header and the footer stay Chicago Navy as bands, and
-> between them the field becomes light, with the panels keeping their frosted
-> treatment in grey rather than white-over-navy. Text inverts to ink.
->
-> The reason is the organisation's own site, which is a light page between
-> coloured bands — the board currently reads as a different product from the
-> one running it. It is also the strongest available answer to the sunlight
-> risk, which the referee's white kit already answers and the board does not.
->
-> Deliberately not before 29 August 2026: it is CSS-only and carries no scoring
-> risk, but it replaces the world every panel, tone and contrast pair on this
-> surface was verified against, and the tournament runs on what is built and
-> tested. Two things it will have to settle rather than inherit — whether
-> Bright Sun still has a job once there is no deep background to escape, and
-> whether Live Pink reverts to SCORES Red, which reads correctly on a light
-> panel and was only ever a workaround for red going muddy on navy.
-
 **Key Characteristics:**
 
-- Two themes, one palette: floodlit board, sunlit kit.
+- One light ground, two structures: the board banded and frosted, the kit ruled
+  and flat.
 - Numbers set in tabular figures at every size; digits never shift as scores change.
 - Red means *now* or *wrong* — never merely "important".
-- Definition from hairlines and whitespace in the kit, from depth and light-catching
-  edges on the board.
+- Definition from hairlines and whitespace in the kit, from a frosted edge and a
+  shallow lift on the board.
 - Touch targets never below 48px in the field; 42px at a desk.
 - Every state that matters has a visible form, including absence: no field, no
   referee, no score.
@@ -279,12 +267,13 @@ against both.
 
 ### Primary
 
-- **Chicago Navy** (`#00467f`): the identity anchor. Fills the app header, primary
-  buttons, active navigation, and the left edge of every scheduled game on the
-  admin grid. On the board it is the field the whole page sits in, deepened.
-- **Board Navy** (`#0d2542` → `#071829` → `#04101d`): the spectator background, a
-  163° gradient from top-left to bottom-right. Not a separate brand colour — the
-  same navy taken down to where white text and frosted glass can live on it.
+- **Chicago Navy** (`#00467f`): the identity anchor, and on the board it is the
+  band — solid at the head of the page and again at the foot, with everything else
+  between them. It also fills primary buttons, active navigation, the active chip
+  and segment, and the left edge of every scheduled game on the admin grid.
+- **The Field** (`#eef3f9` → `#e7edf4` → `#dfe7f0`): the light ground the board
+  sits on, a 163° gradient from top-left to bottom-right — the same angle the deep
+  version used, because the geometry was never the problem.
 
 ### Secondary
 
@@ -297,14 +286,19 @@ against both.
 
 ### Tertiary
 
-- **Pencil Yellow** (`#f5c518`): focus rings, and the tint on the row of the team
-  you are following. Chosen because it survives against both the navy and the white.
+- **Pencil Yellow** (`#f5c518`): focus rings, and nothing else. It used to also
+  wash the row of the team you are following; on a light field that row takes the
+  pale navy the kit already uses, which leaves the yellow to mean one thing.
 - **Card Yellow** (`#f7d154`, edge `#d9b23f`, pip `#f0c419`): not a UI colour. This
   is a referee's yellow card, and it appears only where a card is being issued,
   counted, or displayed.
-- **Live Pink** (`#ff8a9b`): the one colour that exists only on the board — a
-  running field's name and a ticking clock. Red at that size on that background
-  goes muddy; this is red made legible on glass.
+- **Ember** (`#ff7a55`): the far end of the progress bar's gradient from SCORES
+  Red, and nowhere else.
+
+> **Retired with the dark board:** Live Pink (`#ff8a9b`) existed only because real
+> red goes muddy on deep navy. A running pitch and a ticking clock use SCORES Red
+> again, which measures 4.5:1 on a frosted panel and is the colour the rule for
+> *live* was always about.
 
 ### Neutral
 
@@ -314,8 +308,13 @@ against both.
 - **Mist** (`#eef2f6`): resting fill for pills, join codes, and hover states.
 - **Surface** (`#ffffff`) and **Page** (`#f4f6f8`): card over page; the admin shell
   reverses this and goes white edge to edge.
-- **On Glass** (`#ffffff`) and **On Glass Soft** (`rgba(255,255,255,0.66)`): the
-  board's two text tones. There is no third.
+- **On Glass** (`#1a1d21`) and **On Glass Soft** (`#5c6670`): the board's two text
+  tones, now the same ink the kit uses. There is no third.
+- **On Field** (`rgba(16,42,70,0.05)`) and **On Field Strong**
+  (`rgba(16,42,70,0.09)`): the tint for surfaces *inside* a panel — pitch rows,
+  stat tiles, fixtures, the segmented track. They tint down into the field; on the
+  dark board the same surfaces tinted up out of it with white. That inversion is
+  the whole theme in one pair of tokens.
 
 ### Functional Tints
 
@@ -331,14 +330,14 @@ colours above and must not be substituted for them.
 - **Slot warning** (`#fff8e6` wash, `#d9a406` edge): a scheduling warning that may
   be deliberate, as against a clash, which takes Alarm Red and must be fixed.
 - **Slot hover** (`#f4f8fc`) and **row highlight** (`#eaf3fb`): the two faint navy
-  washes that mark pointer position and the team you are following. On the board
-  the following highlight becomes Pencil Yellow at 16% instead, because a pale
-  navy disappears against a navy field.
+  washes that mark pointer position and the team you are following. The board uses
+  the same row highlight as the kit now; it needed its own yellow wash only while
+  a pale navy had a navy field to disappear against.
 
-Two more sit outside the tint sets. **Ink Inverse** (`#0b2038`) is the text colour
-for anything white-filled on the board — active chips, the segmented control, a
-finished tag. **Ember** (`#ff7a55`) is the far end of the progress bar's gradient
-from SCORES Red, and appears nowhere else.
+**Ink Inverse** (`#0b2038`) retired with the dark board. Anything that was
+white-filled on navy — the active chip, the active segment, the donate button — is
+now navy-filled with white text, and a finished tag takes Good Green rather than a
+near-white slab.
 
 ### Named Rules
 
@@ -503,19 +502,24 @@ shadow, borderless and roomy, with definition coming from whitespace rather than
 hard edges. This is the one place borders are traded away, and it is deliberate:
 showing one widget at a time is what makes the whitespace affordable.
 
-**The board is glass.** Panels are a 7.5%-white fill over the navy gradient with a
-22px backdrop blur at 150% saturation, a translucent edge, a deep drop shadow, and
-a 1px inset highlight along the top edge — the light-catching edge that makes a
-translucent panel read as a physical sheet rather than as washed-out text.
+**The board is glass.** Panels are a 72%-white frost over the light field with a
+22px backdrop blur at 150% saturation, a hairline edge, a shallow two-layer lift,
+and a 1px inset highlight along the top — the light-catching edge that makes a
+translucent panel read as a physical sheet rather than as a paler rectangle. The
+lift is deliberately slight: a deep field swallowed a 30%-black shadow, and a light
+one shows every bit of it, which reads as hovering rather than resting.
 
 ### Shadow Vocabulary
 
 - **Admin lift** (`0 1px 2px rgba(16,32,52,.06), 0 6px 20px rgba(16,32,52,.05)`):
-  the only shadow in the light theme. Ambient, not directional.
-- **Glass lift** (`0 12px 34px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.14)`):
-  every board panel.
-- **Live glass** (adds `0 0 0 1px rgba(227,24,55,.18)` and a 45%-opacity red edge):
-  the spotlight when a match is running. The only state-driven shadow in the system.
+  admin panels. Ambient, not directional.
+- **Glass lift** (`0 1px 2px rgba(16,42,70,.06), 0 10px 26px rgba(16,42,70,.08),
+  inset 0 1px 0 rgba(255,255,255,.7)`): every board panel.
+- **Live glass** (swaps the ambient layer for `0 10px 26px rgba(227,24,55,.14)` and
+  adds a `0 0 0 1px rgba(227,24,55,.25)` ring under a 55%-opacity red edge): the
+  spotlight when a match is running. The only state-driven shadow in the system,
+  and the red now carries it alone — the black drop shadow it used to sit on read
+  as depth against navy and reads as grime against grey.
 
 ### Bright Sun
 
@@ -529,13 +533,16 @@ text on it, flattening exactly the mid-tones this world leans on — and a ratio
 measured indoors describes none of that.
 
 So in bright sun the panels stop being glass: `backdrop-filter` is removed
-entirely, panels go opaque (**Sun Panel** `#12324f`, with **Sun Panel Strong**
-`#1d456d` for controls and **Sun Inset** `#0c2439` for surfaces that were a 5%
-white wash), the background gradient flattens to **Sun Page** `#071c2e`, the
-atmospheric glow is hidden, and `--on-glass-soft` rises from 66% to 85% white.
-Soft text goes from 7.2:1 on glass to **9.9:1**; white sits at **13.2:1**. The
-two smallest type tiers each move up one step on the ramp, and the unscored
-hatch doubles in strength.
+entirely, panels go fully opaque (**Sun Panel** `#ffffff`), hairlines strengthen
+to **Sun Line** `rgba(16,42,70,0.34)`, the field flattens to **Sun Page**
+`#eef2f7`, the glow is hidden, and the soft tone darkens from `#5c6670` to **Sun
+Ink Soft** `#3f4a55` — 5.6:1 to **9.0:1**. The two smallest type tiers each move
+up one step on the ramp, and the unscored hatch doubles in strength.
+
+The switch reversed direction when the board went light: it used to escape a deep
+field by going opaque navy, and now escapes a frosted one by going opaque white.
+The job never changed. Blur still switches off, because that part was never about
+the colour.
 
 A stored choice wins permanently and in both directions. With no stored choice,
 `prefers-contrast: more` turns it on without the visitor having to find the
@@ -554,9 +561,9 @@ find the same board, in a different material.
 mixed the themes.
 
 **The Blur Retreats In Daylight Rule.** Below 880px the glass gets more opaque
-(82% navy) and less blurred (12px), because blur is expensive and least legible
+(90% white) and less blurred (12px), because blur is expensive and least legible
 exactly where phones are used — outdoors. Where `backdrop-filter` is unsupported,
-panels fall back to 90% solid navy. Translucency is never allowed to degrade into
+panels fall back to 94% solid white. Translucency is never allowed to degrade into
 unreadable text.
 
 ## Shapes
@@ -604,16 +611,20 @@ two scales; a 16px radius on a small control is a different design.
   drops to 50% opacity (35% on counters). Focus is a 3px Pencil Yellow ring at 2px
   offset, on every interactive element, in both themes.
 
+- **Donate** (board): Chicago Navy fill, white text, 999px radius, 48px minimum,
+  in the countdown panel. It is a fundraiser and this is the one screen with the
+  room to ask without talking over a score.
+
 ### Chips and Tags
 
 - **Pill** (kit): Mist fill, 700 weight, 0.78rem. `live` inverts to navy on white;
   `done` to Good Green on white.
-- **Tag** (board): uppercase 0.74rem on `glass-strong` with a translucent edge.
-  `live` fills SCORES Red; `done` inverts to near-white on Board Navy; `ghost`
-  drops to transparent with soft text. A live tag carries a 7px dot that pulses on
-  a 1.9s cycle — suppressed entirely under `prefers-reduced-motion`.
+- **Tag** (board): uppercase 0.78rem on `glass-strong` with a hairline edge.
+  `live` fills SCORES Red; `done` fills Good Green; `ghost` drops to transparent
+  with soft text. A live tag carries a 7px dot that pulses on a 1.9s cycle —
+  suppressed entirely under `prefers-reduced-motion`.
 - **Chip button / segmented control** (board): pill and 12px-radius respectively,
-  resting on 5–6% white, going to solid white with Board Navy text when active.
+  resting on the On Field tint, filling Chicago Navy with white text when active.
 
 ### Cards and Containers
 
@@ -635,8 +646,9 @@ two scales; a 16px radius on a small control is a different design.
 - **Notices:** three tinted blocks with matching borders — error (`#fdecea` /
   `#7d241b`), ok (`#e8f6ee` / `#14603a`), pending (`#fff6e0` / `#7a5a00`). Pending
   is its own state because a queued offline write is neither success nor failure.
-- **Select on the board:** 8%-white fill with a glass edge; the `option` list is
-  drawn by the OS, so options are explicitly set to Board Navy on white.
+- **Select on the board:** white fill with a hairline edge, the same control the
+  kit uses. The forced dark `option` list is gone with the dark board — the OS menu
+  is already right, and overriding it only fought the visitor's own system.
 
 ### Navigation
 
@@ -705,15 +717,17 @@ itself in Live Pink.
 
 ### Don't:
 
-- **Don't** put glass, blur, or the dark theme into the referee, participant, or
-  admin views. Glass needs a deep background; a phone in August sun needs the
-  opposite.
+- **Don't** put glass or blur into the referee, participant, or admin views. They
+  are working surfaces read at speed; the frost is the public board's material and
+  buys nothing on a scoring screen but a slower paint.
 - **Don't** use SCORES Red for anything but a live match, or Alarm Red for anything
   but an error, a clash, or a red card.
 - **Don't** borrow Card Yellow or the card shapes for unrelated UI states.
 - **Don't** render an unentered score as `0`, or an entered `0` in the unentered
   treatment.
-- **Don't** combine a hairline border and a drop shadow on the same surface.
+- **Don't** combine a hairline border and a drop shadow on the same surface,
+  except on the board's glass, where the frosted edge and the shallow lift are one
+  mechanism rather than two.
 - **Don't** set a heading, sentence, or button label in uppercase; uppercase stops
   at 0.9rem labels.
 - **Don't** set the display face on a number that can change.
