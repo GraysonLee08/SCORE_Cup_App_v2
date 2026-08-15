@@ -242,6 +242,24 @@ a hatched fill means nobody has scored that game yet, a pulsing dot means a matc
 is running now, a shirt icon means that is literally the shirt to look for on the
 pitch. Nothing decorative is allowed to look like data.
 
+> **Committed direction, after the 2026 tournament.** The board goes light. Not
+> white throughout: the header and the footer stay Chicago Navy as bands, and
+> between them the field becomes light, with the panels keeping their frosted
+> treatment in grey rather than white-over-navy. Text inverts to ink.
+>
+> The reason is the organisation's own site, which is a light page between
+> coloured bands — the board currently reads as a different product from the
+> one running it. It is also the strongest available answer to the sunlight
+> risk, which the referee's white kit already answers and the board does not.
+>
+> Deliberately not before 29 August 2026: it is CSS-only and carries no scoring
+> risk, but it replaces the world every panel, tone and contrast pair on this
+> surface was verified against, and the tournament runs on what is built and
+> tested. Two things it will have to settle rather than inherit — whether
+> Bright Sun still has a job once there is no deep background to escape, and
+> whether Live Pink reverts to SCORES Red, which reads correctly on a light
+> panel and was only ever a workaround for red going muddy on navy.
+
 **Key Characteristics:**
 
 - Two themes, one palette: floodlit board, sunlit kit.
