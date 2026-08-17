@@ -645,17 +645,17 @@ export default function ResultsPanel({
                         <th scope="col" className="num">#</th>
                         <th scope="col">Team</th>
                         <th scope="col" className="num">P</th>
-                        <th scope="col" className="num">GF</th>
-                        <th scope="col" className="num">GA</th>
                         {/* The point of this panel is watching Pts move as a
                             score is typed. A win to nil moves it by four, not
                             three, so without this the preview jumps by an
                             amount the columns cannot account for. */}
-                        <th scope="col" className="num" title="Wins to nil — each adds a bonus point">
-                          SO
+                        <th scope="col" className="num" title="Shutouts — wins to nil">
+                          SH
                         </th>
-                        <th scope="col" className="num" title="Card points — fewer is better">
-                          Cards
+                        <th scope="col" className="num">GF</th>
+                        <th scope="col" className="num">GA</th>
+                        <th scope="col" className="num" title="Fair play — card points, fewer is better">
+                          FP
                         </th>
                         <th scope="col" className="num">Pts</th>
                       </tr>
@@ -674,9 +674,9 @@ export default function ResultsPanel({
                               {moved < 0 && <span className="move down"> ▼{-moved}</span>}
                             </td>
                             <td className="num">{row.played}</td>
+                            <td className="num">{row.shutoutWins}</td>
                             <td className="num">{row.goalsFor}</td>
                             <td className="num">{row.goalsAgainst}</td>
-                            <td className="num">{row.shutoutWins}</td>
                             <td
                               className="num"
                               title={`${row.yellowCards} yellow, ${row.redCards} red`}

@@ -97,7 +97,7 @@ describe('byes', () => {
   it('handles a bracket that is only one game plus a bye', () => {
     const fixtures = bracket(3);
     expect(fixtures.filter((f) => f.round === 'Semi-final')).toHaveLength(1);
-    const final = fixtures.find((f) => f.round === 'Final')!;
+    const final = fixtures.find((f) => f.round === 'Championship')!;
     expect(seedOf(final.home)).toBe(1);
     expect(final.away.kind).toBe('fixtureWinner');
   });
@@ -106,13 +106,13 @@ describe('byes', () => {
     expect(bracket(8).filter((f) => f.round === 'Quarter-final')).toHaveLength(4);
     expect(bracket(4).filter((f) => f.round === 'Semi-final')).toHaveLength(2);
     expect(bracket(2)).toHaveLength(1);
-    expect(bracket(2)[0]!.round).toBe('Final');
+    expect(bracket(2)[0]!.round).toBe('Championship');
   });
 
   it('never leaves a branch with nobody in it, for any size', () => {
     for (let q = 2; q <= 32; q++) {
       const fixtures = bracket(q);
-      const finals = fixtures.filter((f) => f.round === 'Final');
+      const finals = fixtures.filter((f) => f.round === 'Championship');
       expect(finals).toHaveLength(1);
       // Every qualifier appears exactly once as an entrant.
       const entrants = fixtures.flatMap((f) =>
@@ -185,6 +185,6 @@ describe('wildcard places', () => {
       ctx,
     );
     expect(resolved.teamId).toBeNull();
-    expect(resolved.label).toBe('Best 3rd place');
+    expect(resolved.label).toBe('Best 3rd Place');
   });
 });

@@ -312,7 +312,9 @@ function seedOrder(poolIds: PoolId[], qualifiers: number): TeamRef[] {
 
 function roundName(totalRounds: number, round: number): string {
   const fromEnd = totalRounds - round;
-  if (fromEnd === 0) return 'Final';
+  // "Championship" rather than "Final": it is what the tournament calls the
+  // last game, and it is the one round name that ends up on a trophy.
+  if (fromEnd === 0) return 'Championship';
   if (fromEnd === 1) return 'Semi-final';
   if (fromEnd === 2) return 'Quarter-final';
   return `Round ${round}`;

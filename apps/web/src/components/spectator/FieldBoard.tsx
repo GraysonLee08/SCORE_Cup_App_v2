@@ -116,10 +116,9 @@ export default function FieldBoard({
                 <span className="field-teams soft">Done for the day</span>
               )}
 
-              {/* A knockout game whose entrants are not decided reads as
-                  "Winner of earlier match v Winner of earlier match", which
-                  says nothing twice. Show the time instead until it means
-                  something. */}
+              {/* A knockout game whose entrants are not decided is shown by its
+                  round rather than its two placeholders -- the round is shorter
+                  and, on a board read from a distance, enough. */}
               {next && (
                 <span className="field-next soft">
                   Next {kickoffTime(next)}

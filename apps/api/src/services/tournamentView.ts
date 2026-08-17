@@ -271,7 +271,24 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
     );
   }
 
-  const ctx: ResolutionContext = { standingsByPool, outcomes, poolComplete };
+  // Names for the slots that have no team in them yet: which group a place is
+  // drawn from, and where the game feeding this one is being played. Both turn
+  // an entry that is true of any game into one about this game.
+  const poolNames = new Map<string, string>();
+  for (const pool of pools) poolNames.set(pool.poolId, pool.poolName);
+
+  const fixtureFieldNames = new Map<string, string>();
+  for (const f of fixtures) {
+    if (f.field_name) fixtureFieldNames.set(f.id, f.field_name);
+  }
+
+  const ctx: ResolutionContext = {
+    standingsByPool,
+    outcomes,
+    poolComplete,
+    poolNames,
+    fixtureFieldNames,
+  };
 
   const cardCount = (fixtureId: string, teamId: string | null) => {
     const counts = { yellow: 0, red: 0 };

@@ -135,7 +135,7 @@ describe('generateBracketFixtures', () => {
 
     expect(fixtures).toHaveLength(3);
     expect(fixtures.filter((f) => f.round === 'Semi-final')).toHaveLength(2);
-    expect(fixtures.filter((f) => f.round === 'Final')).toHaveLength(1);
+    expect(fixtures.filter((f) => f.round === 'Championship')).toHaveLength(1);
   });
 
   it('keeps teams from the same pool apart in the first round', () => {
@@ -152,7 +152,7 @@ describe('generateBracketFixtures', () => {
 
   it('references earlier fixtures rather than teams in later rounds', () => {
     const fixtures = generateBracketFixtures('ko', ['A', 'B'], 4);
-    const final = fixtures.find((f) => f.round === 'Final');
+    const final = fixtures.find((f) => f.round === 'Championship');
 
     expect(final?.home.kind).toBe('fixtureWinner');
     expect(final?.away.kind).toBe('fixtureWinner');

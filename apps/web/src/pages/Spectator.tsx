@@ -451,11 +451,17 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
           {division && division.pools.length > 0 && (
             <div className="standings-key soft tiny">
               <p>
-                P played · W won · D drawn · L lost · GF goals for · GA goals against · SO
-                shutout wins · Pts points
+                P played · W won · D drawn · L lost · SH shutouts · GF goals for · GA goals
+                against · FP fair play · Pts points
               </p>
               <p>{sharedShutoutRule(division.pools)}</p>
               <p>{sharedCardRule(division.pools)}</p>
+              {/* The order decides who goes through, so it is written out
+                  rather than left to be inferred from the columns. */}
+              <p>
+                Level teams are separated by: head to head, then goals for, then goals against,
+                then fair play, then rock, paper, scissors.
+              </p>
             </div>
           )}
         </div>

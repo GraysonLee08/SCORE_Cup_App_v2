@@ -107,18 +107,18 @@ describe('standings columns', () => {
       W: '1',
       D: '0',
       L: '0',
+      SH: '1', // the 2-0 win
       GF: '2',
       GA: '0',
-      SO: '1', // the 2-0 win
-      Cards: '3', // one yellow (1) plus one red (2)
+      FP: '3', // fair play: one yellow (1) plus one red (2)
       Pts: '4', // win (3) plus the clean-sheet bonus (1)
     });
   });
 
   /**
-   * SO exists to account for the gap between W and Pts, so the case worth
+   * SH exists to account for the gap between W and Pts, so the case worth
    * pinning is the one where the two disagree: two wins showing eight points.
-   * If SO ever stops being rendered, this is what notices.
+   * If SH ever stops being rendered, this is what notices.
    */
   it('accounts for points that W alone does not explain', () => {
     const { headers, cells } = render({
@@ -130,7 +130,7 @@ describe('standings columns', () => {
     expect(byHeading.Pts).toBe('8');
     // Two wins reads as six. The other two points are the two clean sheets,
     // and GA of 3 gives no hint of them.
-    expect(byHeading.SO).toBe('2');
+    expect(byHeading.SH).toBe('2');
   });
 
   /**
@@ -140,10 +140,10 @@ describe('standings columns', () => {
    */
   it('states the weighting it was given rather than assuming one', () => {
     expect(sharedCardRule([pool({ penaltyPoints: { yellow: 1, red: 1 } })])).toContain(
-      'Every card counts 1.',
+      'every card counts 1.',
     );
     expect(sharedCardRule([pool({ penaltyPoints: { yellow: 1, red: 2 } })])).toContain(
-      'A yellow counts 1, a red counts 2.',
+      'a yellow counts 1, a red counts 2.',
     );
   });
 
@@ -154,7 +154,7 @@ describe('standings columns', () => {
       pool({ poolId: 'a', penaltyPoints: { yellow: 1, red: 2 } }),
       pool({ poolId: 'b', penaltyPoints: { yellow: 2, red: 4 } }),
     ]);
-    expect(mixed).toContain('Cards count against a team.');
+    expect(mixed).toContain('cards count against a team.');
     expect(mixed).not.toMatch(/counts \d/);
 
     // Agreeing pools are the normal case and do get the numbers.
@@ -162,7 +162,7 @@ describe('standings columns', () => {
       pool({ poolId: 'a', penaltyPoints: { yellow: 1, red: 2 } }),
       pool({ poolId: 'b', penaltyPoints: { yellow: 1, red: 2 } }),
     ]);
-    expect(agreed).toContain('A yellow counts 1, a red counts 2.');
+    expect(agreed).toContain('a yellow counts 1, a red counts 2.');
   });
 
   describe('the shutout rule', () => {
@@ -173,7 +173,7 @@ describe('standings columns', () => {
 
     it('drops the bonus sentence when the tournament is not running the rule', () => {
       const off = sharedShutoutRule([pool({ shutoutWinBonus: 0 })]);
-      expect(off).toBe('SO counts wins to nil.');
+      expect(off).toBe('SH counts wins to nil.');
       expect(off).not.toMatch(/adds/);
     });
 

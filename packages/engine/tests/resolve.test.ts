@@ -46,6 +46,47 @@ describe('resolveTeamRef', () => {
       .toBe('t2');
   });
 
+  /**
+   * "1st in pool" is equally true of every pool playing that day, so on a
+   * bracket board it says almost nothing. Named, the slot tells a spectator
+   * which four teams it is choosing between.
+   */
+  it('says which group a pool place is drawn from', () => {
+    const ctx = context({
+      standingsByPool: new Map([['A', [row('t1', 1), row('t2', 2)]]]),
+      poolNames: new Map([
+        ['A', 'Poet'],
+        ['B', 'Athlete'],
+      ]),
+    });
+
+    expect(resolveTeamRef({ kind: 'poolPosition', poolId: 'A', position: 1 }, ctx).label).toBe(
+      'Winner Poet Group',
+    );
+    expect(resolveTeamRef({ kind: 'poolPosition', poolId: 'B', position: 2 }, ctx).label).toBe(
+      '2nd Place Athlete Group',
+    );
+  });
+
+  it('keeps the old wording for a group that was never named', () => {
+    // Inventing a group name would be worse than saying less.
+    const ctx = context({ poolNames: new Map([['B', 'Athlete']]) });
+    expect(resolveTeamRef({ kind: 'poolPosition', poolId: 'A', position: 1 }, ctx).label).toBe(
+      '1st in pool',
+    );
+  });
+
+  it('points a waiting game at the pitch its feeder is played on', () => {
+    const ctx = context({ fixtureFieldNames: new Map([['sf1', 'Teamwork']]) });
+
+    expect(resolveTeamRef({ kind: 'fixtureWinner', fixtureId: 'sf1' }, ctx).label).toBe(
+      'Winner of Teamwork',
+    );
+    expect(resolveTeamRef({ kind: 'fixtureLoser', fixtureId: 'sf1' }, ctx).label).toBe(
+      'Loser of Teamwork',
+    );
+  });
+
   it('shows a placeholder for an unplayed knockout feeder', () => {
     const result = resolveTeamRef({ kind: 'fixtureWinner', fixtureId: 'sf1' }, context());
     expect(result.teamId).toBeNull();

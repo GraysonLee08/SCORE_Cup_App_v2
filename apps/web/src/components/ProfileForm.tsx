@@ -85,7 +85,7 @@ export default function ProfileForm({
     <form className="card stack" onSubmit={save}>
       <h2>My details</h2>
       <p className="muted">
-        Visible to the organisers and your coach. Correct anything that is wrong — a coach may
+        Visible to the organizers and your coach. Correct anything that is wrong — a coach may
         have entered it for you.
       </p>
 

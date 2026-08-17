@@ -7,6 +7,16 @@ export interface ResolutionContext {
   outcomes: Map<FixtureId, { winnerTeamId: TeamId | null; loserTeamId: TeamId | null }>;
   /** True once a pool has played every one of its fixtures. */
   poolComplete: Set<PoolId>;
+  /**
+   * Pool names, so an unplayed game can say which group it draws from.
+   * "1st in pool" is true of four different teams on a four-pool day.
+   */
+  poolNames?: Map<PoolId, string>;
+  /**
+   * Where an earlier game is being played, so the game waiting on it can point
+   * at somewhere a spectator can actually walk to.
+   */
+  fixtureFieldNames?: Map<FixtureId, string>;
 }
 
 export interface ResolvedTeam {
@@ -29,23 +39,23 @@ export function resolveTeamRef(ref: TeamRef, ctx: ResolutionContext): ResolvedTe
       return { teamId: ref.teamId, label: '' };
 
     case 'poolPosition': {
+      const label = poolPositionLabel(ref.position, ctx.poolNames?.get(ref.poolId));
+
       // Resolving from a half-finished pool would show a team that the next
       // result could displace, so wait for the pool to complete.
       if (!ctx.poolComplete.has(ref.poolId)) {
-        return { teamId: null, label: `${ordinal(ref.position)} in pool` };
+        return { teamId: null, label };
       }
       const table = ctx.standingsByPool.get(ref.poolId);
       const row = table?.[ref.position - 1];
-      return row
-        ? { teamId: row.teamId, label: '' }
-        : { teamId: null, label: `${ordinal(ref.position)} in pool` };
+      return row ? { teamId: row.teamId, label: '' } : { teamId: null, label };
     }
 
     case 'bestOfPosition': {
       const label =
         ref.rank === 1
-          ? `Best ${ordinal(ref.position)} place`
-          : `${ordinal(ref.rank)}-best ${ordinal(ref.position)} place`;
+          ? `Best ${ordinal(ref.position)} Place`
+          : `${ordinal(ref.rank)}-best ${ordinal(ref.position)} Place`;
 
       // Every pool in the comparison has to be finished. Naming a wildcard
       // while one pool is still playing would show a team that the next result
@@ -76,16 +86,18 @@ export function resolveTeamRef(ref: TeamRef, ctx: ResolutionContext): ResolvedTe
 
     case 'fixtureWinner': {
       const outcome = ctx.outcomes.get(ref.fixtureId);
+      const field = ctx.fixtureFieldNames?.get(ref.fixtureId);
       return outcome?.winnerTeamId
         ? { teamId: outcome.winnerTeamId, label: '' }
-        : { teamId: null, label: 'Winner of earlier match' };
+        : { teamId: null, label: field ? `Winner of ${field}` : 'Winner of earlier match' };
     }
 
     case 'fixtureLoser': {
       const outcome = ctx.outcomes.get(ref.fixtureId);
+      const field = ctx.fixtureFieldNames?.get(ref.fixtureId);
       return outcome?.loserTeamId
         ? { teamId: outcome.loserTeamId, label: '' }
-        : { teamId: null, label: 'Loser of earlier match' };
+        : { teamId: null, label: field ? `Loser of ${field}` : 'Loser of earlier match' };
     }
   }
 }
@@ -124,6 +136,20 @@ export function decideOutcome(result: {
 
   // A drawn pool game has no winner, and that is fine.
   return { winnerTeamId: null, loserTeamId: null };
+}
+
+/**
+ * How a pool place reads before the pool has finished.
+ *
+ * With the group named it says which four teams it is choosing between --
+ * "1st in pool" is equally true of every pool on the day, which on a bracket
+ * board is close to saying nothing. Without a name it keeps the old wording
+ * rather than inventing a group that was never given one.
+ */
+function poolPositionLabel(position: number, poolName: string | undefined): string {
+  if (!poolName) return `${ordinal(position)} in pool`;
+  if (position === 1) return `Winner ${poolName} Group`;
+  return `${ordinal(position)} Place ${poolName} Group`;
 }
 
 function ordinal(n: number): string {
