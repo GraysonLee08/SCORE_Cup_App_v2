@@ -225,6 +225,26 @@ h2 {
   text-align: center;
 }
 
+/* The kit sits above the name: the shirt is what a referee recognises from the
+   pitch, the name is what confirms it. Height is fixed rather than left to the
+   image so both sides reserve the same band whether or not a kit is on file --
+   see anyKit in MatchCard. */
+.side .kit {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 3rem;
+  margin-bottom: 0.35rem;
+}
+
+.side .kit .jersey {
+  height: 3rem;
+  /* The shared rule spaces kits that sit inline beside text. This one is
+     centred on its own line, where that margin would push it off-centre. */
+  margin-right: 0;
+  vertical-align: baseline;
+}
+
 .side .name {
   font-weight: 700;
   font-size: 1rem;

@@ -23,6 +23,9 @@ export interface Fixture {
   homeTeamName: string | null;
   awayTeamId: string | null;
   awayTeamName: string | null;
+  /** Kit slugs, so the referee card can show what each side is wearing. */
+  homeTeamJersey: string | null;
+  awayTeamJersey: string | null;
   stageName: string;
   divisionName: string;
   signoffCount: number;

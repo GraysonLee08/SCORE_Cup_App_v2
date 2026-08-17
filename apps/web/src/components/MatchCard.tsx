@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Card, Fixture } from '../types.js';
+import Jersey from './Jersey.js';
 
 export interface CardNaming {
   cardId: string;
@@ -65,6 +66,13 @@ export default function MatchCard({
 
   const complete = fixture.status === 'complete';
   const teamsKnown = Boolean(fixture.homeTeamId && fixture.awayTeamId);
+  /**
+   * Reserved for both sides or neither, never one. A kit on one side only
+   * would drop that team's name half a shirt lower than the other, and the two
+   * names sitting at different heights is the one thing this card cannot
+   * afford: it is read at a glance, at arm's length, mid-game.
+   */
+  const anyKit = Boolean(fixture.homeTeamJersey || fixture.awayTeamJersey);
   const isDraw = home === away;
   const knockout = fixture.stageName.toLowerCase().includes('bracket') || Boolean(fixture.round);
 
@@ -189,11 +197,16 @@ export default function MatchCard({
         <>
           <div className="matchup">
             {[
-              { side: 'home' as const, id: fixture.homeTeamId!, name: fixture.homeTeamName!, value: home, set: setHome },
-              { side: 'away' as const, id: fixture.awayTeamId!, name: fixture.awayTeamName!, value: away, set: setAway },
+              { side: 'home' as const, id: fixture.homeTeamId!, name: fixture.homeTeamName!, kit: fixture.homeTeamJersey, value: home, set: setHome },
+              { side: 'away' as const, id: fixture.awayTeamId!, name: fixture.awayTeamName!, kit: fixture.awayTeamJersey, value: away, set: setAway },
             ].map((team, index) => (
               <FragmentWithVs key={team.id} showVs={index === 1}>
                 <div className="side">
+                  {anyKit && (
+                    <div className="kit">
+                      <Jersey jersey={team.kit} teamName={team.name} />
+                    </div>
+                  )}
                   <div className="name">{team.name}</div>
                   <div className="score">{team.value}</div>
                   <div className="stepper">

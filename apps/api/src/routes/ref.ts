@@ -96,6 +96,10 @@ export function refRoutes(db: Db): Router {
               fl.id AS "fieldId", fl.name AS "fieldName",
               home.id AS "homeTeamId", home.name AS "homeTeamName",
               away.id AS "awayTeamId", away.name AS "awayTeamName",
+              -- The kits, so a referee can match the shirts in front of them to
+              -- the sides on their phone. Two JPMorganChase teams play in
+              -- different colours, so the name alone does not separate them.
+              home.jersey AS "homeTeamJersey", away.jersey AS "awayTeamJersey",
               f.home_ref AS "homeRef", f.away_ref AS "awayRef",
               s.name AS "stageName", d.name AS "divisionName",
               (SELECT count(*) FROM match_signoffs ms WHERE ms.fixture_id = f.id)::int

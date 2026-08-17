@@ -101,8 +101,9 @@ suite('referee score entry', () => {
        VALUES ($1,'pool','Pool',1,'{}') RETURNING id`, [div[0]!.id],
     );
     const { rows: teams } = await db.query<{ id: string }>(
-      `INSERT INTO teams (division_id, name, join_code)
-       VALUES ($1,'Home','AAAAAA'),($1,'Away','BBBBBB') RETURNING id`, [div[0]!.id],
+      `INSERT INTO teams (division_id, name, join_code, jersey)
+       VALUES ($1,'Home','AAAAAA','milliman'),($1,'Away','BBBBBB',NULL) RETURNING id`,
+      [div[0]!.id],
     );
     homeTeamId = teams[0]!.id;
     awayTeamId = teams[1]!.id;
@@ -140,6 +141,15 @@ suite('referee score entry', () => {
     expect(res.status).toBe(200);
     expect(res.body.fixtures).toHaveLength(1);
     expect(res.body.fixtures[0].fieldName).toBe('Field 1');
+  });
+
+  // The referee card shows what each side is wearing, so the kits have to
+  // travel with the game. A team without one comes back null rather than
+  // missing, so the card can tell "no kit on file" from "field not sent".
+  it('sends the kit each side is playing in', async () => {
+    const res = await client.get('/api/ref/my-fixtures');
+    expect(res.body.fixtures[0].homeTeamJersey).toBe('milliman');
+    expect(res.body.fixtures[0].awayTeamJersey).toBeNull();
   });
 
   it('records a score', async () => {
