@@ -616,21 +616,45 @@ export async function persistSchedule(
   options: { force?: boolean } = {},
 ): Promise<{ inserted: number; replaced: number }> {
   return withTransaction(db, async (client) => {
-    const { rows: existing } = await client.query<{ total: string; with_scores: string }>(
+    const { rows: existing } = await client.query<{
+      total: string;
+      with_scores: string;
+      with_referees: string;
+    }>(
       `SELECT count(*) AS total,
-              count(*) FILTER (WHERE f.home_score IS NOT NULL) AS with_scores
+              count(*) FILTER (WHERE f.home_score IS NOT NULL) AS with_scores,
+              count(*) FILTER (WHERE f.referee_user_id IS NOT NULL) AS with_referees
          FROM fixtures f JOIN stages s ON s.id = f.stage_id
         WHERE s.division_id = $1`,
       [plan.divisionId],
     );
 
+    const total = Number(existing[0]?.total ?? 0);
     const withScores = Number(existing[0]?.with_scores ?? 0);
+    const withReferees = Number(existing[0]?.with_referees ?? 0);
+
     if (withScores > 0 && !options.force) {
       throw new HttpError(
         409,
         `${withScores} game(s) already have results. Regenerating would discard them. ` +
           `Pass force to overwrite deliberately.`,
         'results_would_be_lost',
+      );
+    }
+
+    // A schedule with nothing played yet was still replaced without a word.
+    // Rebuilding is a delete and a fresh insert, so the referees named on those
+    // games go with them -- work worth more than the schedule itself, and the
+    // one part nobody would think to check afterwards.
+    if (total > 0 && !options.force) {
+      const refs =
+        withReferees > 0
+          ? ` ${withReferees} of them have a referee named, and those assignments will be cleared.`
+          : '';
+      throw new HttpError(
+        409,
+        `${plan.divisionName} already has ${total} game(s). Regenerating replaces them.${refs}`,
+        'schedule_would_be_replaced',
       );
     }
 

@@ -177,6 +177,59 @@ suite('admin setup and schedule generation', () => {
     expect(new Date(first.kickoffAt).getTime()).toBeGreaterThan(0);
   });
 
+  /**
+   * Regenerating over a schedule nobody has played was silent: the old games
+   * were deleted and rebuilt without a word. Nothing was lost that a score
+   * would have caught, but the referees named on those games went with them --
+   * and that is the part nobody would think to check afterwards.
+   */
+  it('will not quietly replace a schedule that already exists', async () => {
+    const res = await client.post(`/api/schedule/divisions/${divisionId}/generate`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('schedule_would_be_replaced');
+    expect(res.body.error).toContain('12');
+
+    // Refusing has to mean nothing happened, not "it half happened".
+    const after = await client.get(`/api/schedule/divisions/${divisionId}/fixtures`);
+    expect(after.body.fixtures).toHaveLength(12);
+  });
+
+  it('says how many referee assignments the rebuild would clear', async () => {
+    const { rows: admin } = await db.query<{ id: string }>(
+      "SELECT id FROM users WHERE email = 'admin@example.com'",
+    );
+    const { rows: some } = await db.query<{ id: string }>(
+      `SELECT f.id FROM fixtures f JOIN stages s ON s.id = f.stage_id
+        WHERE s.division_id = $1 LIMIT 3`,
+      [divisionId],
+    );
+    for (const f of some) {
+      await db.query('UPDATE fixtures SET referee_user_id = $1 WHERE id = $2', [
+        admin[0]!.id,
+        f.id,
+      ]);
+    }
+
+    const res = await client.post(`/api/schedule/divisions/${divisionId}/generate`);
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain('3 of them have a referee named');
+
+    // Forcing goes ahead, and the assignments really are gone -- which is why
+    // it is worth saying so before the click rather than after.
+    const forced = await client.post(`/api/schedule/divisions/${divisionId}/generate`, {
+      force: true,
+    });
+    expect(forced.status).toBe(201);
+
+    const { rows: left } = await db.query<{ n: string }>(
+      `SELECT count(*) AS n FROM fixtures f JOIN stages s ON s.id = f.stage_id
+        WHERE s.division_id = $1 AND f.referee_user_id IS NOT NULL`,
+      [divisionId],
+    );
+    expect(Number(left[0]!.n)).toBe(0);
+  });
+
   it('only uses the fields the division was pinned to', async () => {
     const res = await client.get(`/api/schedule/divisions/${divisionId}/fixtures`);
     const used = new Set(res.body.fixtures.map((f: any) => f.fieldName));

@@ -13,6 +13,21 @@ interface EventGenerateResult {
   divisions: { divisionId: string; divisionName: string; inserted: number }[];
 }
 
+/**
+ * The two ways generating can destroy work someone did by hand.
+ *
+ * `results_would_be_lost` is the serious one and has always been caught.
+ * `schedule_would_be_replaced` is the quieter one: a schedule nobody has played
+ * yet still carries the referee assignments, and rebuilding drops them. Both
+ * are answered the same way -- say what goes, and make it a second, deliberate
+ * click rather than a surprise.
+ */
+const OVERWRITE_CODES = ['results_would_be_lost', 'schedule_would_be_replaced'];
+
+function isOverwriteWarning(error: unknown): error is ApiFailure {
+  return error instanceof ApiFailure && OVERWRITE_CODES.includes(error.code);
+}
+
 const SEQUENCING_LABEL: Record<AdminEvent['event']['divisionSequencing'], string> = {
   separate_fields: 'Own pitches',
   sequential: 'One after another',
@@ -96,8 +111,8 @@ export default function GenerateWidget({
                 try {
                   result = await api.post<EventGenerateResult>(url);
                 } catch (error) {
-                  if (error instanceof ApiFailure && error.code === 'results_would_be_lost') {
-                    if (!window.confirm(`${error.message}\n\nOverwrite anyway?`)) return;
+                  if (isOverwriteWarning(error)) {
+                    if (!window.confirm(`${error.message}\n\nBuild it again anyway?`)) return;
                     result = await api.post<EventGenerateResult>(url, { force: true });
                   } else {
                     throw error;
@@ -205,11 +220,8 @@ export default function GenerateWidget({
                     try {
                       await api.post(`/api/schedule/divisions/${division.id}/generate`);
                     } catch (error) {
-                      if (
-                        error instanceof ApiFailure &&
-                        error.code === 'results_would_be_lost'
-                      ) {
-                        if (!window.confirm(`${error.message}\n\nOverwrite anyway?`)) return;
+                      if (isOverwriteWarning(error)) {
+                        if (!window.confirm(`${error.message}\n\nBuild it again anyway?`)) return;
                         await api.post(`/api/schedule/divisions/${division.id}/generate`, {
                           force: true,
                         });
@@ -231,7 +243,9 @@ export default function GenerateWidget({
                   }
                 }}
               >
-                Generate schedule
+                {/* Named for what the click actually does. "Generate" on a
+                    division that already has a schedule reads as harmless. */}
+                {division.fixtureCount > 0 ? 'Rebuild schedule' : 'Generate schedule'}
               </button>
             </div>
           </section>
