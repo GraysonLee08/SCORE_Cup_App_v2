@@ -60,7 +60,16 @@ export default function MatchCard({
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [signingOff, setSigningOff] = useState(false);
-  const [captainName, setCaptainName] = useState('');
+  /**
+   * One name per team, not one name for the card.
+   *
+   * Both captains are on screen at the same time, so a single value put each
+   * one's keystrokes into the other's box -- two different people appearing to
+   * sign as each other. It corrected itself once the first team was saved,
+   * which made it look like a display quirk rather than what it was: the two
+   * fields were one field drawn twice.
+   */
+  const [captainNames, setCaptainNames] = useState<Record<string, string>>({});
   const [names, setNames] = useState<Record<string, string>>({});
   const [signed, setSigned] = useState<string[]>([]);
 
@@ -146,7 +155,8 @@ export default function MatchCard({
   }
 
   async function sign(teamId: string) {
-    if (!captainName.trim()) {
+    const captainName = (captainNames[teamId] ?? '').trim();
+    if (!captainName) {
       setStatus('Enter the captain’s name.');
       return;
     }
@@ -159,11 +169,11 @@ export default function MatchCard({
         .map((c) => ({ cardId: c.id, name: names[c.id] ?? c.playerName ?? '' }))
         .filter((n) => n.name.trim().length > 0);
 
-      await onSignOff(teamId, captainName.trim(), mine);
+      await onSignOff(teamId, captainName, mine);
       setSigned((s) => [...s, teamId]);
-      // Cleared so the other captain starts from an empty field rather than
-      // signing their opposite number's name by accident.
-      setCaptainName('');
+      // Only this team's name goes. The other captain's box is their own and
+      // is left exactly as they left it.
+      setCaptainNames((n) => ({ ...n, [teamId]: '' }));
       setStatus('Signed.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Could not sign off.');
@@ -366,15 +376,17 @@ export default function MatchCard({
                           <label htmlFor={`cap-${fixture.id}-${team.id}`}>Captain’s name</label>
                           <input
                             id={`cap-${fixture.id}-${team.id}`}
-                            value={captainName}
+                            value={captainNames[team.id] ?? ''}
                             placeholder="Who is signing?"
-                            onChange={(e) => setCaptainName(e.target.value)}
+                            onChange={(e) =>
+                              setCaptainNames((n) => ({ ...n, [team.id]: e.target.value }))
+                            }
                           />
                         </div>
                         <button
                           className="primary"
                           style={{ width: '100%' }}
-                          disabled={busy || !captainName.trim()}
+                          disabled={busy || !(captainNames[team.id] ?? '').trim()}
                           onClick={() => void sign(team.id)}
                         >
                           Sign for {team.name}
