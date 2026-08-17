@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api, ApiFailure } from '../../../api.js';
-import type { AdminEvent, AdminTeam } from '../../../types.js';
+import type { AdminEvent, AdminTeam, AdminUser } from '../../../types.js';
 import Jersey, { JERSEYS } from '../../Jersey.js';
 
 /**
@@ -20,8 +20,24 @@ export default function TeamsWidget({
   const [name, setName] = useState('');
   const [bulk, setBulk] = useState('');
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
+  const [people, setPeople] = useState<AdminUser[]>([]);
 
   const division = data.divisions.find((d) => d.id === divisionId) ?? data.divisions[0];
+
+  // Anyone who could sensibly be put in charge. Referees are left out: their
+  // sign-in lands on the referee screen, which has no team on it.
+  const loadPeople = useCallback(async () => {
+    try {
+      const res = await api.get<{ users: AdminUser[] }>('/api/admin/users');
+      setPeople(res.users.filter((u) => !u.disabled && u.role !== 'ref'));
+    } catch {
+      setPeople([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPeople();
+  }, [loadPeople]);
 
   async function addTeams(names: string[]) {
     const failed: string[] = [];
@@ -97,6 +113,7 @@ export default function TeamsWidget({
                     <th scope="col">Team</th>
                     <th scope="col">Kit</th>
                     <th scope="col">Pool</th>
+                    <th scope="col">Runs the team</th>
                     <th scope="col">Join code</th>
                     <th scope="col" className="num">Players</th>
                     <th scope="col"></th>
@@ -128,6 +145,17 @@ export default function TeamsWidget({
                             </option>
                           ))}
                         </select>
+                      </td>
+                      <td>
+                        <CoachPicker
+                          team={team}
+                          people={people}
+                          onChanged={() => {
+                            onChanged();
+                            void loadPeople();
+                          }}
+                          onStatus={setStatus}
+                        />
                       </td>
                       <td>
                         <code className="joincode">{team.joinCode}</code>
@@ -225,6 +253,76 @@ export default function TeamsWidget({
         </section>
       </div>
     </div>
+  );
+}
+
+/**
+ * The one person answerable for a team -- captain and coach are the same
+ * person here.
+ *
+ * The normal route is the join code: send it to them, they register, they
+ * appear in this list. Naming them here is the second half, and the half that
+ * was missing entirely -- it is what lets them edit their own roster, and what
+ * makes the team show up when they sign in.
+ */
+function CoachPicker({
+  team,
+  people,
+  onChanged,
+  onStatus,
+}: {
+  team: AdminTeam;
+  people: AdminUser[];
+  onChanged: () => void;
+  onStatus: (s: { ok: boolean; text: string }) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <select
+      aria-label={`Who runs ${team.name}`}
+      value={team.coachUserId ?? ''}
+      disabled={saving}
+      style={{ width: 'auto', minHeight: '34px', maxWidth: '13rem' }}
+      onChange={async (e) => {
+        const userId = e.target.value || null;
+        setSaving(true);
+        try {
+          const res = await api.put<{ claimedPlayer: boolean; promotedToCoach: boolean }>(
+            `/api/teams/${team.id}/coach`,
+            { userId },
+          );
+          const who = people.find((p) => p.id === userId)?.displayName;
+          // Both of these happen silently on the server, and both change what
+          // that person can do, so neither should be a surprise later.
+          const extra = [
+            res.promotedToCoach && 'their account is now a coach account',
+            res.claimedPlayer && 'their roster entry is linked to it',
+          ].filter(Boolean);
+          onStatus({
+            ok: true,
+            text: userId
+              ? `${who} runs ${team.name}${extra.length ? ` — ${extra.join(', ')}.` : '.'}`
+              : `${team.name} has nobody assigned.`,
+          });
+          onChanged();
+        } catch (error) {
+          onStatus({
+            ok: false,
+            text: error instanceof ApiFailure ? error.message : 'Could not save that.',
+          });
+        } finally {
+          setSaving(false);
+        }
+      }}
+    >
+      <option value="">Nobody yet</option>
+      {people.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.displayName}
+        </option>
+      ))}
+    </select>
   );
 }
 
