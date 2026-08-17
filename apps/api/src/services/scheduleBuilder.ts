@@ -1,6 +1,5 @@
 import {
   alternatingReservations,
-  checkFeasibility,
   generateBracketFixtures,
   generatePoolFixtures,
   qualifierCount,
@@ -565,28 +564,14 @@ export function divisionFeasibility(plan: DivisionPlan): DivisionFeasibility {
   );
   const available = windowMinutes(plan.startTime, plan.endTime);
 
-  // Re-express the whole division as one feasibility question. Stage-level
-  // slot lengths differ, so we report against the combined build rather than
-  // calling checkFeasibility per stage.
-  const firstStage = plan.stages[0];
-  const report = checkFeasibility({
-    fixtures: [],
-    fields: plan.fieldIds,
-    timing: firstStage?.config.timing ?? {
-      halfMinutes: 0,
-      halftimeMinutes: 0,
-      changeoverMinutes: 0,
-    },
-    minRestMinutes: plan.minRestMinutes,
-    availableMinutes: available,
-  });
-
+  // Measured off the combined build rather than the engine's checkFeasibility:
+  // stages have their own slot lengths, so only the assembled day knows how
+  // long it actually runs.
   const requiredMinutes = build.totalMinutes;
   const overByMinutes = Math.max(0, requiredMinutes - available);
   const fixtureCount = build.scheduled.length;
 
   return {
-    ...report,
     divisionId: plan.divisionId,
     fits: overByMinutes === 0,
     requiredMinutes,
