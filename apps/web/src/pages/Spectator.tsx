@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getRevalidated } from '../api.js';
 import type { PublicDivision, PublicEventResponse, PublicFixture, SessionUser } from '../types.js';
-import StandingsTable, { sharedCardRule } from '../components/StandingsTable.js';
+import StandingsTable, { sharedCardRule, sharedShutoutRule } from '../components/StandingsTable.js';
 import FixtureList from '../components/FixtureList.js';
 import Bracket from '../components/Bracket.js';
 import AppHeader from '../components/AppHeader.js';
@@ -450,7 +450,11 @@ export default function Spectator({ user }: { user: SessionUser | null }) {
               under all of them, rather than repeated inside each panel. */}
           {division && division.pools.length > 0 && (
             <div className="standings-key soft tiny">
-              <p>P played · W won · D drawn · L lost · GF goals for · GA goals against · Pts points</p>
+              <p>
+                P played · W won · D drawn · L lost · GF goals for · GA goals against · SO
+                shutout wins · Pts points
+              </p>
+              <p>{sharedShutoutRule(division.pools)}</p>
               <p>{sharedCardRule(division.pools)}</p>
             </div>
           )}

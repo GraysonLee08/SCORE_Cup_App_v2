@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import StandingsTable, { sharedCardRule } from '../src/components/StandingsTable.js';
+import StandingsTable, {
+  sharedCardRule,
+  sharedShutoutRule,
+} from '../src/components/StandingsTable.js';
 import type { PublicPoolTable, StandingsRow } from '../src/types.js';
 
 /**
@@ -43,6 +46,7 @@ function pool(over: Partial<PublicPoolTable> = {}): PublicPoolTable {
     complete: false,
     rows: [row()],
     penaltyPoints: { yellow: 1, red: 2 },
+    shutoutWinBonus: 1,
     ...over,
   };
 }
@@ -56,6 +60,7 @@ function render(pool: Partial<PublicPoolTable> = {}) {
         complete: false,
         rows: [row()],
         penaltyPoints: { yellow: 1, red: 2 },
+        shutoutWinBonus: 1,
         ...pool,
       }}
     />,
@@ -104,9 +109,28 @@ describe('standings columns', () => {
       L: '0',
       GF: '2',
       GA: '0',
+      SO: '1', // the 2-0 win
       Cards: '3', // one yellow (1) plus one red (2)
       Pts: '4', // win (3) plus the clean-sheet bonus (1)
     });
+  });
+
+  /**
+   * SO exists to account for the gap between W and Pts, so the case worth
+   * pinning is the one where the two disagree: two wins showing eight points.
+   * If SO ever stops being rendered, this is what notices.
+   */
+  it('accounts for points that W alone does not explain', () => {
+    const { headers, cells } = render({
+      rows: [row({ played: 3, won: 2, lost: 1, goalsFor: 3, goalsAgainst: 3, shutoutWins: 2, points: 8 })],
+    });
+    const byHeading = Object.fromEntries(headers.map((h, i) => [h, cells[0]![i]]));
+
+    expect(byHeading.W).toBe('2');
+    expect(byHeading.Pts).toBe('8');
+    // Two wins reads as six. The other two points are the two clean sheets,
+    // and GA of 3 gives no hint of them.
+    expect(byHeading.SO).toBe('2');
   });
 
   /**
@@ -139,5 +163,26 @@ describe('standings columns', () => {
       pool({ poolId: 'b', penaltyPoints: { yellow: 1, red: 2 } }),
     ]);
     expect(agreed).toContain('A yellow counts 1, a red counts 2.');
+  });
+
+  describe('the shutout rule', () => {
+    it('states the bonus it was given rather than assuming one', () => {
+      expect(sharedShutoutRule([pool({ shutoutWinBonus: 1 })])).toContain('adds 1 point to the win');
+      expect(sharedShutoutRule([pool({ shutoutWinBonus: 2 })])).toContain('adds 2 points to the win');
+    });
+
+    it('drops the bonus sentence when the tournament is not running the rule', () => {
+      const off = sharedShutoutRule([pool({ shutoutWinBonus: 0 })]);
+      expect(off).toBe('SO counts wins to nil.');
+      expect(off).not.toMatch(/adds/);
+    });
+
+    it('will not put one pool’s bonus under another pool’s table', () => {
+      const mixed = sharedShutoutRule([
+        pool({ poolId: 'a', shutoutWinBonus: 1 }),
+        pool({ poolId: 'b', shutoutWinBonus: 2 }),
+      ]);
+      expect(mixed).not.toMatch(/adds \d/);
+    });
   });
 });

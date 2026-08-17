@@ -93,6 +93,8 @@ export interface PublicPoolTable {
   rows: StandingsRow[];
   /** What a card costs here, so the table can state the rule rather than guess it. */
   penaltyPoints?: { yellow: number; red: number };
+  /** What a win to nil adds, for the same reason. */
+  shutoutWinBonus?: number;
 }
 
 export interface PublicDivision {

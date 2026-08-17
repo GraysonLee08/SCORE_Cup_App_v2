@@ -31,6 +31,26 @@ export function sharedCardRule(pools: PublicPoolTable[]): string {
   return `${rule} Used to separate teams level on points — fewer is better.`;
 }
 
+/**
+ * The shutout rule, stated once for the rail.
+ *
+ * Same reasoning as the card rule, and the same refusal to guess: the bonus is
+ * configured per pool, so pools that disagree get the rule without a number
+ * rather than one pool's number printed under another pool's table. A bonus of
+ * zero means the tournament is not running the rule at all, and the sentence
+ * disappears with it -- SO then reads as a plain statistic, which it is.
+ */
+export function sharedShutoutRule(pools: PublicPoolTable[]): string {
+  if (pools.length === 0) return '';
+
+  const bonuses = new Set(pools.map((p) => p.shutoutWinBonus ?? 0));
+  if (bonuses.size !== 1) return 'SO counts wins to nil, which carry a bonus point.';
+
+  const bonus = [...bonuses][0]!;
+  if (bonus === 0) return 'SO counts wins to nil.';
+  return `SO counts wins to nil — each one adds ${bonus} point${bonus === 1 ? '' : 's'} to the win.`;
+}
+
 export default function StandingsTable({
   pool,
   highlightTeamId,
@@ -76,6 +96,12 @@ export default function StandingsTable({
               <th scope="col" className="num">L</th>
               <th scope="col" className="num">GF</th>
               <th scope="col" className="num">GA</th>
+              {/* Without this, Pts cannot be checked against the row it sits
+                  on: two wins reads as six points and the table says eight.
+                  GA will not do the job either -- it is a running total, so a
+                  side with two clean sheets and one heavy defeat shows the
+                  same GA as a side with none. */}
+              <th scope="col" className="num" title="Wins to nil">SO</th>
               <th scope="col" className="num" title="Card points — fewer is better">
                 Cards
               </th>
@@ -108,6 +134,7 @@ export default function StandingsTable({
                 <td className="num">{row.lost}</td>
                 <td className="num">{row.goalsFor}</td>
                 <td className="num">{row.goalsAgainst}</td>
+                <td className="num">{row.shutoutWins}</td>
                 {/* The breakdown was a `title` and nothing else, which is a
                     tooltip on a desktop and silence everywhere else. The
                     number stays visible; the split is now said out loud. */}

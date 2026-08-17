@@ -70,6 +70,13 @@ export interface PublicPoolTable {
    * on public display, so the explanation beside it has to be the real one.
    */
   penaltyPoints: { yellow: number; red: number };
+  /**
+   * What a win to nil is worth on top of the win. Sent for the same reason as
+   * the card weighting: the SO column exists to account for points that would
+   * otherwise be unexplainable, and an explanation off by one is worse than
+   * none at all.
+   */
+  shutoutWinBonus: number;
 }
 
 export interface PublicDivision {
@@ -242,6 +249,7 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
       complete,
       rows: table.map((r) => ({ ...r, teamName: teamNames.get(r.teamId) ?? 'Unknown' })),
       penaltyPoints: parsed.data.penaltyPoints,
+      shutoutWinBonus: parsed.data.scoring.shutoutWinBonus,
     });
   }
 
