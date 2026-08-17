@@ -732,14 +732,23 @@ a {
 
 /* The organisation running the tournament, at the size that says so.
  *
- * Fluid rather than fixed, because the lockup is 4.13 wide to 1 tall: at the
- * full 100px it is 413px across, and above 560px the header does not wrap, so
- * a fixed height would put the logo and the sign-in actions on one line that
- * is wider than the window somewhere around 700px. The clamp reaches 100px at
- * about 950px -- laptops, desks and the venue display -- and eases down from
- * there. Below 560px the header wraps and the floor takes over. */
+ * Measured against the header, not the window. The lockup is 4.13 wide to 1
+ * tall, so at the full 100px it is 413px across -- and the referee, participant
+ * and sign-in views all sit inside `.app`'s 720px column, where 413px of logo
+ * plus a title plus three actions is 783px of header in 688px of space. A
+ * viewport-based size could not see that: only the spectator board is
+ * full-width, so `vw` was measuring a ruler this header does not use.
+ *
+ * `cqw` measures the bar itself, which is the thing the logo actually has to
+ * fit inside. One rule now gives ~55px in the column and the full 100px on the
+ * board, and any surface added later gets the right size without anyone
+ * remembering to check. */
+.topbar {
+  container-type: inline-size;
+}
+
 .topbar .brand img {
-  height: clamp(48px, 10.5vw, 100px);
+  height: clamp(40px, 8cqw, 100px);
   width: auto;
   max-width: 100%;
   display: block;
@@ -1535,13 +1544,6 @@ table.grid-table td {
   .topbar {
     flex-wrap: wrap;
     row-gap: 0.5rem;
-  }
-
-  /* The header wraps here, so the logo shares a row only with the actions and
-     can stay well above the 26px it used to shrink to -- which would now look
-     like a different logo from the one on a laptop. */
-  .topbar .brand img {
-    height: 44px;
   }
 
   .topbar-title {
