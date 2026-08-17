@@ -8,6 +8,7 @@ import {
   slotMinutes,
   type FieldReservation,
   type Fixture,
+  type TeamRef,
   type FeasibilityReport,
   type ScheduledFixture,
 } from '@scores-cup/engine';
@@ -664,12 +665,20 @@ export async function persistSchedule(
       [plan.divisionId],
     );
 
+    // Engine id -> database id. The engine names a knockout game before it
+    // exists, as "<stage>:r2:1", and later games point at that name. The row
+    // gets a fresh uuid on insert, so every one of those pointers has to be
+    // re-aimed afterwards or it names a game no table has.
+    const realIds = new Map<string, string>();
+    const refsToRepoint: { id: string; home: TeamRef; away: TeamRef }[] = [];
+
     for (const fixture of build.scheduled) {
-      await client.query(
+      const { rows: inserted } = await client.query<{ id: string }>(
         `INSERT INTO fixtures (stage_id, pool_id, field_id, home_ref, away_ref,
                                home_team_id, away_team_id, round, kickoff_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-                 (($9::date + $10::time) AT TIME ZONE $11) + make_interval(mins => $12))`,
+                 (($9::date + $10::time) AT TIME ZONE $11) + make_interval(mins => $12))
+         RETURNING id`,
         [
           fixture.stageId,
           fixture.poolId ?? null,
@@ -685,6 +694,21 @@ export async function persistSchedule(
           fixture.kickoffOffsetMinutes,
         ],
       );
+
+      const id = inserted[0]!.id;
+      realIds.set(fixture.id, id);
+      if (dependsOnAFixture(fixture.home) || dependsOnAFixture(fixture.away)) {
+        refsToRepoint.push({ id, home: fixture.home, away: fixture.away });
+      }
+    }
+
+    // Second pass, because a game can be built before the game it waits on.
+    for (const row of refsToRepoint) {
+      await client.query('UPDATE fixtures SET home_ref = $1, away_ref = $2 WHERE id = $3', [
+        JSON.stringify(repointRef(row.home, realIds)),
+        JSON.stringify(repointRef(row.away, realIds)),
+        row.id,
+      ]);
     }
 
     return {
@@ -692,6 +716,27 @@ export async function persistSchedule(
       replaced: Number(existing[0]?.total ?? 0),
     };
   });
+}
+
+type FixtureRef = Extract<TeamRef, { kind: 'fixtureWinner' | 'fixtureLoser' }>;
+
+/** Refs that name another game, and so survive only if they are re-aimed. */
+function dependsOnAFixture(ref: TeamRef): ref is FixtureRef {
+  return ref.kind === 'fixtureWinner' || ref.kind === 'fixtureLoser';
+}
+
+/**
+ * Point a ref at the row that actually holds the game.
+ *
+ * A ref left on its engine-side name resolves to nothing for ever: the winner
+ * lookup is keyed by database id, so the game waiting on it never fills in.
+ * That is the Championship reading "Winner of earlier match" with both
+ * semi-finals long finished.
+ */
+function repointRef(ref: TeamRef, realIds: Map<string, string>): TeamRef {
+  if (!dependsOnAFixture(ref)) return ref;
+  const real = realIds.get(ref.fixtureId);
+  return real ? { ...ref, fixtureId: real } : ref;
 }
 
 export { slotMinutes };

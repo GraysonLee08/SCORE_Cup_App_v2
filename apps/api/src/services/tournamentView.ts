@@ -4,6 +4,7 @@ import {
   resolveTeamRef,
   type Card,
   type ResolutionContext,
+  type ResolvedTeam,
   type Result,
   type StandingsRow,
   type TeamRef,
@@ -256,20 +257,6 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
   // --- Resolve bracket entrants -------------------------------------------
 
   const outcomes = new Map<string, { winnerTeamId: string | null; loserTeamId: string | null }>();
-  for (const f of fixtures) {
-    if (!f.home_team_id || !f.away_team_id) continue;
-    outcomes.set(
-      f.id,
-      decideOutcome({
-        homeTeamId: f.home_team_id,
-        awayTeamId: f.away_team_id,
-        homeScore: f.home_score,
-        awayScore: f.away_score,
-        homePenalties: f.home_penalties,
-        awayPenalties: f.away_penalties,
-      }),
-    );
-  }
 
   // Names for the slots that have no team in them yet: which group a place is
   // drawn from, and where the game feeding this one is being played. Both turn
@@ -290,6 +277,54 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
     fixtureFieldNames,
   };
 
+  /**
+   * Work out who is in each game, and who won it, round by round.
+   *
+   * A knockout game stores no team ids -- its entrants are derived, like the
+   * standings, so nothing can go stale. That means a semi-final's winner is
+   * only knowable once the semi-final's own entrants have been worked out, and
+   * the game after it only once that has happened. So this repeats until a pass
+   * settles nothing new, rather than reading the list once: a single pass
+   * records outcomes only for games whose teams were already written down,
+   * which is every pool game and no knockout game at all. The Championship
+   * would sit on "Winner of earlier match" with both semi-finals played.
+   *
+   * Bounded by the number of fixtures, which is the most rounds a bracket of
+   * this size could possibly have.
+   */
+  const resolved = new Map<string, { home: ResolvedTeam; away: ResolvedTeam }>();
+
+  for (let pass = 0; pass <= fixtures.length; pass++) {
+    let settledSomething = false;
+
+    for (const f of fixtures) {
+      const home = f.home_team_id
+        ? { teamId: f.home_team_id, label: '' }
+        : resolveTeamRef(f.home_ref, ctx);
+      const away = f.away_team_id
+        ? { teamId: f.away_team_id, label: '' }
+        : resolveTeamRef(f.away_ref, ctx);
+      resolved.set(f.id, { home, away });
+
+      if (!home.teamId || !away.teamId || outcomes.has(f.id)) continue;
+
+      outcomes.set(
+        f.id,
+        decideOutcome({
+          homeTeamId: home.teamId,
+          awayTeamId: away.teamId,
+          homeScore: f.home_score,
+          awayScore: f.away_score,
+          homePenalties: f.home_penalties,
+          awayPenalties: f.away_penalties,
+        }),
+      );
+      settledSomething = true;
+    }
+
+    if (!settledSomething) break;
+  }
+
   const cardCount = (fixtureId: string, teamId: string | null) => {
     const counts = { yellow: 0, red: 0 };
     if (!teamId) return counts;
@@ -300,12 +335,11 @@ export async function loadPublicDivision(db: Db, divisionId: string): Promise<Pu
   };
 
   const publicFixtures: PublicFixture[] = fixtures.map((f) => {
-    const home = f.home_team_id
-      ? { teamId: f.home_team_id, label: '' }
-      : resolveTeamRef(f.home_ref, ctx);
-    const away = f.away_team_id
-      ? { teamId: f.away_team_id, label: '' }
-      : resolveTeamRef(f.away_ref, ctx);
+    // Settled above, once the rounds before it were settled.
+    const { home, away } = resolved.get(f.id) ?? {
+      home: { teamId: null, label: '' },
+      away: { teamId: null, label: '' },
+    };
 
     return {
       id: f.id,
