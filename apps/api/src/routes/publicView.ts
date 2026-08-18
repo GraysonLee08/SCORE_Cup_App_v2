@@ -35,10 +35,16 @@ export function publicRoutes(db: Db): Router {
     );
 
     const { rows: announcements } = await db.query(
-      `SELECT id, title, message, created_at AS "createdAt"
+      // `publish_at` in the future is simply not selected yet, which is the
+      // whole of the scheduling mechanism -- the board re-reads on a timer, so
+      // a message appears within one poll of its time. Ordered by when it went
+      // out, not when it was typed, or a message written on Monday for
+      // Saturday would surface underneath everything written since.
+      `SELECT id, title, message, COALESCE(publish_at, created_at) AS "createdAt"
          FROM announcements
         WHERE event_id = $1 AND team_id IS NULL
-        ORDER BY created_at DESC
+          AND (publish_at IS NULL OR publish_at <= now())
+        ORDER BY COALESCE(publish_at, created_at) DESC
         LIMIT 20`,
       [event.id],
     );

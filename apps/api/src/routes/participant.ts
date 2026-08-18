@@ -67,11 +67,15 @@ export function participantRoutes(db: Db): Router {
     );
 
     const { rows: messages } = await db.query(
-      `SELECT id, title, message, created_at AS "createdAt"
+      // Same reveal rule as the public board: a scheduled message is invisible
+      // to a team until its time, and both surfaces agree because both apply
+      // the filter rather than one of them being told by the other.
+      `SELECT id, title, message, COALESCE(publish_at, created_at) AS "createdAt"
          FROM announcements
         WHERE event_id = $1
           AND (team_id = $2 OR division_id = $3 OR (team_id IS NULL AND division_id IS NULL))
-        ORDER BY created_at DESC
+          AND (publish_at IS NULL OR publish_at <= now())
+        ORDER BY COALESCE(publish_at, created_at) DESC
         LIMIT 20`,
       [team.event_id, team.team_id, team.division_id],
     );

@@ -7,19 +7,43 @@ interface Announcement {
   title: string;
   message: string;
   createdAt: string;
+  publishAt: string | null;
   divisionId: string | null;
   teamId: string | null;
   teamName: string | null;
 }
 
 /**
+ * When a scheduled message goes out, said the way it would be said aloud.
+ *
+ * A time alone is ambiguous the day before the tournament: "1:30 PM" could be
+ * today or Saturday, and the difference is the whole point of scheduling it.
+ */
+function whenLabel(iso: string): string {
+  const at = new Date(iso);
+  const today = new Date();
+  const sameDay =
+    at.getFullYear() === today.getFullYear() &&
+    at.getMonth() === today.getMonth() &&
+    at.getDate() === today.getDate();
+
+  const time = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return sameDay ? time : `${at.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}, ${time}`;
+}
+
+/**
  * Messages. Scope narrows from everyone, to one division, to one team --
  * a team-scoped message reaches that roster's participant view without
  * appearing on the public page.
+ *
+ * A message can also carry a time, and then it is written now and revealed
+ * then. Nothing runs in the background to make that happen: the board and the
+ * team pages re-read on a timer and simply do not select a message whose time
+ * has not come, so it appears within one poll of it.
  */
 export default function AnnouncementsPanel({ data }: { data: AdminEvent }) {
   const [items, setItems] = useState<Announcement[]>([]);
-  const [form, setForm] = useState({ title: '', message: '', scope: '' });
+  const [form, setForm] = useState({ title: '', message: '', scope: '', when: '' });
 
   const load = useCallback(async () => {
     const res = await api.get<{ announcements: Announcement[] }>(
@@ -82,6 +106,26 @@ export default function AnnouncementsPanel({ data }: { data: AdminEvent }) {
           />
         </div>
 
+        <div className="field">
+          <label htmlFor="a-when">When</label>
+          <input
+            id="a-when"
+            type="datetime-local"
+            value={form.when}
+            onChange={(e) => setForm((f) => ({ ...f, when: e.target.value }))}
+          />
+          {/* The consequence, not the input -- the same principle the timing
+              screen uses. Somebody typing a time here needs to know whether
+              they have just queued something or published it. */}
+          <p className="hint">
+            {form.when === ''
+              ? 'Leave empty to post now.'
+              : new Date(form.when).getTime() <= Date.now()
+                ? 'That time has passed, so this posts immediately.'
+                : `Hidden until ${whenLabel(new Date(form.when).toISOString())}, then it appears on its own.`}
+          </p>
+        </div>
+
         <button
           className="primary"
           disabled={!form.title.trim() || !form.message.trim()}
@@ -92,12 +136,16 @@ export default function AnnouncementsPanel({ data }: { data: AdminEvent }) {
               message: form.message.trim(),
               divisionId: kind === 'division' ? id : null,
               teamId: kind === 'team' ? id : null,
+              // The field is wall-clock with no zone; read in this browser's
+              // timezone, which is the venue's, and sent as an instant so the
+              // server is never guessing which 1:30 was meant.
+              publishAt: form.when ? new Date(form.when).toISOString() : null,
             });
-            setForm({ title: '', message: '', scope: '' });
+            setForm({ title: '', message: '', scope: '', when: '' });
             await load();
           }}
         >
-          Post
+          {form.when && new Date(form.when).getTime() > Date.now() ? 'Schedule' : 'Post'}
         </button>
       </section>
 
@@ -105,10 +153,18 @@ export default function AnnouncementsPanel({ data }: { data: AdminEvent }) {
         <h2>Posted</h2>
         {items.length === 0 && <p className="muted">Nothing posted yet.</p>}
         <ul className="cards-list">
-          {items.map((a) => (
+          {items.map((a) => {
+            // Not yet visible to anyone. This is the one state on the screen
+            // that can be silently wrong -- a message everybody assumes went
+            // out -- so it is marked rather than left to be inferred from a
+            // date sitting beside eleven others.
+            const queued = Boolean(a.publishAt && new Date(a.publishAt).getTime() > Date.now());
+
+            return (
             <li key={a.id} style={{ display: 'block' }}>
               <div style={{ display: 'flex', gap: '.5rem', alignItems: 'baseline' }}>
                 <strong style={{ flex: 1 }}>{a.title}</strong>
+                {queued && <span className="pill">Scheduled {whenLabel(a.publishAt!)}</span>}
                 <span className="pill">
                   {a.teamName ?? (a.divisionId ? 'One division' : 'Everyone')}
                 </span>
@@ -124,8 +180,14 @@ export default function AnnouncementsPanel({ data }: { data: AdminEvent }) {
                 </button>
               </div>
               <div className="muted">{a.message}</div>
+              {queued && (
+                <div className="hint">
+                  Nobody can see this yet. Deleting it before its time cancels it.
+                </div>
+              )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       </section>
     </>

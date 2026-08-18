@@ -142,6 +142,11 @@ export function adminRoutes(db: Db): Router {
         message: z.string().min(1).max(2000),
         divisionId: z.string().uuid().nullable().optional(),
         teamId: z.string().uuid().nullable().optional(),
+        /**
+         * When it becomes visible. Absent or null publishes immediately, which
+         * is what every message did before this existed.
+         */
+        publishAt: z.string().datetime({ offset: true }).nullable().optional(),
       })
       .safeParse(req.body);
 
@@ -150,8 +155,8 @@ export function adminRoutes(db: Db): Router {
     }
 
     const { rows } = await db.query<{ id: string }>(
-      `INSERT INTO announcements (event_id, division_id, team_id, title, message, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+      `INSERT INTO announcements (event_id, division_id, team_id, title, message, created_by, publish_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
       [
         eventId,
         parsed.data.divisionId ?? null,
@@ -159,6 +164,7 @@ export function adminRoutes(db: Db): Router {
         parsed.data.title,
         parsed.data.message,
         req.session.user!.id,
+        parsed.data.publishAt ?? null,
       ],
     );
 
@@ -167,10 +173,16 @@ export function adminRoutes(db: Db): Router {
 
   router.get('/events/:eventId/announcements', ...admin, async (req, res) => {
     const { rows } = await db.query(
+      // The admin list is the one place that shows unpublished messages: this
+      // is where somebody checks what is queued for later, so filtering them
+      // out here would hide the very thing the screen exists to show. Ordered
+      // by when each one goes out rather than when it was typed.
       `SELECT a.id, a.title, a.message, a.created_at AS "createdAt",
+              a.publish_at AS "publishAt",
               a.division_id AS "divisionId", a.team_id AS "teamId", t.name AS "teamName"
          FROM announcements a LEFT JOIN teams t ON t.id = a.team_id
-        WHERE a.event_id = $1 ORDER BY a.created_at DESC`,
+        WHERE a.event_id = $1
+        ORDER BY COALESCE(a.publish_at, a.created_at) DESC`,
       [req.params.eventId],
     );
     res.json({ announcements: rows });
