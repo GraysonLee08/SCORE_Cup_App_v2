@@ -38,6 +38,9 @@ postgres_data/
 
 # Vendored agent skills -- installed per machine, not part of the app.
 .claude/skills/
+# Per-machine agent settings: tool permissions and hooks belong to whoever is
+# sitting here, not to the tournament. Shared .claude/settings.json still is.
+.claude/settings.local.json
 *~
 
 # OS generated files
