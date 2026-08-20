@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Db } from '../db.js';
 import { recordAudit } from '../auth/audit.js';
 import { coachOwnsTeam, HttpError, requireAuth } from '../auth/middleware.js';
+import { linkRosterByEmail } from '../services/rosterLink.js';
 
 /**
  * Coach-managed rosters. Deliberately save-as-you-go with everything except a
@@ -115,15 +116,19 @@ export function rosterRoutes(db: Db): Router {
         ],
       );
 
+      // If this person already has an account, join the two up now rather
+      // than leaving a row and an account side by side, unaware of each other.
+      const link = await linkRosterByEmail(db, d.email);
+
       await recordAudit(db, {
         actorUserId: user.id,
         entityType: 'player',
         entityId: rows[0]!.id,
         action: 'roster_add',
-        after: { teamId, name: `${d.firstName} ${d.lastName}` },
+        after: { teamId, name: `${d.firstName} ${d.lastName}`, linkedToAccount: link.linked > 0 },
       });
 
-      res.status(201).json({ id: rows[0]!.id });
+      res.status(201).json({ id: rows[0]!.id, linkedToAccount: link.linked > 0 });
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
         throw new HttpError(
@@ -182,6 +187,10 @@ export function rosterRoutes(db: Db): Router {
     );
 
     if (!rowCount) throw new HttpError(404, 'No such player on this team.', 'not_found');
+
+    // An address filled in after the fact is the commonest way a row becomes
+    // claimable, so the same join runs here as on the way in.
+    await linkRosterByEmail(db, d.email);
 
     await recordAudit(db, {
       actorUserId: user.id,

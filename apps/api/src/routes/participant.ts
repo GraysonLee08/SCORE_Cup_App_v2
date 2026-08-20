@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Db } from '../db.js';
 import { HttpError, requireAuth } from '../auth/middleware.js';
+import { unclaimedRosterCount } from '../services/rosterLink.js';
 
 /**
  * The participant's own bundle: which team they are on, their teammates, and
@@ -49,6 +50,18 @@ export function participantRoutes(db: Db): Router {
     }
 
     if (!team) {
+      // Being on several rosters under one address is a different problem from
+      // being on none, and sending someone off for a team code they already
+      // used would be the wrong advice twice over.
+      const unclaimed = await unclaimedRosterCount(db, req.session.user!.email);
+      if (unclaimed > 1) {
+        throw new HttpError(
+          409,
+          `Your email appears on ${unclaimed} rosters, so we cannot tell which team is yours. ` +
+            'Ask an organizer to remove the duplicates.',
+          'duplicate_roster_rows',
+        );
+      }
       throw new HttpError(
         404,
         'You are not on a roster yet. Ask your coach for your team code.',

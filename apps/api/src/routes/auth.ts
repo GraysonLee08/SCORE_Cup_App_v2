@@ -9,6 +9,7 @@ import {
   type SessionUser,
   type UserRole,
 } from '../auth/middleware.js';
+import { linkRosterByEmail } from '../services/rosterLink.js';
 import {
   checkPasswordPolicy,
   generateTempPassword,
@@ -101,6 +102,10 @@ export function authRoutes(db: Db): Router {
     await new Promise<void>((resolve, reject) => {
       req.session.regenerate((err) => (err ? reject(err) : resolve()));
     });
+
+    // Catches the case the roster routes cannot: a row that was already there
+    // when the account was made, so nothing has written to it since.
+    await linkRosterByEmail(db, user.email);
 
     req.session.user = toSessionUser(user);
     await recordAudit(db, {
