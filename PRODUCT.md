@@ -79,6 +79,8 @@ are the product.
 
 | | |
 |---|---|
+| Dress rehearsal | **Sat 22 – Sun 23 August 2026** — a fake tournament run end to end, on phones, outdoors. Anything that writes a score or builds a schedule lands before this, or does not land |
+| Rehearsal fixes | Mon 24 August 2026 — only what the rehearsal turned up |
 | Code freeze | **Tue 25 August 2026** — nothing structural, and nothing touching scoring or schedule generation, after this date |
 | Copy and CSS only | Wed 26 – Fri 28 August 2026 |
 | Tournament | **Sat 29 August 2026** |
@@ -98,11 +100,29 @@ Design work planned after the freeze may move text and styling only. See
   renaming is required — playoff fixtures are published as "Poet 1st v Athlete
   2nd".
 - Feasibility check is core, not a stretch goal.
+- A team's **position within its pool is what decides its opponents.** The
+  generator pairs teams by their index around a circle, not by name. Position is
+  currently assigned alphabetically, so the first team by name is A1; there is no
+  way to draw a team into a chosen position, and for 2026 the draw is honoured by
+  editing the generated games afterwards.
 - Event-wide delay control: pick a round, push it and everything after it, gaps
   preserved; only `scheduled` games move.
 - Every admin edit is audited.
 - Offline handling on the referee view is deliberately light: optimistic UI plus
   a localStorage retry queue.
+- The admin writes the day's messages — welcome, lunch, "playoffs in fifteen
+  minutes", the awards call — scoped either to the public board or to
+  participants' own team pages. A message may carry a publish time and be
+  revealed later. **Nothing pushes:** the reveal is a filter applied where the
+  message is read, so a scheduled message appears on the next poll after its
+  time, give or take one interval, and there is no background worker that can
+  fail overnight or send twice.
+- Each team's kit is shown to the referee on the match card, so two sides can be
+  told apart on a pitch. The same sponsor artwork identifies teams publicly.
+- Each captain signs off in their own name box at match end; the name is stored
+  with the sign-off as typed, not linked to a roster entry.
+- The whole day can be rebuilt from the command line, as an escape hatch for
+  when the admin screens are not the fastest way back to a known state.
 
 **Tournament rules the system encodes**
 
@@ -131,6 +151,15 @@ Design work planned after the freeze may move text and styling only. See
 
 **Explicitly undecided — do not resolve these by inventing an answer**
 
+- **Whether the draw party draws teams into a position, not just a pool** — a
+  2027 question, deliberately not a 2026 one. Tradition publishes a framework
+  before the draw ("A1 v A2 and A3 v A4 at 9:00, A1 v A3 and A2 v A4 at 10:00"),
+  and drawing a team into A4 then settles its whole day in the room. The value
+  is that the schedule becomes the visible consequence of a witnessed act rather
+  than an output nobody saw made. Undecided because it costs the scheduler
+  freedom it currently uses for rest gaps and pitch allocation, and because a
+  pool of 11 playing 2 games has no such framework to publish — this fits even
+  pools, not every division.
 - Whether a suspended player about to play is **warned** or **blocked**, and who
   the Match Commissioner is.
 - Whether digital sign-off **replaces** the paper game card, and which is
@@ -167,8 +196,10 @@ Real, and usable:
 - The 2026 tournament rules sheet, from the tournament organiser.
 - The schedule already published to teams, which independently matches the
   bracket the engine generates round for round.
-- A staging deployment and 177 passing tests (engine 88, API 81, web 8) as of
-  13 August 2026.
+- A staging deployment, and a green suite of 258 tests as of 20 August 2026 —
+  engine 91, API 109, web 58. Ninety-three of the API tests run against a real
+  database and are skipped, not failed, unless `TEST_DATABASE_URL` is set; a
+  test run that reports only 165 has silently not exercised the API.
 - `docs/BUILD-PLAN-2026.md` and `docs/OPEN-QUESTIONS.md` — the live plan and the
   running list of what the director and organiser have not yet answered.
 
@@ -179,8 +210,9 @@ Absent, and never to be fabricated:
   names may ship as if real.
 - Player rosters, results, standings, and any participant data.
 - Testimonials, quotes, attendance figures, fundraising totals, or press.
-- The production domain has been down (502 on `scorescupchicago.games`); do not
-  present a URL as live without checking.
+- The production domain has been down (502 on `scorescupchicago.games`),
+  last confirmed on 13 August 2026 and not verified since. Staging has been the
+  working deployment. Do not present any URL as live without checking it first.
 
 ## Product Principles
 

@@ -329,6 +329,30 @@ window, and two of them deserve real design.
 - **Manual pool seeding, and assigning teams live at a draw party.** The most
   interesting item on the punchlist. Teams currently seed alphabetically. This
   wants to be built properly, not bolted on two weeks out.
+
+  Sharpened 20 Aug, after the director described how the draw actually runs. The
+  ask is not "seed a pool" — it is **draw a team into a position**, against a
+  framework published before the draw: A1 v A2 and A3 v A4 at 9:00, A1 v A3 and
+  A2 v A4 at 10:00. Pull Abbvie out of the hat as A4 and its entire day is
+  settled in front of the room.
+
+  Most of this already exists. `generatePoolFixtures` pairs teams by index in an
+  ordered array and never looks at a name; for a pool of four it emits exactly
+  the six games the traditional framework shows. The alphabetical behaviour comes
+  from a single clause — `array_agg(t.id ORDER BY t.name)` in
+  `scheduleBuilder.ts:126`. What is missing is a position column on `teams`, a UI
+  to assign it during the draw, and the A1–A4 label on screen.
+
+  **The real work is rounds, not positions.** The generator emits by circle
+  distance (A1vA2, A2vA3, A3vA4, A4vA1, A1vA3, A2vA4), so A2 appears in two
+  consecutive fixtures and the scheduler decides the slots by rest and clash
+  packing. A published framework promises a *round* — a perfect matching, both
+  its games at 9:00 — which means emitting rounds rather than distances and
+  pinning them to slots. That is a change to generation, which is why it is here
+  and not in a tier before the freeze.
+
+  Scope it to even pools. Community's 11 teams playing 2 games each has no A1–A4
+  framework to publish, so this is per-pool, not event-wide.
 - **Scheduled messages.** Needs something running reliably in the background —
   a bigger piece than it appears.
 - **Pool A/B desktop scrollbar.** Revisit after the cards column lands; the
