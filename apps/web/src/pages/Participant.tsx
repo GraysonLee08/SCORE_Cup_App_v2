@@ -10,6 +10,7 @@ import FixtureList from '../components/FixtureList.js';
 import StandingsTable from '../components/StandingsTable.js';
 import Bracket from '../components/Bracket.js';
 import ProfileForm from '../components/ProfileForm.js';
+import JoinTeam from '../components/JoinTeam.js';
 import AppHeader from '../components/AppHeader.js';
 
 type Tab = 'team' | 'standings' | 'roster' | 'profile';
@@ -103,12 +104,22 @@ export default function Participant({
 
       <div className="content">
         {error && (
-          <div className="notice error" role="alert">
-            {error}
-            <div style={{ marginTop: '.5rem' }}>
-              <a href="/">See the full tournament instead →</a>
+          <>
+            <div className="notice error" role="alert">
+              {error}
+              <div style={{ marginTop: '.5rem' }}>
+                <a href="/">See the full tournament instead →</a>
+              </div>
             </div>
-          </div>
+            {/* Somewhere to go from here. Without this the page states the
+                problem and offers nothing that solves it. */}
+            <JoinTeam
+              onJoined={() => {
+                void load();
+                void loadProfile();
+              }}
+            />
+          </>
         )}
 
         {missing.length > 0 && tab !== 'profile' && (

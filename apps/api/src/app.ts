@@ -7,6 +7,7 @@ import { errorHandler, rejectDisabled } from './auth/middleware.js';
 import { authRoutes } from './routes/auth.js';
 import { teamRoutes } from './routes/teams.js';
 import { registrationRoutes } from './routes/registration.js';
+import { joinRoutes } from './routes/join.js';
 import { rosterRoutes } from './routes/roster.js';
 import { eventRoutes } from './routes/events.js';
 import { setupRoutes } from './routes/setup.js';
@@ -119,6 +120,7 @@ export function createApp(config: Config, db: Db): Express {
   mount('/api/auth', authRoutes(db));
   mount('/api/teams', teamRoutes(db));
   mount('/api/register', registrationRoutes(db));
+  mount('/api/join', joinRoutes(db));
   mount('/api/rosters', rosterRoutes(db));
   mount('/api/events', eventRoutes(db));
   mount('/api/setup', setupRoutes(db));
