@@ -34,7 +34,10 @@
       "Bash(docker build:*)",
       "Bash(mv:*)",
       "Skill(impeccable)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(npm test *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

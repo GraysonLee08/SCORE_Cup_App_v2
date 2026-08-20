@@ -25,6 +25,13 @@ export default function Participant({
   const [division, setDivision] = useState<PublicDivision | null>(null);
   const [profile, setProfile] = useState<ParticipantProfile | null>(null);
   const [missing, setMissing] = useState<string[]>([]);
+  /**
+   * Whether this account has a player record at all -- null until the answer
+   * is back. Someone who runs a team without playing in it has none, and the
+   * details tab has nothing to show them; three states rather than two, so an
+   * unanswered question does not look like a "no".
+   */
+  const [onTheRoster, setOnTheRoster] = useState<boolean | null>(null);
   const [tab, setTab] = useState<Tab>('team');
   const [error, setError] = useState<string | null>(null);
 
@@ -48,8 +55,12 @@ export default function Participant({
       );
       setProfile(res.profile);
       setMissing(res.missingFields);
+      setOnTheRoster(true);
     } catch {
-      setProfile(null); // coaches have no player row of their own
+      // A coach who does not play has no player row of their own.
+      setProfile(null);
+      setMissing([]);
+      setOnTheRoster(false);
     }
   }, []);
 
@@ -62,6 +73,11 @@ export default function Participant({
     const timer = window.setInterval(() => void load(), 30_000);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  // If the tab goes while it is the one being read, go somewhere that exists.
+  useEffect(() => {
+    if (onTheRoster === false && tab === 'profile') setTab('team');
+  }, [onTheRoster, tab]);
 
   const myFixtures = useMemo(() => {
     if (!division || !me) return [];
@@ -122,7 +138,10 @@ export default function Participant({
               ['team', 'My games'],
               ['standings', 'Standings'],
               ['roster', 'Roster'],
-              ['profile', 'My details'],
+              // Only for someone who is actually on the roster. A tab that
+              // opens on "you have no player record" is a dead end wearing the
+              // costume of a section.
+              ...(onTheRoster ? ([['profile', 'My details']] as const) : []),
             ] as const
           ).map(([key, label]) => (
             <button
@@ -196,7 +215,7 @@ export default function Participant({
           </section>
         )}
 
-        {tab === 'profile' && (
+        {tab === 'profile' && profile && (
           <ProfileForm
             profile={profile}
             missing={missing}

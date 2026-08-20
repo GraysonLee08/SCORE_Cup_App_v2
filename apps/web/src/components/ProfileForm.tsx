@@ -28,7 +28,7 @@ export default function ProfileForm({
   missing,
   onSaved,
 }: {
-  profile: ParticipantProfile | null;
+  profile: ParticipantProfile;
   missing: string[];
   onSaved: () => void;
 }) {
@@ -38,7 +38,6 @@ export default function ProfileForm({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!profile) return;
     const initial: Record<string, string> = {};
     for (const field of FIELDS) {
       const value = profile[field.key];
@@ -47,18 +46,6 @@ export default function ProfileForm({
     setDraft(initial);
     setPrior(profile.priorParticipation ?? null);
   }, [profile]);
-
-  if (!profile) {
-    return (
-      <section className="card">
-        <h2>My details</h2>
-        <p className="muted">
-          You do not have a player record — coaches manage the roster rather than appearing on
-          it.
-        </p>
-      </section>
-    );
-  }
 
   async function save(event: FormEvent) {
     event.preventDefault();
