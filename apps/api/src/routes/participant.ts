@@ -93,7 +93,18 @@ export function participantRoutes(db: Db): Router {
       [team.event_id, team.team_id, team.division_id],
     );
 
+    // Whether this person may change the roster, answered the same way the
+    // roster routes answer it. Not isCoach, which only says they have no
+    // player row of their own -- a captain who runs the team and plays in it
+    // has one, and may still edit.
+    const { rowCount: owns } = await db.query(
+      'SELECT 1 FROM teams WHERE id = $1 AND coach_user_id = $2',
+      [team.team_id, userId],
+    );
+    const canEditRoster = req.session.user!.role === 'admin' || (owns ?? 0) > 0;
+
     res.json({
+      canEditRoster,
       team: { id: team.team_id, name: team.team_name },
       division: { id: team.division_id, name: team.division_name },
       eventId: team.event_id,

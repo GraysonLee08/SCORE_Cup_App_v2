@@ -128,6 +128,8 @@ export interface MyTeam {
   division: { id: string; name: string };
   eventId: string;
   isCoach: boolean;
+  /** True when this person may add, edit and remove players on this roster. */
+  canEditRoster: boolean;
   teammates: {
     id: string;
     firstName: string;

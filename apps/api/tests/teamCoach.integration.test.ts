@@ -200,6 +200,19 @@ suite('putting someone in charge of a team', () => {
     expect(res.status).toBe(200);
   });
 
+  /**
+   * The flag the roster screen switches on. Not isCoach, which only reports
+   * having no player row -- a captain who runs the team and plays in it has
+   * one, and would have been shown a read-only list of their own roster.
+   */
+  it('tells the team page that this person may change the roster', async () => {
+    await client.loginAs(CAPTAIN_EMAIL, CAPTAIN_PW);
+    const me = await client.get('/api/participant/me');
+
+    expect(me.body.canEditRoster).toBe(true);
+    expect(me.body.isCoach).toBe(false);
+  });
+
   it('will not hand one person a second team they could never reach', async () => {
     await client.loginAs('admin@example.com', ADMIN_PW);
     const res = await client.put(`/api/teams/${otherTeamId}/coach`, { userId: captainId });

@@ -11,6 +11,7 @@ import StandingsTable from '../components/StandingsTable.js';
 import Bracket from '../components/Bracket.js';
 import ProfileForm from '../components/ProfileForm.js';
 import JoinTeam from '../components/JoinTeam.js';
+import RosterEditor from '../components/RosterEditor.js';
 import AppHeader from '../components/AppHeader.js';
 
 type Tab = 'team' | 'standings' | 'roster' | 'profile';
@@ -224,6 +225,10 @@ export default function Participant({
               <p className="muted">No one on the roster yet.</p>
             )}
           </section>
+        )}
+
+        {tab === 'roster' && me?.canEditRoster && (
+          <RosterEditor team={me} onChanged={load} />
         )}
 
         {tab === 'profile' && profile && (
